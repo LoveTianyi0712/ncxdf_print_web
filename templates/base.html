@@ -16,6 +16,12 @@
             min-height: calc(100vh - 56px);
             padding: 20px 15px;
         }
+        
+        .sidebar .nav {
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 96px);
+        }
         .content {
             padding: 20px;
         }
@@ -205,6 +211,16 @@
                         <i class="fas fa-user-plus"></i>创建用户
                     </a>
                     {% endif %}
+                    
+                    <!-- 技术支持链接 - 放在底部不显眼位置 -->
+                    <div class="mt-auto pt-4">
+                        <hr class="border-secondary">
+                        <a class="nav-link {{ 'active' if request.endpoint == 'tech_support' }}" 
+                           href="{{ url_for('tech_support') }}" 
+                           style="font-size: 0.85rem; opacity: 0.7;">
+                            <i class="fas fa-life-ring"></i>技术支持
+                        </a>
+                    </div>
                 </nav>
             </div>
             

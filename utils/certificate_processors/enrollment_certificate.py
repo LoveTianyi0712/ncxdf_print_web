@@ -12,6 +12,7 @@ import base64
 from datetime import datetime
 from PIL import Image, ImageDraw, ImageFont
 import io
+from ..time_utils import get_beijing_time_str, get_beijing_timestamp
 
 class EnrollmentCertificateProcessor:
     """班级凭证处理器"""
@@ -78,12 +79,12 @@ class EnrollmentCertificateProcessor:
         processed_data.setdefault('sSeatNo', '')
         processed_data.setdefault('dtBeginDate', '')
         processed_data.setdefault('dtEndDate', '')
-        processed_data.setdefault('sRegisterTime', datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+        processed_data.setdefault('sRegisterTime', get_beijing_time_str())
         processed_data.setdefault('sPrintAddress', '')
-        processed_data.setdefault('sPrintTime', datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+        processed_data.setdefault('sPrintTime', get_beijing_time_str())
         processed_data.setdefault('nTryLesson', '0')
         processed_data.setdefault('sOperator', '系统')
-        processed_data.setdefault('dtCreate', datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+        processed_data.setdefault('dtCreate', get_beijing_time_str())
         
         # 处理图像数据字段
         processed_data.setdefault('RWMImage', '')
@@ -413,7 +414,7 @@ class EnrollmentCertificateProcessor:
     
     def _save_certificate(self, image, data):
         """保存凭证文件"""
-        timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
+        timestamp = get_beijing_timestamp()
         filename = f"班级凭证_{timestamp}.png"
         output_path = os.path.join(self.output_dir, filename)
         

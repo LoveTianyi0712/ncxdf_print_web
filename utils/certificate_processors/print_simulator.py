@@ -10,6 +10,7 @@ import xml.etree.ElementTree as ET
 from datetime import datetime
 from PIL import Image, ImageDraw, ImageFont
 import io
+from ..time_utils import get_beijing_time_str, get_beijing_timestamp
 
 # 模板映射表 - 根据BizType映射到对应的.mrt文件
 TEMPLATE_MAPPING = {
@@ -691,7 +692,7 @@ class ProofPrintSimulator:
         image = self._create_print_preview_from_template(data, mrt_parser, currency_symbol)
 
         # 保存图像到文件
-        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+        timestamp = get_beijing_timestamp()
         filename = f"{data.get('sProofName', '打印凭证')}_{timestamp}.png"
         output_path = os.path.join(self.output_dir, filename)
         # 使用高质量保存设置
@@ -993,7 +994,7 @@ class ProofPrintSimulator:
             # 页脚位置也需要适应高分辨率和居中偏移
             footer_x = width - 400 + center_offset_x  # 调整位置
             footer_y = height - 50 + center_offset_y   # 调整位置
-            draw.text((footer_x, footer_y), f"打印时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", fill='black', font=footer_font)
+            draw.text((footer_x, footer_y), f"打印时间: {get_beijing_time_str()}", fill='black', font=footer_font)
 
         # 不再添加页码显示
         # 删除添加"第1页"的代码

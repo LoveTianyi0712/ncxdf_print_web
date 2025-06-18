@@ -16,6 +16,7 @@ from utils import (
     print_certificate_by_biz_type,
     get_available_certificates
 )
+from utils.time_utils import get_beijing_time_str, get_beijing_timestamp, get_beijing_datetime
 # 新的凭证管理器
 from utils.certificate_manager import (
     generate_certificate_by_type,
@@ -48,7 +49,7 @@ class User(UserMixin, db.Model):
     password_hash = db.Column(db.String(120), nullable=False)
     role = db.Column(db.String(20), nullable=False, default='user')  # 'admin' or 'user'
     is_enabled = db.Column(db.Boolean, default=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=get_beijing_datetime)
     created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     
     print_logs = db.relationship('PrintLog', backref='user', lazy=True)
@@ -60,7 +61,7 @@ class PrintLog(db.Model):
     student_name = db.Column(db.String(100), nullable=False)
     biz_type = db.Column(db.Integer, nullable=False)
     biz_name = db.Column(db.String(50), nullable=False)
-    print_time = db.Column(db.DateTime, default=datetime.utcnow)
+    print_time = db.Column(db.DateTime, default=get_beijing_datetime)
     print_data = db.Column(db.Text, nullable=False)
     # 新增字段用于列表展示
     detail_info = db.Column(db.String(200), nullable=True)  # 详细信息，如"类型：充值，金额：¥1000.00"
@@ -255,8 +256,8 @@ def search_student():
                         # 时间信息
                         'sRegisterTime': '2024-02-15 10:30:00 报名成功，欢迎参加南昌学校高中数学春季班学习！',
                         'sPrintAddress': '南昌市红谷滩新区学府大道1号南昌学校',
-                        'sPrintTime': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                        'dtCreate': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                        'sPrintTime': get_beijing_time_str(),
+                        'dtCreate': get_beijing_time_str(),
                         
                         # 费用信息
                         'dFee': 3800.00,           # 商品标准金额
@@ -291,7 +292,7 @@ def search_student():
                         'sProofName': '充值凭证',
                         'sBizType': '充值',
                         'dSumBalance': '25000.00',
-                        'dtCreateDate': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                        'dtCreateDate': get_beijing_time_str(),
                         'sTelePhone': '400-175-9898',
                         'Title': '充值凭证'
                     }
@@ -310,7 +311,7 @@ def search_student():
                         'sProofName': '提现凭证',
                         'sBizType': '提现',
                         'dSumBalance': '17000.00',
-                        'dtCreateDate': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                        'dtCreateDate': get_beijing_time_str(),
                         'sTelePhone': '400-175-9898',
                         'Title': '提现凭证'
                     }
@@ -331,8 +332,8 @@ def search_student():
                         'Title': '退费凭证',
                         'sBizType': '退费',
                         'sOperator': current_user.username,
-                        'dtCreate': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                        'dtCreateDate': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                        'dtCreate': get_beijing_time_str(),
+                        'dtCreateDate': get_beijing_time_str(),
                         
                         # 学员信息
                         'sStudentName': '王小强',
@@ -368,7 +369,7 @@ def search_student():
                         "sSchoolName": "南昌学校",
                         "sTelePhone": "400-175-9898",
                         "sOperator": current_user.username,
-                        "dtCreate": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        "dtCreate": get_beijing_time_str(),
                         "Title": "提现凭证",
                         "PrintNumber": 1,
                         "YNVIEWPrint": 1,
@@ -400,7 +401,7 @@ def search_student():
                         "sSchoolName": "南昌学校",
                         "sTelePhone": "400-175-9898",
                         "sOperator": current_user.username,
-                        "dtCreate": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        "dtCreate": get_beijing_time_str(),
                         "Title": "提现凭证",
                         "PrintNumber": 1,
                         "YNVIEWPrint": 1,
@@ -580,51 +581,39 @@ def print_logs():
 @app.route('/change_password', methods=['GET', 'POST'])
 @login_required
 def change_password():
-    """修改密码"""
     if request.method == 'POST':
-        current_password = request.form.get('current_password')
-        new_password = request.form.get('new_password')
-        confirm_password = request.form.get('confirm_password')
-        
-        # 验证输入
-        if not current_password or not new_password or not confirm_password:
-            flash('所有字段都是必填的', 'error')
-            return render_template('change_password.html')
+        current_password = request.form['current_password']
+        new_password = request.form['new_password']
+        confirm_password = request.form['confirm_password']
         
         # 验证当前密码
         if not check_password_hash(current_user.password_hash, current_password):
-            flash('当前密码不正确', 'error')
+            flash('当前密码错误', 'error') 
             return render_template('change_password.html')
         
-        # 验证新密码长度
+        # 验证新密码
         if len(new_password) < 6:
             flash('新密码长度至少6位', 'error')
             return render_template('change_password.html')
         
-        # 验证密码确认
         if new_password != confirm_password:
-            flash('新密码和确认密码不匹配', 'error')
+            flash('两次输入的新密码不一致', 'error')
             return render_template('change_password.html')
         
-        # 检查新密码是否与当前密码相同
-        if check_password_hash(current_user.password_hash, new_password):
-            flash('新密码不能与当前密码相同', 'error')
-            return render_template('change_password.html')
+        # 更新密码
+        current_user.password_hash = generate_password_hash(new_password)
+        db.session.commit()
         
-        try:
-            # 更新密码
-            current_user.password_hash = generate_password_hash(new_password)
-            db.session.commit()
-            
-            flash('密码修改成功！', 'success')
-            return redirect(url_for('dashboard'))
-            
-        except Exception as e:
-            db.session.rollback()
-            flash(f'密码修改失败：{str(e)}', 'error')
-            return render_template('change_password.html')
+        flash('密码修改成功', 'success')
+        return redirect(url_for('dashboard'))
     
     return render_template('change_password.html')
+
+@app.route('/tech_support')
+@login_required
+def tech_support():
+    """技术支持页面"""
+    return render_template('tech_support.html')
 
 def _get_certificate_info(biz_type, student_data):
     """根据业务类型和学员数据生成凭证名称和详细信息"""

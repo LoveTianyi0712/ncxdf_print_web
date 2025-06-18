@@ -11,6 +11,7 @@ import base64
 from datetime import datetime
 from PIL import Image, ImageDraw, ImageFont
 import io
+from ..time_utils import get_beijing_time_str, get_beijing_timestamp
 
 class StudentAccountCertificateProcessor:
     """学员账户充值提现凭证处理器"""
@@ -103,8 +104,8 @@ class StudentAccountCertificateProcessor:
         
         # 设置默认值
         processed_data.setdefault('sTelePhone', '400-175-9898')
-        processed_data.setdefault('dtCreate', datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
-        processed_data.setdefault('dtCreateDate', datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+        processed_data.setdefault('dtCreate', get_beijing_time_str())
+        processed_data.setdefault('dtCreateDate', get_beijing_time_str())
         
         # 处理标题
         if 'Title' not in processed_data:
@@ -404,12 +405,12 @@ class StudentAccountCertificateProcessor:
             
             footer_x = width - 400 + center_offset_x
             footer_y = height - 50 + center_offset_y
-            timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            timestamp = get_beijing_time_str()
             draw.text((footer_x, footer_y), f"打印时间: {timestamp}", fill='black', font=footer_font)
     
     def _save_certificate(self, image, data):
         """保存凭证文件"""
-        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+        timestamp = get_beijing_timestamp()
         proof_name = data.get('sProofName', '学员账户凭证')
         
         # 保存图像
