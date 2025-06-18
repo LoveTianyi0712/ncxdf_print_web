@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+
+{% block title %}创建用户 - 南昌新东方凭证打印系统{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">创建用户</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <div class="btn-group me-2">
+            <a href="{{ url_for('users') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i>返回用户列表
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-user-plus me-2"></i>新建用户账号
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="usernames" class="form-label">用户名 <span class="text-danger">*</span></label>
+                                <textarea class="form-control" id="usernames" name="usernames" rows="10" 
+                                          placeholder="每行一个用户名，支持批量创建：&#10;user1&#10;user2&#10;user3" required></textarea>
+                                <div class="form-text">
+                                    <i class="fas fa-info-circle me-1"></i>每行输入一个用户名，支持批量创建
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="passwords" class="form-label">密码 <span class="text-muted">(可选)</span></label>
+                                <textarea class="form-control" id="passwords" name="passwords" rows="10" 
+                                          placeholder="每行一个密码，与用户名对应：&#10;password1&#10;password2&#10;password3"></textarea>
+                                <div class="form-text">
+                                    <i class="fas fa-info-circle me-1"></i>每行一个密码，如果不填写则使用默认密码：123456
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="role" class="form-label">用户角色</label>
+                        <select class="form-select" id="role" name="role">
+                            <option value="user" selected>普通用户</option>
+                            <option value="admin">管理员</option>
+                        </select>
+                        <div class="form-text">
+                            <i class="fas fa-exclamation-triangle text-warning me-1"></i>管理员拥有完整的系统管理权限，请谨慎分配
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <button type="button" class="btn btn-outline-secondary me-md-2" onclick="clearForm()">
+                            <i class="fas fa-eraser me-1"></i>清空
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-user-plus me-1"></i>创建用户
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-info-circle me-2"></i>创建说明
+                </h5>
+            </div>
+            <div class="card-body">
+                <h6 class="text-primary">批量创建</h6>
+                <ul class="list-unstyled mb-3">
+                    <li><i class="fas fa-check text-success me-2"></i>支持一次创建多个用户</li>
+                    <li><i class="fas fa-check text-success me-2"></i>用户名和密码按行对应</li>
+                    <li><i class="fas fa-check text-success me-2"></i>重复用户名将被跳过</li>
+                </ul>
+                
+                <h6 class="text-info">默认设置</h6>
+                <ul class="list-unstyled mb-3">
+                    <li><i class="fas fa-key text-warning me-2"></i>默认密码：123456</li>
+                    <li><i class="fas fa-check-circle text-success me-2"></i>默认状态：启用</li>
+                    <li><i class="fas fa-user text-primary me-2"></i>默认角色：普通用户</li>
+                </ul>
+                
+                <h6 class="text-warning">注意事项</h6>
+                <ul class="list-unstyled">
+                    <li><i class="fas fa-exclamation-triangle text-warning me-2"></i>请妥善保管账号信息</li>
+                    <li><i class="fas fa-shield-alt text-danger me-2"></i>管理员权限需谨慎分配</li>
+                    <li><i class="fas fa-users text-info me-2"></i>建议定期检查用户状态</li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- 快速模板 -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-magic me-2"></i>快速模板
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="fillTemplate('student')">
+                        <i class="fas fa-graduation-cap me-1"></i>学员账号模板
+                    </button>
+                    <button type="button" class="btn btn-outline-success btn-sm" onclick="fillTemplate('teacher')">
+                        <i class="fas fa-chalkboard-teacher me-1"></i>教师账号模板
+                    </button>
+                    <button type="button" class="btn btn-outline-info btn-sm" onclick="fillTemplate('staff')">
+                        <i class="fas fa-user-tie me-1"></i>员工账号模板
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// 清空表单
+function clearForm() {
+    document.getElementById('usernames').value = '';
+    document.getElementById('passwords').value = '';
+    document.getElementById('role').value = 'user';
+}
+
+// 填充模板
+function fillTemplate(type) {
+    const usernamesField = document.getElementById('usernames');
+    const passwordsField = document.getElementById('passwords');
+    
+    let usernames = '';
+    let passwords = '';
+    
+    switch(type) {
+        case 'student':
+            usernames = 'student001\nstudent002\nstudent003\nstudent004\nstudent005';
+            passwords = '123456\n123456\n123456\n123456\n123456';
+            break;
+        case 'teacher':
+            usernames = 'teacher001\nteacher002\nteacher003';
+            passwords = '123456\n123456\n123456';
+            break;
+        case 'staff':
+            usernames = 'staff001\nstaff002\nstaff003';
+            passwords = '123456\n123456\n123456';
+            break;
+    }
+    
+    usernamesField.value = usernames;
+    passwordsField.value = passwords;
+    
+    // 添加视觉反馈
+    usernamesField.style.backgroundColor = '#e3f2fd';
+    passwordsField.style.backgroundColor = '#e3f2fd';
+    
+    setTimeout(() => {
+        usernamesField.style.backgroundColor = '';
+        passwordsField.style.backgroundColor = '';
+    }, 1000);
+}
+
+// 实时统计用户数量
+document.getElementById('usernames').addEventListener('input', function() {
+    const lines = this.value.split('\n').filter(line => line.trim() !== '');
+    const count = lines.length;
+    
+    // 可以在这里添加用户数量显示
+    console.log(`将创建 ${count} 个用户`);
+});
+</script>
+{% endblock %} 

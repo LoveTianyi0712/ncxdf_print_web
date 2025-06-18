@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+
+{% block title %}用户管理 - 南昌新东方凭证打印系统{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">用户管理</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <div class="btn-group me-2">
+            <a href="{{ url_for('create_user') }}" class="btn btn-primary">
+                <i class="fas fa-user-plus me-1"></i>创建用户
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title mb-0">
+            <i class="fas fa-users me-2"></i>用户列表
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>用户名</th>
+                        <th>角色</th>
+                        <th>状态</th>
+                        <th>创建时间</th>
+                        <th>创建者</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr>
+                        <td>{{ user.id }}</td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="user-avatar me-2" style="width: 24px; height: 24px; font-size: 12px;">
+                                    {{ user.username[0].upper() }}
+                                </div>
+                                {{ user.username }}
+                            </div>
+                        </td>
+                        <td>
+                            {% if user.role == 'admin' %}
+                            <span class="badge bg-warning">管理员</span>
+                            {% else %}
+                            <span class="badge bg-primary">普通用户</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if user.is_enabled %}
+                            <span class="badge bg-success">启用</span>
+                            {% else %}
+                            <span class="badge bg-danger">禁用</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <small>{{ user.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</small>
+                        </td>
+                        <td>
+                            {% if user.created_by %}
+                            <small class="text-muted">
+                                {% for creator in users %}
+                                    {% if creator.id == user.created_by %}
+                                        {{ creator.username }}
+                                    {% endif %}
+                                {% endfor %}
+                            </small>
+                            {% else %}
+                            <small class="text-muted">系统</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if user.id != current_user.id %}
+                            <a href="{{ url_for('toggle_user', user_id=user.id) }}" 
+                               class="btn btn-sm {% if user.is_enabled %}btn-outline-danger{% else %}btn-outline-success{% endif %}"
+                               onclick="return confirm('确定要{% if user.is_enabled %}禁用{% else %}启用{% endif %}用户 {{ user.username }} 吗？')">
+                                {% if user.is_enabled %}
+                                <i class="fas fa-ban me-1"></i>禁用
+                                {% else %}
+                                <i class="fas fa-check me-1"></i>启用
+                                {% endif %}
+                            </a>
+                            {% else %}
+                            <span class="text-muted">当前用户</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        {% if users|length == 0 %}
+        <div class="text-center py-4">
+            <i class="fas fa-users fa-3x text-muted mb-3"></i>
+            <p class="text-muted">暂无用户数据</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 统计信息 -->
+<div class="row mt-4">
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title text-primary">{{ users|length }}</h5>
+                <p class="card-text">总用户数</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title text-success">{{ users|selectattr('is_enabled')|list|length }}</h5>
+                <p class="card-text">活跃用户</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title text-warning">{{ users|selectattr('role', 'equalto', 'admin')|list|length }}</h5>
+                <p class="card-text">管理员</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title text-info">{{ users|selectattr('role', 'equalto', 'user')|list|length }}</h5>
+                <p class="card-text">普通用户</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
