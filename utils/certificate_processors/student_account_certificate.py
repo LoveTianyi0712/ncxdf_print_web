@@ -57,20 +57,38 @@ class StudentAccountCertificateProcessor:
         if 'dSumBalance' in processed_data:
             balance = processed_data['dSumBalance']
             if not balance.startswith('余额：'):
-                processed_data['dSumBalance'] = f"余额：{balance}"
+                # 尝试格式化数字加逗号
+                formatted_balance = self._format_currency(balance)
+                processed_data['dSumBalance'] = f"余额：{formatted_balance}"
+            else:
+                # 如果已经有"余额："前缀，则提取数值部分格式化
+                balance_value = balance.replace('余额：', '').strip()
+                formatted_balance = self._format_currency(balance_value)
+                processed_data['dSumBalance'] = f"余额：{formatted_balance}"
         
         # 处理金额信息格式
         if 'sPay' in processed_data:
             pay_info = processed_data['sPay']
             # 确保金额格式正确
             if '充值金额' in pay_info or '提现金额' in pay_info:
-                processed_data['sPay'] = pay_info
+                # 提取金额部分并格式化
+                if '充值金额：' in pay_info:
+                    amount_str = pay_info.replace('充值金额：', '').strip()
+                    formatted_amount = self._format_currency(amount_str)
+                    processed_data['sPay'] = f"充值金额：{formatted_amount}"
+                elif '提现金额：' in pay_info:
+                    amount_str = pay_info.replace('提现金额：', '').strip()
+                    formatted_amount = self._format_currency(amount_str)
+                    processed_data['sPay'] = f"提现金额：{formatted_amount}"
+                else:
+                    processed_data['sPay'] = pay_info
             else:
                 # 根据业务类型判断是充值还是提现
+                formatted_amount = self._format_currency(pay_info)
                 if '充值' in processed_data.get('sBizType', ''):
-                    processed_data['sPay'] = f"充值金额：{pay_info}"
+                    processed_data['sPay'] = f"充值金额：{formatted_amount}"
                 elif '提现' in processed_data.get('sBizType', ''):
-                    processed_data['sPay'] = f"提现金额：{pay_info}"
+                    processed_data['sPay'] = f"提现金额：{formatted_amount}"
         
         # 处理支付方式
         if 'sPayType' in processed_data:
@@ -98,6 +116,22 @@ class StudentAccountCertificateProcessor:
                 processed_data['Title'] = '学员账户凭证'
         
         return processed_data
+    
+    def _format_currency(self, amount_str):
+        """格式化金额，添加逗号分隔符"""
+        try:
+            # 移除可能存在的货币符号和空格
+            clean_str = str(amount_str).replace('¥', '').replace('￥', '').replace(',', '').strip()
+            
+            # 尝试转换为浮点数
+            amount = float(clean_str)
+            
+            # 格式化为带逗号的货币格式
+            formatted = f"¥{amount:,.2f}"
+            return formatted
+        except (ValueError, TypeError):
+            # 如果转换失败，返回原始字符串
+            return str(amount_str)
     
     def parse_template(self):
         """解析充值提现凭证模板"""
@@ -413,8 +447,8 @@ if __name__ == "__main__":
         "sStudentCode": "NC6080119764",
         "sStudentName": "测试学员",
         "sGender": "男",
-        "sPay": "提现金额：¥1500.00",
-        "dSumBalance": "余额：¥500.00",
+        "sPay": "提现金额：¥15000.00",
+        "dSumBalance": "余额：¥50000.00",
         "sPayType": "提现方式：银行卡",
         "dtCreateDate": "2024-12-23 17:30:00",
         "sProofName": "提现凭证",
