@@ -4,7 +4,7 @@ Utils package for 南昌新东方凭证打印系统
 支持多种凭证类型的通用打印系统
 """
 
-from .print_simulator import (
+from utils.certificate_processors.print_simulator import (
     ProofPrintSimulator, 
     TEMPLATE_MAPPING,
     CERTIFICATE_TYPES,

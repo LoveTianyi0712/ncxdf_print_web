@@ -6,7 +6,6 @@
 """
 
 import os
-from datetime import datetime
 
 # 凭证类型映射表
 CERTIFICATE_MAPPING = {
@@ -89,9 +88,13 @@ class CertificateManager:
     
     def _generate_enrollment_certificate(self, data, currency_symbol):
         """生成报班凭证"""
-        # TODO: 实现报班凭证处理器
-        print("报班凭证处理器尚未实现，使用回退方法")
-        return self._fallback_generate(1, data, currency_symbol)
+        try:
+            from utils.certificate_processors.enrollment_certificate import generate_enrollment_certificate
+            return generate_enrollment_certificate(data, currency_symbol)
+        except ImportError as e:
+            print(f"导入报班凭证处理器失败: {str(e)}")
+            # 回退到旧的方法
+            return self._fallback_generate(1, data, currency_symbol)
     
     def _generate_withdrawal_certificate(self, data, currency_symbol):
         """生成退班凭证"""
@@ -108,7 +111,7 @@ class CertificateManager:
     def _fallback_generate(self, biz_type, data, currency_symbol):
         """回退到原始的print_simulator方法"""
         try:
-            from utils.print_simulator import print_certificate_by_biz_type
+            from utils.certificate_processors.print_simulator import print_certificate_by_biz_type
             return print_certificate_by_biz_type(biz_type, data, currency_symbol)
         except Exception as e:
             print(f"回退方法也失败了: {str(e)}")

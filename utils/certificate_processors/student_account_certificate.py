@@ -8,7 +8,6 @@
 import json
 import os
 import base64
-import xml.etree.ElementTree as ET
 from datetime import datetime
 from PIL import Image, ImageDraw, ImageFont
 import io
@@ -107,7 +106,7 @@ class StudentAccountCertificateProcessor:
         if not os.path.exists(template_path):
             raise FileNotFoundError(f"模板文件不存在: {template_path}")
         
-        from utils.print_simulator import MrtParser
+        from utils.certificate_processors.print_simulator import MrtParser
         return MrtParser(template_path)
     
     def generate_certificate(self, data, currency_symbol="¥"):

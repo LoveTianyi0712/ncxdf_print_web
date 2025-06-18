@@ -9,7 +9,14 @@ from .student_account_certificate import (
     generate_student_account_certificate
 )
 
+from .enrollment_certificate import (
+    EnrollmentCertificateProcessor,
+    generate_enrollment_certificate
+)
+
 __all__ = [
     'StudentAccountCertificateProcessor',
-    'generate_student_account_certificate'
+    'generate_student_account_certificate',
+    'EnrollmentCertificateProcessor',
+    'generate_enrollment_certificate'
 ] 

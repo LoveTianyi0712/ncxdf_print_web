@@ -501,7 +501,8 @@ class MrtParser:
 class ProofPrintSimulator:
     def __init__(self):
         # 获取项目根目录，用于访问模板文件
-        self.base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # 上一级目录
+        # print_simulator.py -> certificate_processors -> utils -> project_root
+        self.base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         self.template_dir = os.path.join(self.base_dir, "properties")
         self.output_dir = os.path.join(self.base_dir, "image")  # 输出到image目录
         
