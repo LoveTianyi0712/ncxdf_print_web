@@ -9,6 +9,7 @@ import os
 
 # 凭证类型映射表
 CERTIFICATE_MAPPING = {
+    # 传统凭证类型（保持原有）
     1: {
         'name': '报班凭证',
         'template': '报班凭证.mrt',
@@ -27,7 +28,29 @@ CERTIFICATE_MAPPING = {
     8: {
         'name': '退费凭证',
         'template': '退费凭证.mrt', 
-        'processor': 'refund_certificate'
+        'processor': 'refund_fee_certificate'
+    },
+    
+    # 新架构凭证类型
+    101: {
+        'name': '班级凭证（报班凭证）',
+        'template': '班级凭证.mrt',
+        'processor': 'enrollment_certificate'
+    },
+    102: {
+        'name': '学员账户充值凭证',
+        'template': '学员账户充值提现凭证.mrt',
+        'processor': 'student_account_certificate'
+    },
+    103: {
+        'name': '学员账户提现凭证',
+        'template': '学员账户充值提现凭证.mrt',
+        'processor': 'student_account_certificate'
+    },
+    104: {
+        'name': '退费凭证',
+        'template': '退费凭证.mrt',
+        'processor': 'refund_fee_certificate'
     }
 }
 
@@ -71,8 +94,8 @@ class CertificateManager:
             return self._generate_enrollment_certificate(data, currency_symbol)
         elif processor_name == 'withdrawal_certificate':
             return self._generate_withdrawal_certificate(data, currency_symbol)
-        elif processor_name == 'refund_certificate':
-            return self._generate_refund_certificate(data, currency_symbol)
+        elif processor_name == 'refund_fee_certificate':
+            return self._generate_refund_fee_certificate(data, currency_symbol)
         else:
             raise ValueError(f"未实现的处理器: {processor_name}")
     
@@ -102,11 +125,15 @@ class CertificateManager:
         print("退班凭证处理器尚未实现，使用回退方法")
         return self._fallback_generate(3, data, currency_symbol)
     
-    def _generate_refund_certificate(self, data, currency_symbol):
+    def _generate_refund_fee_certificate(self, data, currency_symbol):
         """生成退费凭证"""
-        # TODO: 实现退费凭证处理器
-        print("退费凭证处理器尚未实现，使用回退方法")
-        return self._fallback_generate(8, data, currency_symbol)
+        try:
+            from utils.certificate_processors.refund_fee_certificate import generate_refund_fee_certificate
+            return generate_refund_fee_certificate(data, currency_symbol)
+        except ImportError as e:
+            print(f"导入退费凭证处理器失败: {str(e)}")
+            # 回退到旧的方法
+            return self._fallback_generate(8, data, currency_symbol)
     
     def _fallback_generate(self, biz_type, data, currency_symbol):
         """回退到原始的print_simulator方法"""

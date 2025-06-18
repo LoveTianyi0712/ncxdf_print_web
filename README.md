@@ -2,6 +2,8 @@
 
 这是一个基于Flask的Web应用程序，用于管理用户权限和打印各种学员凭证。
 
+> 🚀 **新用户？** 查看 [快速开始指南](QUICK_START.md) 快速上手！
+
 ## 功能特性
 
 - 🔐 **用户权限管理**：支持超级管理员和普通用户两种角色
@@ -13,14 +15,30 @@
 
 ## 支持的凭证类型
 
-1. 报班凭证
-2. 转班凭证
-3. 退班凭证
-4. 调课凭证
-5. 班级凭证
-6. 学员账户充值提现凭证
-7. 优惠重算凭证
-8. 退费凭证
+### 🎯 核心凭证处理器（新架构）
+
+1. **学员账户充值提现凭证** - `student_account_certificate.py`
+   - 支持充值和提现业务
+   - 自动货币格式化（¥15,000.00）
+   - 智能余额计算
+
+2. **班级凭证（报班凭证）** - `enrollment_certificate.py`
+   - 完整的班级信息管理
+   - 费用计算和优惠处理
+   - 支持23个模板字段
+
+3. **退费凭证** - `refund_fee_certificate.py`
+   - 退费金额自动格式化
+   - 余额更新和记录
+   - 支持多种退费方式
+
+### 📋 传统凭证类型（兼容模式）
+
+4. 报班凭证
+5. 转班凭证
+6. 退班凭证
+7. 调课凭证
+8. 优惠重算凭证
 9. 高端报班凭证
 
 ## 系统要求
@@ -93,7 +111,14 @@ python run.py
 start_mysql.bat
 ```
 
-### 5. 访问系统
+### 5. 生成测试数据（可选）
+
+```bash
+# 生成新架构凭证处理器的测试数据
+python scripts/generate_test_certificates.py
+```
+
+### 6. 访问系统
 
 在浏览器中打开：http://localhost:5000
 
@@ -158,8 +183,35 @@ start_mysql.bat
 
 系统预置了以下测试数据：
 
+### 🎯 新架构凭证测试数据
+- **NC2024001**：张小明（班级凭证测试）
+- **NC2024002**：李小红（学员账户凭证测试）
+- **NC2024003**：王小强（退费凭证测试）
+
+### 📋 传统凭证测试数据
 - **NC6080119755**：王淳懿（有多种凭证）
 - **NC6080119756**：张三（有报班凭证）
+
+## 🏗️ 新架构特性
+
+### 核心凭证处理器
+采用全新的模块化设计，每个凭证类型都有独立的处理器：
+
+- **🎯 专业化设计**：每个处理器专门针对特定凭证类型优化
+- **💰 智能格式化**：自动处理货币格式（¥15,000.00）
+- **🎨 字体优化**：统一的字体放大逻辑（font_size * 2.7）
+- **🔧 模板解析**：高效的MRT模板解析器
+- **📊 数据验证**：完整的字段验证和默认值处理
+- **🖼️ 图像渲染**：支持图像、线条、文本等所有组件类型
+
+### 处理器架构
+```
+utils/certificate_processors/
+├── student_account_certificate.py  # 学员账户凭证
+├── enrollment_certificate.py       # 班级凭证
+├── refund_fee_certificate.py       # 退费凭证
+└── print_simulator.py             # 通用模板解析器
+```
 
 ## 技术架构
 
@@ -180,8 +232,18 @@ start_mysql.bat
 ├── database_setup.py      # 数据库初始化脚本
 ├── env.example           # 环境变量示例
 ├── start_mysql.bat       # MySQL启动脚本
+├── scripts/              # 脚本工具目录
+│   ├── generate_test_certificates.py # 测试数据生成脚本
+│   └── test_web_integration.py       # Web集成测试脚本
 ├── utils/                 # 工具模块目录
-│   └── print_simulator.py # 打印处理模块
+│   ├── __init__.py       # 模块初始化
+│   ├── certificate_manager.py # 凭证管理器
+│   └── certificate_processors/ # 凭证处理器目录
+│       ├── __init__.py
+│       ├── student_account_certificate.py # 学员账户凭证
+│       ├── enrollment_certificate.py      # 班级凭证
+│       ├── refund_fee_certificate.py      # 退费凭证
+│       └── print_simulator.py             # 模板解析器
 ├── requirements.txt       # Python依赖
 ├── templates/            # HTML模板
 ├── static/              # 静态资源（CSS/JS）
@@ -228,6 +290,28 @@ A: 登录后点击右上角用户名下拉菜单中的"修改密码"，或在侧
 ### Q: 忘记密码怎么办？
 A: 普通用户请联系管理员重置密码。管理员忘记密码可联系技术支持重置。
 
+### Q: 如何生成测试数据？
+A: 运行 `python scripts/generate_test_certificates.py` 生成三个核心凭证处理器的测试数据。
+
+### Q: 如何测试Web应用集成？
+A: 运行 `python scripts/test_web_integration.py` 测试所有凭证处理器与Web应用的集成情况。
+
+### Q: 如何在代码中使用新的凭证处理器？
+A: 
+```python
+# 学员账户凭证
+from utils.certificate_processors.student_account_certificate import generate_student_account_certificate
+result = generate_student_account_certificate(data)
+
+# 班级凭证
+from utils.certificate_processors.enrollment_certificate import generate_enrollment_certificate
+result = generate_enrollment_certificate(data)
+
+# 退费凭证
+from utils.certificate_processors.refund_fee_certificate import generate_refund_fee_certificate
+result = generate_refund_fee_certificate(data)
+```
+
 ### Q: 如何添加新的凭证类型？
 A: 需要修改app.py中的TEMPLATE_MAPPING字典，并在properties目录添加对应的.mrt文件。
 
@@ -242,6 +326,16 @@ A: 基于Flask开发模式，建议同时在线用户不超过50人。生产环�
 如有技术问题或功能建议，请联系系统管理员。
 
 ## 更新日志
+
+### v1.1.0 (2025-06-18)
+- ✨ 新增核心凭证处理器架构
+- 🎯 实现学员账户充值提现凭证处理器
+- 🎯 实现班级凭证（报班凭证）处理器
+- 🎯 实现退费凭证处理器
+- 💰 自动货币格式化（¥15,000.00）
+- 🎨 优化字体渲染和加粗效果
+- 🔧 改进模板解析器性能
+- 🌈 更新Web界面主题色为绿色(#287042)
 
 ### v1.0.0 (2025-06-18)
 - 初始版本发布

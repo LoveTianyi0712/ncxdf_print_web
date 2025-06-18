@@ -222,6 +222,133 @@ def search_student():
     
     # 模拟数据 - 后续需要替换为实际的数据库查询
     mock_data = {
+        # 新架构凭证测试数据
+        'NC2024001': {
+            'student_name': '张小明',
+            'gender': '男',
+            'reports': [
+                {
+                    'biz_type': 101,  # 班级凭证
+                    'biz_name': '班级凭证（报班凭证）',
+                    'data': {
+                        # 基本信息
+                        'sSchoolName': '南昌学校',
+                        'sTelePhone': '400-175-9898',
+                        'sChannel': '直营',
+                        
+                        # 学员信息
+                        'sStudentName': '张小明',
+                        'sStudentCode': 'NC2024001',
+                        'sGender': '男',
+                        'sCardCode': 'CARD001234',
+                        
+                        # 班级信息
+                        'sClassName': '高中数学春季班',
+                        'sClassCode': 'MATH2024SP001',
+                        'sSeatNo': 'A015',
+                        'dtBeginDate': '2024-03-01',
+                        'dtEndDate': '2024-06-30',
+                        'nTryLesson': '2节',
+                        
+                        # 时间信息
+                        'sRegisterTime': '2024-02-15 10:30:00 报名成功，欢迎参加南昌学校高中数学春季班学习！',
+                        'sPrintAddress': '南昌市红谷滩新区学府大道1号南昌学校',
+                        'sPrintTime': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                        'dtCreate': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                        
+                        # 费用信息
+                        'dFee': 3800.00,           # 商品标准金额
+                        'dVoucherFee': 300.00,     # 商品优惠金额
+                        'dShouldFee': 3800.00,     # 商品应收金额
+                        'dRealFee': 3500.00,       # 商品实收金额
+                        
+                        # 操作信息
+                        'sOperator': current_user.username,
+                        
+                        # 图像数据（可选）
+                        'RWMImage': ''
+                    }
+                }
+            ]
+        },
+        'NC2024002': {
+            'student_name': '李小红',
+            'gender': '女',
+            'reports': [
+                {
+                    'biz_type': 102,  # 学员账户凭证 - 充值
+                    'biz_name': '学员账户充值凭证',
+                    'data': {
+                        'nSchoolId': '001',
+                        'sSchoolName': '南昌学校',
+                        'sOperator': current_user.username,
+                        'sStudentCode': 'NC2024002',
+                        'sStudentName': '李小红',
+                        'sPay': '15000.00',
+                        'sPayType': '支付宝',
+                        'sProofName': '充值凭证',
+                        'sBizType': '充值',
+                        'dSumBalance': '25000.00',
+                        'dtCreateDate': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                        'sTelePhone': '400-175-9898',
+                        'Title': '充值凭证'
+                    }
+                },
+                {
+                    'biz_type': 103,  # 学员账户凭证 - 提现
+                    'biz_name': '学员账户提现凭证',
+                    'data': {
+                        'nSchoolId': '001',
+                        'sSchoolName': '南昌学校',
+                        'sOperator': current_user.username,
+                        'sStudentCode': 'NC2024002',
+                        'sStudentName': '李小红',
+                        'sPay': '8000.00',
+                        'sPayType': '银行转账',
+                        'sProofName': '提现凭证',
+                        'sBizType': '提现',
+                        'dSumBalance': '17000.00',
+                        'dtCreateDate': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                        'sTelePhone': '400-175-9898',
+                        'Title': '提现凭证'
+                    }
+                }
+            ]
+        },
+        'NC2024003': {
+            'student_name': '王小强',
+            'gender': '男',
+            'reports': [
+                {
+                    'biz_type': 104,  # 退费凭证
+                    'biz_name': '退费凭证',
+                    'data': {
+                        # 基本信息
+                        'sSchoolName': '南昌学校',
+                        'sTelePhone': '400-175-9898',
+                        'Title': '退费凭证',
+                        'sBizType': '退费',
+                        'sOperator': current_user.username,
+                        'dtCreate': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                        'dtCreateDate': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                        
+                        # 学员信息
+                        'sStudentName': '王小强',
+                        'sStudentCode': 'NC2024003',
+                        'sGender': '男',
+                        'sSeatNo': 'B012',
+                        'sRegZoneName': '南昌红谷滩校区',
+                        
+                        # 金额信息
+                        'sPay': '2800.00',              # 退费金额
+                        'sPayType': '银行转账',          # 退费方式
+                        'dSumBalance': '3200.00',       # 余额
+                    }
+                }
+            ]
+        },
+        
+        # 传统凭证测试数据（保持原有）
         'NC6080119755': {
             'student_name': '王淳懿',
             'gender': '未知',
