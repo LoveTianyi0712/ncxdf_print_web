@@ -14,9 +14,16 @@ from .enrollment_certificate import (
     generate_enrollment_certificate
 )
 
+from .refund_fee_certificate import (
+    RefundFeeCertificateProcessor,
+    generate_refund_fee_certificate
+)
+
 __all__ = [
     'StudentAccountCertificateProcessor',
     'generate_student_account_certificate',
     'EnrollmentCertificateProcessor',
-    'generate_enrollment_certificate'
+    'generate_enrollment_certificate',
+    'RefundFeeCertificateProcessor',
+    'generate_refund_fee_certificate'
 ] 
