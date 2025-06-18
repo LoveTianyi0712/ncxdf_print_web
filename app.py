@@ -16,6 +16,11 @@ from utils import (
     print_certificate_by_biz_type,
     get_available_certificates
 )
+# 新的凭证管理器
+from utils.certificate_manager import (
+    generate_certificate_by_type,
+    get_available_certificates as get_new_certificates
+)
 import base64
 from io import BytesIO
 from config import config
@@ -299,11 +304,23 @@ def generate_print():
         if not biz_type or not student_data:
             return jsonify({'error': '缺少必要参数'}), 400
         
-        # 使用新的便捷方法生成打印图像
-        # 方法1: 使用新的便捷函数（推荐）
-        image_path = print_certificate_by_biz_type(biz_type, student_data)
+        # 使用新的凭证管理器生成打印图像
+        # 方法1: 使用新的独立处理器（推荐）
+        try:
+            image_path = generate_certificate_by_type(biz_type, student_data)
+        except Exception as e:
+            print(f"新处理器失败: {str(e)}")
+            image_path = None
         
-        # 方法2: 如果需要更多控制，可以使用传统方法（备选）
+        # 方法2: 如果新处理器失败，使用原有方法（备选）
+        if not image_path:
+            try:
+                image_path = print_certificate_by_biz_type(biz_type, student_data)
+            except Exception as e:
+                print(f"原有方法也失败: {str(e)}")
+                image_path = None
+        
+        # 方法3: 最后的传统方法（保底）
         if not image_path:
             # 创建打印消息
             message = {
