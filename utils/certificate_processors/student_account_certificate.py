@@ -178,7 +178,7 @@ class StudentAccountCertificateProcessor:
                                         center_offset_x, center_offset_y, chinese_font_path, 
                                         font_cache, default_font)
             elif component['type'] == 'Image' and component.get('image_data'):
-                self._draw_image_component(component, draw, PIXELS_PER_CM, 
+                self._draw_image_component(component, image, PIXELS_PER_CM, 
                                          center_offset_x, center_offset_y)
             elif component['type'] == 'Line':
                 self._draw_line_component(component, draw, PIXELS_PER_CM, 
@@ -224,16 +224,17 @@ class StudentAccountCertificateProcessor:
             if text and not text.startswith('{'):
                 font_info = component.get('font', {'name': 'Arial', 'size': 9, 'bold': False})
                 
-                # 判断是否需要加粗 - 充值提现凭证特殊规则
+                # 判断是否需要加粗 - 与原系统保持一致的规则
                 should_bold = (
                     '余额' in text or
-                    '充值凭证' in text or
                     '提现凭证' in text or
+                    '充值凭证' in text or
                     '南昌学校' in text or
-                    '充值金额' in text or
-                    '提现金额' in text or
+                    ('学校' in text and '凭证' in text) or
+                    'Title' in text or  # 包含Title的文字
                     component.get('font', {}).get('bold', False) or
-                    font_info.get('size', 9) >= 10.5
+                    font_info.get('bold', False) or
+                    font_info.get('size', 9) >= 10.5  # 较大字体也加粗
                 )
                 
                 # 选择字体
@@ -264,10 +265,44 @@ class StudentAccountCertificateProcessor:
                 
                 draw.text((x, y), text, fill='black', font=font_to_use)
     
-    def _draw_image_component(self, component, draw, pixels_per_cm, center_offset_x, center_offset_y):
-        """绘制图像组件"""
-        # 图像组件处理逻辑（如果需要）
-        pass
+    def _draw_image_component(self, component, main_image, pixels_per_cm, center_offset_x, center_offset_y):
+        """绘制图像组件 - 处理logo等图片"""
+        rect_parts = component['rect'].split(',') if component['rect'] else [0, 0, 1, 1]
+        if len(rect_parts) >= 4:
+            # 使用正确的转换因子，并添加居中偏移
+            x = float(rect_parts[0]) * pixels_per_cm + center_offset_x
+            y = float(rect_parts[1]) * pixels_per_cm + center_offset_y
+            width_comp = float(rect_parts[2]) * pixels_per_cm
+            height_comp = float(rect_parts[3]) * pixels_per_cm
+
+            # 尝试解码图像数据
+            try:
+                image_data = component['image_data']
+                if image_data:
+                    # 解码Base64
+                    img_bytes = base64.b64decode(image_data)
+                    img = Image.open(io.BytesIO(img_bytes))
+
+                    # 调整大小并粘贴到主图像
+                    img = img.resize((int(width_comp), int(height_comp)), Image.Resampling.LANCZOS)
+                    
+                    # 如果图像有透明度，需要处理alpha通道
+                    if img.mode in ('RGBA', 'LA') or (img.mode == 'P' and 'transparency' in img.info):
+                        # 创建一个白色背景
+                        background = Image.new('RGB', img.size, (255, 255, 255))
+                        if img.mode == 'P':
+                            img = img.convert('RGBA')
+                        background.paste(img, mask=img.split()[-1] if img.mode == 'RGBA' else None)
+                        img = background
+                    
+                    # 直接粘贴到主图像上
+                    main_image.paste(img, (int(x), int(y)))
+                    print(f"成功绘制图像组件，位置: ({x}, {y}), 大小: ({width_comp}, {height_comp})")
+            except Exception as e:
+                print(f"处理图像时出错: {str(e)}")
+                # 如果图像无法加载，绘制一个占位符
+                draw = ImageDraw.Draw(main_image)
+                draw.rectangle([x, y, x + width_comp, y + height_comp], outline='gray', width=1)
     
     def _draw_line_component(self, component, draw, pixels_per_cm, center_offset_x, center_offset_y):
         """绘制线条组件"""
