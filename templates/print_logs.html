@@ -63,7 +63,12 @@
                             </div>
                         </td>
                         <td>
-                            <span class="badge bg-primary">{{ log.biz_name }}</span>
+                            <div>
+                                <span class="badge bg-primary">{{ log.biz_name }}</span>
+                                {% if log.detail_info %}
+                                <br><small class="text-muted mt-1">{{ log.detail_info }}</small>
+                                {% endif %}
+                            </div>
                         </td>
                         <td>
                             <small>{{ log.print_time.strftime('%Y-%m-%d %H:%M:%S') }}</small>

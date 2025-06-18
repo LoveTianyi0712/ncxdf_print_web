@@ -170,11 +170,23 @@ function showReports(reports) {
     reports.forEach(report => {
         const reportItem = document.createElement('div');
         reportItem.className = 'mb-2';
+        
+        // 构建按钮内容，包含详细信息
+        let buttonContent = `
+            <div class="d-flex align-items-center">
+                <i class="fas fa-file-alt me-2"></i>
+                <div class="flex-grow-1">
+                    <div class="fw-bold">${report.biz_name}</div>
+                    ${report.description ? `<small class="text-muted">${report.description}</small>` : ''}
+                </div>
+            </div>
+        `;
+        
         reportItem.innerHTML = `
             <button class="btn btn-outline-primary w-100 text-start report-btn" 
                     data-biz-type="${report.biz_type}" 
                     data-report='${JSON.stringify(report)}'>
-                <i class="fas fa-file-alt me-2"></i>${report.biz_name}
+                ${buttonContent}
             </button>
         `;
         reportsList.appendChild(reportItem);
@@ -209,7 +221,8 @@ function showPreviewHint() {
     preview.innerHTML = `
         <div class="py-5">
             <i class="fas fa-print fa-4x text-primary mb-3"></i>
-            <p class="text-primary">已选择：${selectedReport.biz_name}</p>
+            <p class="text-primary fw-bold">已选择：${selectedReport.biz_name}</p>
+            ${selectedReport.description ? `<p class="text-info">${selectedReport.description}</p>` : ''}
             <p class="text-muted">点击"生成打印"按钮查看预览</p>
         </div>
     `;

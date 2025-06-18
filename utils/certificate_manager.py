@@ -30,28 +30,7 @@ CERTIFICATE_MAPPING = {
         'template': '退费凭证.mrt', 
         'processor': 'refund_fee_certificate'
     },
-    
-    # 保留编码供将来扩展使用
-    101: {
-        'name': '扩展凭证类型1',
-        'template': '学员账户充值提现凭证.mrt',
-        'processor': 'student_account_certificate'
-    },
-    102: {
-        'name': '扩展凭证类型2',
-        'template': '学员账户充值提现凭证.mrt',
-        'processor': 'student_account_certificate'
-    },
-    103: {
-        'name': '扩展凭证类型3',
-        'template': '学员账户充值提现凭证.mrt',
-        'processor': 'student_account_certificate'
-    },
-    104: {
-        'name': '扩展凭证类型4',
-        'template': '学员账户充值提现凭证.mrt',
-        'processor': 'student_account_certificate'
-    }
+
 }
 
 class CertificateManager:
@@ -133,7 +112,7 @@ class CertificateManager:
         except ImportError as e:
             print(f"导入退费凭证处理器失败: {str(e)}")
             # 回退到旧的方法
-            return self._fallback_generate(8, data, currency_symbol)
+        return self._fallback_generate(8, data, currency_symbol)
     
     def _fallback_generate(self, biz_type, data, currency_symbol):
         """回退到原始的print_simulator方法"""
