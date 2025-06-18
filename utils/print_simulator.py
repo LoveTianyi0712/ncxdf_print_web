@@ -21,7 +21,53 @@ TEMPLATE_MAPPING = {
     6: "学员账户充值提现凭证.mrt",
     7: "优惠重算凭证.mrt",
     8: "退费凭证.mrt",
-    9: "高端报班凭证.mrt"
+    9: "高端报班凭证.mrt",
+    10: "高端报名凭证.mrt",
+    11: "高端退费凭证.mrt"
+}
+
+# 凭证类型配置 - 不同类型的凭证可能需要不同的处理方式
+CERTIFICATE_TYPES = {
+    "报班类": {
+        "biz_types": [1, 9, 10],  # 报班凭证、高端报班凭证、高端报名凭证
+        "templates": ["报班凭证.mrt", "高端报班凭证.mrt", "高端报名凭证.mrt"],
+        "processor": "enrollment_processor"
+    },
+    "退费类": {
+        "biz_types": [3, 8, 11],  # 退班凭证、退费凭证、高端退费凭证
+        "templates": ["退班凭证.mrt", "退费凭证.mrt", "高端退费凭证.mrt"],
+        "processor": "refund_processor"
+    },
+    "调整类": {
+        "biz_types": [2, 4, 7],  # 转班凭证、调课凭证、优惠重算凭证
+        "templates": ["转班凭证.mrt", "调课凭证.mrt", "优惠重算凭证.mrt"],
+        "processor": "adjustment_processor"
+    },
+    "财务类": {
+        "biz_types": [6],  # 学员账户充值提现凭证
+        "templates": ["学员账户充值提现凭证.mrt"],
+        "processor": "financial_processor"
+    },
+    "管理类": {
+        "biz_types": [5],  # 班级凭证
+        "templates": ["班级凭证.mrt"],
+        "processor": "management_processor"
+    }
+}
+
+# 根据凭证名称映射到BizType（用于直接指定凭证类型的情况）
+TEMPLATE_NAME_TO_BIZTYPE = {
+    "报班凭证.mrt": 1,
+    "转班凭证.mrt": 2,
+    "退班凭证.mrt": 3,
+    "调课凭证.mrt": 4,
+    "班级凭证.mrt": 5,
+    "学员账户充值提现凭证.mrt": 6,
+    "优惠重算凭证.mrt": 7,
+    "退费凭证.mrt": 8,
+    "高端报班凭证.mrt": 9,
+    "高端报名凭证.mrt": 10,
+    "高端退费凭证.mrt": 11
 }
 
 class MrtParser:
@@ -468,43 +514,163 @@ class ProofPrintSimulator:
         self.font_path = os.path.join(os.environ.get('WINDIR', ''), 'Fonts', 'simhei.ttf')
         if not os.path.exists(self.font_path):
             self.font_path = None  # 如果找不到字体，将使用默认字体
+    
+    def get_certificate_type(self, biz_type):
+        """根据BizType获取凭证类型"""
+        for cert_type, config in CERTIFICATE_TYPES.items():
+            if biz_type in config["biz_types"]:
+                return cert_type
+        return "通用类"
+    
+    def get_processor_method(self, biz_type):
+        """根据BizType获取对应的处理方法"""
+        cert_type = self.get_certificate_type(biz_type)
+        for config in CERTIFICATE_TYPES.values():
+            if biz_type in config["biz_types"]:
+                return getattr(self, config["processor"], self.default_processor)
+        return self.default_processor
 
-    def process_print_request(self, message):
-        """处理打印请求"""
+    def process_print_request(self, message, template_name=None):
+        """处理打印请求 - 支持直接指定模板名称或通过BizType自动选择"""
         try:
             print("开始处理打印请求...")
-            # 解析消息
-            if "Info" in message and "Params" in message["Info"]:
-                params = message["Info"]["Params"]
-                biz_type = params.get("BizType")
-                json_string = params.get("JsonString")
-                currency_symbol = params.get("CurrencySymbol", "¥")
-
-                if biz_type is None or json_string is None:
-                    print("错误: 缺少必要参数 BizType 或 JsonString")
-                    return False
-
-                # 根据BizType获取模板名称
-                template_name = TEMPLATE_MAPPING.get(biz_type)
-                if not template_name:
-                    print(f"错误: 不支持的BizType: {biz_type}")
-                    return False
-
-                # 解析内部JSON
-                data = json.loads(json_string)
-
-                # 创建打印输出
-                print(f"使用模板: {template_name}")
-                output_path = self.generate_print_output(template_name, data, currency_symbol)
-                return output_path
+            
+            # 支持直接传入模板名称的情况
+            if template_name:
+                print(f"直接使用指定模板: {template_name}")
+                # 如果直接指定了模板名称，从消息中提取数据
+                if "data" in message:
+                    data = message["data"]
+                    currency_symbol = message.get("currency_symbol", "¥")
+                    biz_type = TEMPLATE_NAME_TO_BIZTYPE.get(template_name, 1)
+                else:
+                    print("错误: 直接指定模板时必须提供data字段")
+                    return None
             else:
-                print("错误: 消息格式不正确")
-                return None
+                # 原有的通过BizType选择模板的逻辑
+                if "Info" in message and "Params" in message["Info"]:
+                    params = message["Info"]["Params"]
+                    biz_type = params.get("BizType")
+                    json_string = params.get("JsonString")
+                    currency_symbol = params.get("CurrencySymbol", "¥")
+
+                    if biz_type is None or json_string is None:
+                        print("错误: 缺少必要参数 BizType 或 JsonString")
+                        return False
+
+                    # 根据BizType获取模板名称
+                    template_name = TEMPLATE_MAPPING.get(biz_type)
+                    if not template_name:
+                        print(f"错误: 不支持的BizType: {biz_type}")
+                        return False
+
+                    # 解析内部JSON
+                    data = json.loads(json_string)
+                else:
+                    print("错误: 消息格式不正确")
+                    return None
+
+            # 获取凭证类型和对应的处理器
+            cert_type = self.get_certificate_type(biz_type)
+            processor = self.get_processor_method(biz_type)
+            
+            print(f"凭证类型: {cert_type}")
+            print(f"使用模板: {template_name}")
+            print(f"使用处理器: {processor.__name__}")
+            
+            # 使用专门的处理器处理数据
+            processed_data = processor(data, biz_type)
+            
+            # 创建打印输出
+            output_path = self.generate_print_output(template_name, processed_data, currency_symbol)
+            return output_path
+            
         except Exception as e:
             print(f"处理打印请求时出错: {str(e)}")
             import traceback
             traceback.print_exc()
             return None
+    
+    def default_processor(self, data, biz_type):
+        """默认处理器 - 直接返回原始数据"""
+        return data
+    
+    def enrollment_processor(self, data, biz_type):
+        """报班类凭证处理器"""
+        print("使用报班类凭证处理器")
+        # 对于报班类凭证，可能需要特殊的字段处理
+        processed_data = data.copy()
+        
+        # 根据不同的报班类型进行特殊处理
+        if biz_type == 1:  # 普通报班凭证
+            processed_data['证件类型'] = '报班凭证'
+        elif biz_type == 9:  # 高端报班凭证
+            processed_data['证件类型'] = '高端报班凭证'
+        elif biz_type == 10:  # 高端报名凭证
+            processed_data['证件类型'] = '高端报名凭证'
+        
+        return processed_data
+    
+    def refund_processor(self, data, biz_type):
+        """退费类凭证处理器"""
+        print("使用退费类凭证处理器")
+        processed_data = data.copy()
+        
+        # 退费类凭证的特殊处理
+        if biz_type == 3:  # 退班凭证
+            processed_data['证件类型'] = '退班凭证'
+        elif biz_type == 8:  # 退费凭证
+            processed_data['证件类型'] = '退费凭证'
+        elif biz_type == 11:  # 高端退费凭证
+            processed_data['证件类型'] = '高端退费凭证'
+        
+        # 退费金额的特殊格式化
+        if 'sPay' in processed_data:
+            processed_data['sPay'] = processed_data['sPay'].replace('提现金额', '退费金额')
+        
+        return processed_data
+    
+    def adjustment_processor(self, data, biz_type):
+        """调整类凭证处理器"""
+        print("使用调整类凭证处理器")
+        processed_data = data.copy()
+        
+        # 调整类凭证的特殊处理
+        if biz_type == 2:  # 转班凭证
+            processed_data['证件类型'] = '转班凭证'
+        elif biz_type == 4:  # 调课凭证
+            processed_data['证件类型'] = '调课凭证'
+        elif biz_type == 7:  # 优惠重算凭证
+            processed_data['证件类型'] = '优惠重算凭证'
+        
+        return processed_data
+    
+    def financial_processor(self, data, biz_type):
+        """财务类凭证处理器"""
+        print("使用财务类凭证处理器")
+        processed_data = data.copy()
+        
+        # 财务类凭证的特殊处理（充值提现）
+        processed_data['证件类型'] = '充值提现凭证'
+        
+        # 财务类凭证可能需要特殊的金额格式化
+        if 'dSumBalance' in processed_data:
+            # 确保余额格式正确
+            balance = processed_data['dSumBalance']
+            if not balance.startswith('余额：'):
+                processed_data['dSumBalance'] = f"余额：{balance}"
+        
+        return processed_data
+    
+    def management_processor(self, data, biz_type):
+        """管理类凭证处理器"""
+        print("使用管理类凭证处理器")
+        processed_data = data.copy()
+        
+        # 管理类凭证的特殊处理（班级凭证）
+        processed_data['证件类型'] = '班级凭证'
+        
+        return processed_data
 
     def generate_print_output(self, template_name, data, currency_symbol):
         """生成打印输出"""
@@ -840,9 +1006,86 @@ async def simulate_print_request(message):
     result = simulator.process_print_request(message)
     return result
 
-def main():
-    # 从print_test.py获取消息内容
+def create_certificate_printer():
+    """创建凭证打印器实例"""
+    return ProofPrintSimulator()
+
+def print_certificate_by_type(cert_type, data, currency_symbol="¥"):
+    """根据凭证类型打印凭证的便捷方法"""
+    simulator = create_certificate_printer()
+    
+    # 根据凭证类型选择第一个可用的模板
+    for config in CERTIFICATE_TYPES.values():
+        if cert_type in config["templates"]:
+            template_name = cert_type
+            biz_type = TEMPLATE_NAME_TO_BIZTYPE.get(template_name, 1)
+            break
+    else:
+        print(f"错误: 不支持的凭证类型: {cert_type}")
+        return None
+    
+    # 构造消息格式
     message = {
+        "data": data,
+        "currency_symbol": currency_symbol
+    }
+    
+    return simulator.process_print_request(message, template_name)
+
+def print_certificate_by_biz_type(biz_type, data, currency_symbol="¥"):
+    """根据BizType打印凭证的便捷方法"""
+    simulator = create_certificate_printer()
+    
+    # 构造标准消息格式
+    message = {
+        "PrintType": "proofprintnew",
+        "Info": {
+            "Params": {
+                "BizType": biz_type,
+                "JsonString": json.dumps(data, ensure_ascii=False),
+                "CurrencySymbol": currency_symbol,
+                "DefaultPrinter": "",
+                "DefaultPrintNumber": 1,
+                "NeedPreview": True,
+                "SchoolId": data.get("nSchoolId", 35)
+            }
+        }
+    }
+    
+    return simulator.process_print_request(message)
+
+def get_available_certificates():
+    """获取所有可用的凭证类型"""
+    certificates = {}
+    for cert_type, config in CERTIFICATE_TYPES.items():
+        certificates[cert_type] = {
+            "templates": config["templates"],
+            "biz_types": config["biz_types"],
+            "processor": config["processor"]
+        }
+    return certificates
+
+def print_certificate_info():
+    """打印所有凭证类型的信息"""
+    print("=== 可用的凭证类型 ===")
+    for cert_type, config in CERTIFICATE_TYPES.items():
+        print(f"\n{cert_type}:")
+        print(f"  - 模板文件: {', '.join(config['templates'])}")
+        print(f"  - BizType: {', '.join(map(str, config['biz_types']))}")
+        print(f"  - 处理器: {config['processor']}")
+    
+    print(f"\n=== 模板映射表 ===")
+    for biz_type, template in TEMPLATE_MAPPING.items():
+        print(f"BizType {biz_type}: {template}")
+
+def main():
+    # 显示所有可用的凭证类型信息
+    print_certificate_info()
+    print("\n" + "="*50 + "\n")
+    
+    # 示例1: 使用传统的BizType方式（充值提现凭证）
+    print("示例1: 使用BizType方式打印充值提现凭证")
+    message1 = {
         "PrintType": "proofprintnew",
         "Info": {
             "Params": {
@@ -869,7 +1112,7 @@ def main():
                     "nBizId": 126560050,
                     "sRegZoneName": "客服行政"
                 }),
-                "DefaultPrinter": "",
+                "DefaultPrinter": "", 
                 "DefaultPrintNumber": 1,
                 "NeedPreview": True,
                 "SchoolId": 35,
@@ -877,9 +1120,66 @@ def main():
             }
         }
     }
-
-    # 运行模拟
-    asyncio.run(simulate_print_request(message))
+    
+    # 示例2: 使用新的便捷方法打印报班凭证
+    print("示例2: 使用便捷方法打印报班凭证")
+    enrollment_data = {
+        "nSchoolId": 35,
+        "sSchoolName": "南昌学校",
+        "sTelePhone": "400-175-9898",
+        "sOperator": "李老师",
+        "dtCreate": "2024-12-23 10:30:00",
+        "Title": "报班凭证",
+        "sStudentCode": "NC6080119756",
+        "sStudentName": "张三",
+        "sGender": "男",
+        "sPay": "学费：¥2000.00",
+        "sPayType": "支付方式：微信支付",
+        "dtCreateDate": "2024-12-23 10:30:00",
+        "sProofName": "报班凭证",
+        "sBizType": "报班",
+        "nBizId": 126560051,
+        "sRegZoneName": "教务处"
+    }
+    
+    # 示例3: 使用新的便捷方法打印退费凭证
+    print("示例3: 使用便捷方法打印退费凭证")
+    refund_data = {
+        "nSchoolId": 35,
+        "sSchoolName": "南昌学校",
+        "sTelePhone": "400-175-9898",
+        "sOperator": "王老师",
+        "dtCreate": "2024-12-23 11:00:00",
+        "Title": "退费凭证",
+        "sStudentCode": "NC6080119757",
+        "sStudentName": "李四",
+        "sGender": "女",
+        "sPay": "退费金额：¥1000.00",
+        "sPayType": "退费方式：原路返回",
+        "dtCreateDate": "2024-12-23 11:00:00",
+        "sProofName": "退费凭证",
+        "sBizType": "退费",
+        "nBizId": 126560052,
+        "sRegZoneName": "财务处"
+    }
+    
+    print("开始运行示例...")
+    
+    # 运行示例1（传统方式）
+    print("\n>>> 运行示例1...")
+    asyncio.run(simulate_print_request(message1))
+    
+    # 运行示例2（便捷方法 - 按模板名称）
+    print("\n>>> 运行示例2...")
+    result2 = print_certificate_by_type("报班凭证.mrt", enrollment_data)
+    print(f"报班凭证打印结果: {result2}")
+    
+    # 运行示例3（便捷方法 - 按BizType）
+    print("\n>>> 运行示例3...")
+    result3 = print_certificate_by_biz_type(8, refund_data)  # BizType 8 = 退费凭证
+    print(f"退费凭证打印结果: {result3}")
+    
+    print("\n所有示例执行完成！")
 
 if __name__ == "__main__":
     main()

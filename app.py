@@ -9,7 +9,13 @@ from datetime import datetime
 import json
 import os
 import secrets
-from utils import ProofPrintSimulator, TEMPLATE_MAPPING
+from utils import (
+    ProofPrintSimulator, 
+    TEMPLATE_MAPPING,
+    CERTIFICATE_TYPES,
+    print_certificate_by_biz_type,
+    get_available_certificates
+)
 import base64
 from io import BytesIO
 from config import config
@@ -293,25 +299,31 @@ def generate_print():
         if not biz_type or not student_data:
             return jsonify({'error': '缺少必要参数'}), 400
         
-        # 创建打印消息
-        message = {
-            "PrintType": "proofprintnew",
-            "Info": {
-                "Params": {
-                    "BizType": biz_type,
-                    "JsonString": json.dumps(student_data),
-                    "DefaultPrinter": "",
-                    "DefaultPrintNumber": 1,
-                    "NeedPreview": True,
-                    "SchoolId": 35,
-                    "CurrencySymbol": "¥"
+        # 使用新的便捷方法生成打印图像
+        # 方法1: 使用新的便捷函数（推荐）
+        image_path = print_certificate_by_biz_type(biz_type, student_data)
+        
+        # 方法2: 如果需要更多控制，可以使用传统方法（备选）
+        if not image_path:
+            # 创建打印消息
+            message = {
+                "PrintType": "proofprintnew",
+                "Info": {
+                    "Params": {
+                        "BizType": biz_type,
+                        "JsonString": json.dumps(student_data),
+                        "DefaultPrinter": "",
+                        "DefaultPrintNumber": 1,
+                        "NeedPreview": True,
+                        "SchoolId": 35,
+                        "CurrencySymbol": "¥"
+                    }
                 }
             }
-        }
-        
-        # 生成打印图像
-        simulator = ProofPrintSimulator()
-        image_path = simulator.process_print_request(message)
+            
+            # 生成打印图像
+            simulator = ProofPrintSimulator()
+            image_path = simulator.process_print_request(message)
         
         if image_path and os.path.exists(image_path):
             # 将图像转换为base64
@@ -352,6 +364,34 @@ def generate_print():
             
     except Exception as e:
         return jsonify({'error': f'生成打印失败：{str(e)}'}), 500
+
+@app.route('/api/certificate_types')
+@login_required  
+def api_certificate_types():
+    """获取所有可用的凭证类型信息"""
+    try:
+        certificates = get_available_certificates()
+        
+        # 转换为前端友好的格式
+        result = []
+        for cert_type, config in certificates.items():
+            for i, template in enumerate(config['templates']):
+                biz_type = config['biz_types'][i] if i < len(config['biz_types']) else config['biz_types'][0]
+                result.append({
+                    'biz_type': biz_type,
+                    'template_name': template,
+                    'category': cert_type,
+                    'processor': config['processor'],
+                    'display_name': template.replace('.mrt', '')
+                })
+        
+        return jsonify({
+            'success': True,
+            'certificates': result,
+            'template_mapping': TEMPLATE_MAPPING
+        })
+    except Exception as e:
+        return jsonify({'error': f'获取凭证类型失败：{str(e)}'}), 500
 
 @app.route('/print_logs')
 @login_required
