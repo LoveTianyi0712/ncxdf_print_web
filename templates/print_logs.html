@@ -1,0 +1,252 @@
+{% extends "base.html" %}
+
+{% block title %}打印记录 - 南昌新东方凭证打印系统{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">打印记录</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <div class="btn-group me-2">
+            <a href="{{ url_for('print_page') }}" class="btn btn-primary">
+                <i class="fas fa-print me-1"></i>打印凭证
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title mb-0">
+            <i class="fas fa-history me-2"></i>操作日志
+            {% if current_user.role != 'admin' %}
+            <small class="text-muted">（仅显示您的操作记录）</small>
+            {% endif %}
+        </h5>
+    </div>
+    <div class="card-body">
+        {% if logs.items %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        {% if current_user.role == 'admin' %}
+                        <th>操作用户</th>
+                        {% endif %}
+                        <th>学员信息</th>
+                        <th>凭证类型</th>
+                        <th>打印时间</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in logs.items %}
+                    <tr>
+                        <td>{{ log.id }}</td>
+                        {% if current_user.role == 'admin' %}
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="user-avatar me-2" style="width: 24px; height: 24px; font-size: 12px;">
+                                    {{ log.user.username[0].upper() }}
+                                </div>
+                                {{ log.user.username }}
+                                {% if log.user.role == 'admin' %}
+                                <span class="badge bg-warning ms-2">管理员</span>
+                                {% endif %}
+                            </div>
+                        </td>
+                        {% endif %}
+                        <td>
+                            <div>
+                                <strong>{{ log.student_name }}</strong><br>
+                                <small class="text-muted">{{ log.student_code }}</small>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="badge bg-primary">{{ log.biz_name }}</span>
+                        </td>
+                        <td>
+                            <small>{{ log.print_time.strftime('%Y-%m-%d %H:%M:%S') }}</small>
+                        </td>
+                        <td>
+                            <button class="btn btn-outline-info btn-sm" data-log-id="{{ log.id }}" data-print-data="{{ log.print_data|replace('\"', '&quot;') }}" onclick="showDetails(this)">
+                                <i class="fas fa-eye"></i> 详情
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- 分页 -->
+        {% if logs.pages > 1 %}
+        <nav aria-label="打印记录分页">
+            <ul class="pagination justify-content-center">
+                {% if logs.has_prev %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('print_logs', page=logs.prev_num) }}">
+                        <i class="fas fa-chevron-left"></i>
+                    </a>
+                </li>
+                {% endif %}
+                
+                {% for page_num in logs.iter_pages() %}
+                    {% if page_num %}
+                        {% if page_num != logs.page %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('print_logs', page=page_num) }}">{{ page_num }}</a>
+                        </li>
+                        {% else %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ page_num }}</span>
+                        </li>
+                        {% endif %}
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">…</span>
+                    </li>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if logs.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('print_logs', page=logs.next_num) }}">
+                        <i class="fas fa-chevron-right"></i>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+        
+        <!-- 统计信息 -->
+        <div class="row mt-3">
+            <div class="col-md-12">
+                <small class="text-muted">
+                    显示第 {{ (logs.page - 1) * logs.per_page + 1 }} - {{ logs.page * logs.per_page if logs.page * logs.per_page < logs.total else logs.total }} 条，
+                    共 {{ logs.total }} 条记录，
+                    第 {{ logs.page }} / {{ logs.pages }} 页
+                </small>
+            </div>
+        </div>
+        
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-clipboard-list fa-4x text-muted mb-3"></i>
+            <h5 class="text-muted">暂无打印记录</h5>
+            <p class="text-muted">开始使用系统打印凭证后，操作记录将显示在这里</p>
+            <a href="{{ url_for('print_page') }}" class="btn btn-primary">
+                <i class="fas fa-print me-1"></i>开始打印
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 详情模态框 -->
+<div class="modal fade" id="detailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-info-circle me-2"></i>打印详情
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="detailContent">
+                    <!-- 详情内容将通过JavaScript填充 -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// 显示详情
+function showDetails(button) {
+    try {
+        const logId = button.dataset.logId;
+        const printData = button.dataset.printData;
+        const data = JSON.parse(printData);
+        let content = '<div class="row">';
+        
+        // 基本信息
+        content += '<div class="col-md-6">';
+        content += '<h6 class="text-primary">基本信息</h6>';
+        content += '<table class="table table-sm">';
+        content += `<tr><td><strong>记录ID:</strong></td><td>${logId}</td></tr>`;
+        content += `<tr><td><strong>学员编码:</strong></td><td>${data.sStudentCode || '-'}</td></tr>`;
+        content += `<tr><td><strong>学员姓名:</strong></td><td>${data.sStudentName || '-'}</td></tr>`;
+        content += `<tr><td><strong>性别:</strong></td><td>${data.sGender || '-'}</td></tr>`;
+        content += `<tr><td><strong>学校:</strong></td><td>${data.sSchoolName || '-'}</td></tr>`;
+        content += '</table>';
+        content += '</div>';
+        
+        // 业务信息
+        content += '<div class="col-md-6">';
+        content += '<h6 class="text-info">业务信息</h6>';
+        content += '<table class="table table-sm">';
+        content += `<tr><td><strong>凭证标题:</strong></td><td>${data.Title || '-'}</td></tr>`;
+        content += `<tr><td><strong>业务类型:</strong></td><td>${data.sBizType || '-'}</td></tr>`;
+        content += `<tr><td><strong>业务ID:</strong></td><td>${data.nBizId || '-'}</td></tr>`;
+        content += `<tr><td><strong>操作员:</strong></td><td>${data.sOperator || '-'}</td></tr>`;
+        content += `<tr><td><strong>区域:</strong></td><td>${data.sRegZoneName || '-'}</td></tr>`;
+        content += '</table>';
+        content += '</div>';
+        
+        content += '</div>';
+        
+        // 金额信息
+        if (data.sPay || data.dSumBalance || data.sPayType) {
+            content += '<div class="row mt-3">';
+            content += '<div class="col-md-12">';
+            content += '<h6 class="text-success">金额信息</h6>';
+            content += '<table class="table table-sm">';
+            if (data.sPay) content += `<tr><td><strong>金额详情:</strong></td><td>${data.sPay}</td></tr>`;
+            if (data.dSumBalance) content += `<tr><td><strong>余额:</strong></td><td>${data.dSumBalance}</td></tr>`;
+            if (data.sPayType) content += `<tr><td><strong>支付方式:</strong></td><td>${data.sPayType}</td></tr>`;
+            content += '</table>';
+            content += '</div>';
+            content += '</div>';
+        }
+        
+        // 时间信息
+        content += '<div class="row mt-3">';
+        content += '<div class="col-md-12">';
+        content += '<h6 class="text-warning">时间信息</h6>';
+        content += '<table class="table table-sm">';
+        content += `<tr><td><strong>创建时间:</strong></td><td>${data.dtCreate || '-'}</td></tr>`;
+        content += `<tr><td><strong>业务时间:</strong></td><td>${data.dtCreateDate || '-'}</td></tr>`;
+        content += '</table>';
+        content += '</div>';
+        content += '</div>';
+        
+        document.getElementById('detailContent').innerHTML = content;
+        
+        // 显示模态框
+        const modal = new bootstrap.Modal(document.getElementById('detailModal'));
+        modal.show();
+        
+    } catch (error) {
+        console.error('解析数据失败:', error);
+        document.getElementById('detailContent').innerHTML = `
+            <div class="alert alert-danger">
+                <h6>数据解析失败</h6>
+                <p>无法解析打印数据，原始数据如下：</p>
+                <pre class="small">${printData}</pre>
+            </div>
+        `;
+        
+        const modal = new bootstrap.Modal(document.getElementById('detailModal'));
+        modal.show();
+    }
+}
+</script>
+{% endblock %} 

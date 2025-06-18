@@ -1,0 +1,2506 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<StiSerializer version="1.01" type="Net" application="StiReport">
+  <Dictionary Ref="1" type="Dictionary" isKey="true">
+    <BusinessObjects isList="true" count="1">
+      <ArrayList Ref="2" type="Stimulsoft.Report.Dictionary.StiBusinessObject" isKey="true">
+        <Alias>ArrayList</Alias>
+        <BusinessObjects isList="true" count="1">
+          <ClassArray Ref="3" type="Stimulsoft.Report.Dictionary.StiBusinessObject" isKey="true">
+            <Alias>ClassArray</Alias>
+            <BusinessObjects isList="true" count="0" />
+            <Category />
+            <Columns isList="true" count="5">
+              <value>sClassCode,System.String</value>
+              <value>sClassName,System.String</value>
+              <value>dClassFee,System.Decimal</value>
+              <value>dVoucherFee,System.Decimal</value>
+              <value>dRealFee,System.Decimal</value>
+            </Columns>
+            <Dictionary isRef="1" />
+            <Guid>d77cf8450da44e8bba69f1c4fe1672d0</Guid>
+            <Name>ClassArray</Name>
+          </ClassArray>
+        </BusinessObjects>
+        <Category>ArrayList</Category>
+        <Columns isList="true" count="14">
+          <value>sBizType,System.String</value>
+          <value>sSchoolName,System.String</value>
+          <value>sTelePhone,System.String</value>
+          <value>sStudentCode,System.String</value>
+          <value>sStudentName,System.String</value>
+          <value>sGender,System.String</value>
+          <value>Discounttype,System.Decimal</value>
+          <value>sChannel,System.String</value>
+          <value>dShouldReceive,System.Decimal</value>
+          <value>dRealReceive,System.Decimal</value>
+          <value>sPayType,System.String</value>
+          <value>RWMImage,System.Byte[]</value>
+          <value>dtCreate,System.DateTime</value>
+          <value>sOperator,System.String</value>
+        </Columns>
+        <Dictionary isRef="1" />
+        <Guid>b95edd22a11547e48bc47e27cbc0bd15</Guid>
+        <Name>ArrayList</Name>
+      </ArrayList>
+    </BusinessObjects>
+    <Databases isList="true" count="0" />
+    <DataSources isList="true" count="0" />
+    <Relations isList="true" count="0" />
+    <Report isRef="0" />
+    <Variables isList="true" count="0" />
+  </Dictionary>
+  <EngineVersion>EngineV2</EngineVersion>
+  <GlobalizationStrings isList="true" count="0" />
+  <MetaTags isList="true" count="0" />
+  <Pages isList="true" count="1">
+    <Page1 Ref="4" type="Page" isKey="true">
+      <Border>None;Black;2;Solid;False;4;Black</Border>
+      <Brush>Transparent</Brush>
+      <Components isList="true" count="4">
+        <PageFooterBand1 Ref="5" type="PageFooterBand" isKey="true">
+          <Brush>Transparent</Brush>
+          <ClientRectangle>0,10.41,19,2.4</ClientRectangle>
+          <Components isList="true" count="7">
+            <Text12 Ref="6" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>0.8,-0.01,1.8,0.4</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Font>Arial,8</Font>
+              <Guid>20e3398a90f14b74b7b64f84750899c9</Guid>
+              <Margins>0,0,0,0</Margins>
+              <Name>Text12</Name>
+              <Page isRef="4" />
+              <Parent isRef="5" />
+              <Text>请妥善保存</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Expression</Type>
+            </Text12>
+            <Text13 Ref="7" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>4,-0.01,2.4,0.4</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Font>Arial,8</Font>
+              <Guid>de8da28306f04e9fb658e49c049846b6</Guid>
+              <Margins>0,0,0,0</Margins>
+              <Name>Text13</Name>
+              <Page isRef="4" />
+              <Parent isRef="5" />
+              <Text>客户代办人签字：</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Expression</Type>
+            </Text13>
+            <Text15 Ref="8" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>10.4,-0.01,1.2,0.4</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Font>Arial,8</Font>
+              <Guid>e885406511bc4f189b33a60c630525c7</Guid>
+              <Margins>0,0,0,0</Margins>
+              <Name>Text15</Name>
+              <Page isRef="4" />
+              <Parent isRef="5" />
+              <Text>操作员：</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Expression</Type>
+            </Text15>
+            <Text17 Ref="9" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>11.6,-0.01,2.2,0.4</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Font>Arial,8</Font>
+              <Guid>44749b2fb59b469080d66f3ac003f4c9</Guid>
+              <Margins>0,0,0,0</Margins>
+              <Name>Text17</Name>
+              <Page isRef="4" />
+              <Parent isRef="5" />
+              <Text>{ArrayList.sOperator}</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>DataColumn</Type>
+            </Text17>
+            <Text19 Ref="10" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>14.6,-0.01,1,0.4</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Font>Arial,8</Font>
+              <Guid>df9235c748d343eca4dd1a4a78ea9d15</Guid>
+              <Margins>0,0,0,0</Margins>
+              <Name>Text19</Name>
+              <Page isRef="4" />
+              <Parent isRef="5" />
+              <Text>日期：</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Expression</Type>
+            </Text19>
+            <Text20 Ref="11" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>15.6,-0.01,3,0.4</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Font>Arial,8</Font>
+              <Guid>f643e85e31a54eba85974f3192683cd7</Guid>
+              <Margins>0,0,0,0</Margins>
+              <Name>Text20</Name>
+              <Page isRef="4" />
+              <Parent isRef="5" />
+              <Text>{ArrayList.dtCreate}</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>DataColumn</Type>
+            </Text20>
+            <Text21 Ref="12" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>16,0.79,2.2,0.4</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Font>Arial,8</Font>
+              <Guid>60d538d75cdc4f40ab3d87c07f650f3c</Guid>
+              <HorAlignment>Right</HorAlignment>
+              <Margins>0,0,0,0</Margins>
+              <Name>Text21</Name>
+              <Page isRef="4" />
+              <Parent isRef="5" />
+              <Text>{PageNofM}</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>SystemVariables</Type>
+            </Text21>
+          </Components>
+          <Conditions isList="true" count="0" />
+          <Name>PageFooterBand1</Name>
+          <Page isRef="4" />
+          <Parent isRef="4" />
+        </PageFooterBand1>
+        <HeaderBand2 Ref="13" type="HeaderBand" isKey="true">
+          <Brush>Transparent</Brush>
+          <ClientRectangle>0,0.4,19,3</ClientRectangle>
+          <Components isList="true" count="14">
+            <Text10 Ref="14" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>3,0.6,5.6,0.4</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Font>Arial,10,Bold</Font>
+              <Guid>82ca3a9601974048ae64659d4853821d</Guid>
+              <Margins>0,0,0,0</Margins>
+              <Name>Text10</Name>
+              <Page isRef="4" />
+              <Parent isRef="13" />
+              <Text>{ArrayList.sSchoolName}优惠重算凭证</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>DataColumn</Type>
+            </Text10>
+            <Image3 Ref="15" type="Image" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>0.8,0.4,2,0.8</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Guid>04fdc7d79cfa46bba65a2d77b9dbd275</Guid>
+              <Image>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</Image>
+              <Name>Image3</Name>
+              <Page isRef="4" />
+              <Parent isRef="13" />
+              <Stretch>True</Stretch>
+            </Image3>
+            <Text26 Ref="16" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>0.8,1.4,1.6,0.4</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Font>Arial,8</Font>
+              <Guid>8ed771f48bdd43a59666b0954c83f672</Guid>
+              <Margins>1,0.5,0.2,0.5</Margins>
+              <Name>Text26</Name>
+              <Page isRef="4" />
+              <Parent isRef="13" />
+              <Text>业务类型：</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Expression</Type>
+            </Text26>
+            <Text28 Ref="17" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>7,1.4,1.6,0.4</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Font>Arial,8</Font>
+              <Guid>092fe81d52c94e60afd78f867f6cd905</Guid>
+              <Margins>1,0.5,0.2,0.5</Margins>
+              <Name>Text28</Name>
+              <Page isRef="4" />
+              <Parent isRef="13" />
+              <Text>学员编码：</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Expression</Type>
+            </Text28>
+            <Text30 Ref="18" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>11.4,1.4,1.6,0.4</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Font>Arial,8</Font>
+              <Guid>0d01292691114c3aa0cd28690bd4fb85</Guid>
+              <Margins>1,0.5,0.2,0.5</Margins>
+              <Name>Text30</Name>
+              <Page isRef="4" />
+              <Parent isRef="13" />
+              <Text>学员姓名：</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Expression</Type>
+            </Text30>
+            <Text32 Ref="19" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>15.2,1.4,1,0.4</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Font>Arial,8</Font>
+              <Guid>0dec1ccf587f4b51bac4898523d4fc6a</Guid>
+              <Margins>1,0.5,0.2,0.5</Margins>
+              <Name>Text32</Name>
+              <Page isRef="4" />
+              <Parent isRef="13" />
+              <Text>性别：</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Expression</Type>
+            </Text32>
+            <Text48 Ref="20" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>2.4,1.4,1.6,0.4</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Font>Arial,8</Font>
+              <Guid>9621501e21cf4a85a875c7e1dd66d2d5</Guid>
+              <Margins>1,0.5,0.2,0.5</Margins>
+              <Name>Text48</Name>
+              <Page isRef="4" />
+              <Parent isRef="13" />
+              <Text>{ArrayList.sBizType}</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>DataColumn</Type>
+            </Text48>
+            <Text52 Ref="21" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>8.6,1.4,2.4,0.4</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Font>Arial,8</Font>
+              <Guid>e37a055421dd4f6cac23b9e88b0ba1ca</Guid>
+              <Margins>1,0.5,0.2,0.5</Margins>
+              <Name>Text52</Name>
+              <Page isRef="4" />
+              <Parent isRef="13" />
+              <Text>{ArrayList.sStudentCode}</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>DataColumn</Type>
+            </Text52>
+            <Text54 Ref="22" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>13,1.4,1.8,0.4</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Font>Arial,8</Font>
+              <Guid>a4cab51f8e6146f2abdadfdf652d2d9a</Guid>
+              <Margins>1,0.5,0.2,0.5</Margins>
+              <Name>Text54</Name>
+              <Page isRef="4" />
+              <Parent isRef="13" />
+              <Text>{ArrayList.sStudentName}</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>DataColumn</Type>
+            </Text54>
+            <Text70 Ref="23" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>16.2,1.4,1,0.4</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Font>Arial,8</Font>
+              <Guid>9ba0a8d486ad432f88d641377880d768</Guid>
+              <Margins>1,0.5,0.2,0.5</Margins>
+              <Name>Text70</Name>
+              <Page isRef="4" />
+              <Parent isRef="13" />
+              <Text>{ArrayList.sGender}</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>DataColumn</Type>
+            </Text70>
+            <Text79 Ref="24" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>9,0.6,4.6,0.4</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Font>Arial,8</Font>
+              <Guid>28ff161b396d4f7b9f1d61b17c5a9e1c</Guid>
+              <HorAlignment>Right</HorAlignment>
+              <Margins>1,0.5,0.2,0.5</Margins>
+              <Name>Text79</Name>
+              <Page isRef="4" />
+              <Parent isRef="13" />
+              <Text>联系电话：{ArrayList.sTelePhone}</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>DataColumn</Type>
+            </Text79>
+            <Text14 Ref="25" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>4.4,1.4,0.8,0.4</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Font>Arial,8</Font>
+              <Margins>0,0,0,0</Margins>
+              <Name>Text14</Name>
+              <Page isRef="4" />
+              <Parent isRef="13" />
+              <Text>渠道：</Text>
+              <TextBrush>Black</TextBrush>
+            </Text14>
+            <Text16 Ref="26" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>5.2,1.4,1.4,0.4</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Font>Arial,8</Font>
+              <Margins>0,0,0,0</Margins>
+              <Name>Text16</Name>
+              <Page isRef="4" />
+              <Parent isRef="13" />
+              <Text>{ArrayList.sChannel}</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>DataColumn</Type>
+            </Text16>
+            <HorizontalLinePrimitive4 Ref="27" type="HorizontalLinePrimitive" isKey="true">
+              <ClientRectangle>0.8,2,17.4,0.0254</ClientRectangle>
+              <Color>DimGray</Color>
+              <EndCap Ref="28" type="Cap" isKey="true">
+                <Color>Black</Color>
+              </EndCap>
+              <Guid>d9f23f339e304a018f7e829414855496</Guid>
+              <Name>HorizontalLinePrimitive4</Name>
+              <Page isRef="4" />
+              <Parent isRef="13" />
+              <StartCap Ref="29" type="Cap" isKey="true">
+                <Color>Black</Color>
+              </StartCap>
+            </HorizontalLinePrimitive4>
+          </Components>
+          <Conditions isList="true" count="0" />
+          <Name>HeaderBand2</Name>
+          <Page isRef="4" />
+          <Parent isRef="4" />
+        </HeaderBand2>
+        <DataBand1 Ref="30" type="DataBand" isKey="true">
+          <Brush>Transparent</Brush>
+          <BusinessObjectGuid>d77cf8450da44e8bba69f1c4fe1672d0</BusinessObjectGuid>
+          <ClientRectangle>0,4.2,19,1.4</ClientRectangle>
+          <Components isList="true" count="11">
+            <Text2 Ref="31" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>0.8,0.2,1.6,0.4</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Font>Arial,8</Font>
+              <Guid>d4c2e7651d2b4c7eb8bae05d09c1370c</Guid>
+              <Margins>0,0,0,0</Margins>
+              <Name>Text2</Name>
+              <Page isRef="4" />
+              <Parent isRef="30" />
+              <Text>商品编码：</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>DataColumn</Type>
+            </Text2>
+            <Text3 Ref="32" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>0.8,0.8,2.2,0.4</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Font>Arial,8</Font>
+              <Guid>b343c2082fc34f37aeaaa2c87411f0e7</Guid>
+              <Margins>0,0,0,0</Margins>
+              <Name>Text3</Name>
+              <Page isRef="4" />
+              <Parent isRef="30" />
+              <Text>商品标准金额：</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>DataColumn</Type>
+            </Text3>
+            <Text4 Ref="33" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>7,0.2,1.6,0.4</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Font>Arial,8</Font>
+              <Guid>3279168bec304b81ba1ef0153876c383</Guid>
+              <Margins>0,0,0,0</Margins>
+              <Name>Text4</Name>
+              <Page isRef="4" />
+              <Parent isRef="30" />
+              <Text>商品名称：</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>DataColumn</Type>
+            </Text4>
+            <Text5 Ref="34" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>8.6,0.2,9.4,0.4</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Font>Arial,8</Font>
+              <Guid>2f3502e3eb4e4ec7a4fe9ebc136ea9b0</Guid>
+              <Margins>0,0,0,0</Margins>
+              <Name>Text5</Name>
+              <Page isRef="4" />
+              <Parent isRef="30" />
+              <Text>{ArrayList.ClassArray.sClassName}</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>DataColumn</Type>
+            </Text5>
+            <Text6 Ref="35" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>14,0.8,2.2,0.4</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Font>Arial,8</Font>
+              <Guid>ec8a2cdd33484ff1a5c0a96b79d599e0</Guid>
+              <Margins>0,0,0,0</Margins>
+              <Name>Text6</Name>
+              <Page isRef="4" />
+              <Parent isRef="30" />
+              <Text>商品优惠金额：</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>DataColumn</Type>
+            </Text6>
+            <Text1 Ref="36" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>7,0.8,2.2,0.4</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Font>Arial,8</Font>
+              <Margins>0,0,0,0</Margins>
+              <Name>Text1</Name>
+              <Page isRef="4" />
+              <Parent isRef="30" />
+              <Text>当前报入金额：</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Expression</Type>
+            </Text1>
+            <Text7 Ref="37" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>9.2,0.8,2,0.4</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Font>Arial,8</Font>
+              <Margins>0,0,0,0</Margins>
+              <Name>Text7</Name>
+              <Page isRef="4" />
+              <Parent isRef="30" />
+              <Text>{ArrayList.ClassArray.dRealFee}</Text>
+              <TextBrush>Black</TextBrush>
+              <TextFormat Ref="38" type="CurrencyFormat" isKey="true">
+                <GroupSeparator>,</GroupSeparator>
+                <NegativePattern>2</NegativePattern>
+                <PositivePattern>0</PositivePattern>
+                <Symbol>¥</Symbol>
+              </TextFormat>
+              <Type>DataColumn</Type>
+            </Text7>
+            <Text8 Ref="39" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>16.2,0.8,2.2,0.4</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Font>Arial,8</Font>
+              <Margins>0,0,0,0</Margins>
+              <Name>Text8</Name>
+              <Page isRef="4" />
+              <Parent isRef="30" />
+              <Text>{ArrayList.ClassArray.dVoucherFee}</Text>
+              <TextBrush>Black</TextBrush>
+              <TextFormat Ref="40" type="CurrencyFormat" isKey="true">
+                <GroupSeparator>,</GroupSeparator>
+                <NegativePattern>2</NegativePattern>
+                <PositivePattern>0</PositivePattern>
+                <Symbol>¥</Symbol>
+              </TextFormat>
+              <Type>DataColumn</Type>
+            </Text8>
+            <Text9 Ref="41" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>2.4,0.2,2.6,0.4</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Font>Arial,8</Font>
+              <Margins>0,0,0,0</Margins>
+              <Name>Text9</Name>
+              <Page isRef="4" />
+              <Parent isRef="30" />
+              <Text>{ArrayList.ClassArray.sClassCode}</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>DataColumn</Type>
+            </Text9>
+            <Text11 Ref="42" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>3,0.8,2,0.4</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Font>Arial,8</Font>
+              <Margins>0,0,0,0</Margins>
+              <Name>Text11</Name>
+              <Page isRef="4" />
+              <Parent isRef="30" />
+              <Text>{ArrayList.ClassArray.dClassFee}</Text>
+              <TextBrush>Black</TextBrush>
+              <TextFormat Ref="43" type="CurrencyFormat" isKey="true">
+                <GroupSeparator>,</GroupSeparator>
+                <NegativePattern>2</NegativePattern>
+                <PositivePattern>0</PositivePattern>
+                <Symbol>¥</Symbol>
+              </TextFormat>
+              <Type>DataColumn</Type>
+            </Text11>
+            <HorizontalLinePrimitive2 Ref="44" type="HorizontalLinePrimitive" isKey="true">
+              <ClientRectangle>0.8,1.4,17.4,0.0254</ClientRectangle>
+              <Color>DimGray</Color>
+              <EndCap Ref="45" type="Cap" isKey="true">
+                <Color>Black</Color>
+              </EndCap>
+              <Guid>748d98ed150941668c0c3ad73489de1d</Guid>
+              <Name>HorizontalLinePrimitive2</Name>
+              <Page isRef="4" />
+              <Parent isRef="30" />
+              <StartCap Ref="46" type="Cap" isKey="true">
+                <Color>Black</Color>
+              </StartCap>
+            </HorizontalLinePrimitive2>
+          </Components>
+          <Conditions isList="true" count="0" />
+          <DataRelationName isNull="true" />
+          <DataSourceName isNull="true" />
+          <Filters isList="true" count="0" />
+          <Name>DataBand1</Name>
+          <Page isRef="4" />
+          <Parent isRef="4" />
+          <Sort isList="true" count="0" />
+        </DataBand1>
+        <FooterBand1 Ref="47" type="FooterBand" isKey="true">
+          <Brush>Transparent</Brush>
+          <ClientRectangle>0,6.4,19,1.8</ClientRectangle>
+          <Components isList="true" count="7">
+            <Text18 Ref="48" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>0,0.8,18.4,1</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Font>Arial,9.5,Bold</Font>
+              <Guid>a14bd2f31bbf48c6906f99277ac6fd9e</Guid>
+              <HorAlignment>Right</HorAlignment>
+              <Margins>0,0,0,0</Margins>
+              <Name>Text18</Name>
+              <Page isRef="4" />
+              <Parent isRef="47" />
+              <Text>支付方式：{ArrayList.sPayType}</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>DataColumn</Type>
+            </Text18>
+            <Text23 Ref="49" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>16.6,0.2,1.8,0.4</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Font>Arial,9.5,Bold</Font>
+              <Guid>4e374a6e7bf3423392c729e06925ebfe</Guid>
+              <Margins>0,0,0,0</Margins>
+              <Name>Text23</Name>
+              <Page isRef="4" />
+              <Parent isRef="47" />
+              <Text>{ArrayList.dRealReceive}</Text>
+              <TextBrush>Black</TextBrush>
+              <TextFormat Ref="50" type="CurrencyFormat" isKey="true">
+                <GroupSeparator>,</GroupSeparator>
+                <NegativePattern>2</NegativePattern>
+                <PositivePattern>0</PositivePattern>
+                <Symbol>¥</Symbol>
+              </TextFormat>
+              <Type>DataColumn</Type>
+            </Text23>
+            <Text24 Ref="51" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>14.8,0.2,1.8,0.4</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Font>Arial,9.5,Bold</Font>
+              <Guid>f662a8e05dc7492f9893288d4226c5cd</Guid>
+              <Margins>0,0,0,0</Margins>
+              <Name>Text24</Name>
+              <Page isRef="4" />
+              <Parent isRef="47" />
+              <Text>实收金额：</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Expression</Type>
+            </Text24>
+            <Text25 Ref="52" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>6.8,0.2,1.8,0.4</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Font>Arial,9.5,Bold</Font>
+              <Guid>61b9756980814fd6820816c2b4b5a72e</Guid>
+              <Margins>0,0,0,0</Margins>
+              <Name>Text25</Name>
+              <Page isRef="4" />
+              <Parent isRef="47" />
+              <Text>优惠金额：</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Expression</Type>
+            </Text25>
+            <Text27 Ref="53" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>10.8,0.2,1.8,0.4</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Font>Arial,9.5,Bold</Font>
+              <Guid>20294da811b34b21928184bd812d4187</Guid>
+              <Margins>0,0,0,0</Margins>
+              <Name>Text27</Name>
+              <Page isRef="4" />
+              <Parent isRef="47" />
+              <Text>应收金额：</Text>
+              <TextBrush>Black</TextBrush>
+              <Type>Expression</Type>
+            </Text27>
+            <Text29 Ref="54" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>12.6,0.2,1.8,0.4</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Font>Arial,9.5,Bold</Font>
+              <Guid>e9f75fbcfac44bd18eb3a59f96975a18</Guid>
+              <Margins>0,0,0,0</Margins>
+              <Name>Text29</Name>
+              <Page isRef="4" />
+              <Parent isRef="47" />
+              <Text>{ArrayList.dShouldReceive}</Text>
+              <TextBrush>Black</TextBrush>
+              <TextFormat Ref="55" type="CurrencyFormat" isKey="true">
+                <GroupSeparator>,</GroupSeparator>
+                <NegativePattern>2</NegativePattern>
+                <PositivePattern>0</PositivePattern>
+                <Symbol>¥</Symbol>
+              </TextFormat>
+              <Type>DataColumn</Type>
+            </Text29>
+            <Text31 Ref="56" type="Text" isKey="true">
+              <Brush>Transparent</Brush>
+              <ClientRectangle>8.6,0.2,1.8,0.4</ClientRectangle>
+              <Conditions isList="true" count="0" />
+              <Font>Arial,9.5,Bold</Font>
+              <Guid>fee5e221891841cb98790218cc66299e</Guid>
+              <Margins>0,0,0,0</Margins>
+              <Name>Text31</Name>
+              <Page isRef="4" />
+              <Parent isRef="47" />
+              <Text>{ArrayList.Discounttype}</Text>
+              <TextBrush>Black</TextBrush>
+              <TextFormat Ref="57" type="CurrencyFormat" isKey="true">
+                <GroupSeparator>,</GroupSeparator>
+                <NegativePattern>2</NegativePattern>
+                <PositivePattern>0</PositivePattern>
+                <Symbol>¥</Symbol>
+              </TextFormat>
+              <Type>DataColumn</Type>
+            </Text31>
+          </Components>
+          <Conditions isList="true" count="0" />
+          <Name>FooterBand1</Name>
+          <Page isRef="4" />
+          <Parent isRef="4" />
+        </FooterBand1>
+      </Components>
+      <Conditions isList="true" count="0" />
+      <Guid>721b69621478429e8ce368ad9379ead7</Guid>
+      <Margins>1,1,1,1</Margins>
+      <Name>Page1</Name>
+      <Orientation>Landscape</Orientation>
+      <PageHeight>14.81</PageHeight>
+      <PageWidth>21</PageWidth>
+      <PaperSize>A5</PaperSize>
+      <Report isRef="0" />
+      <Watermark Ref="58" type="Stimulsoft.Report.Components.StiWatermark" isKey="true">
+        <Font>Arial,100</Font>
+        <TextBrush>[50:0:0:0]</TextBrush>
+      </Watermark>
+    </Page1>
+  </Pages>
+  <PrinterSettings Ref="59" type="Stimulsoft.Report.Print.StiPrinterSettings" isKey="true" />
+  <ReferencedAssemblies isList="true" count="8">
+    <value>System.Dll</value>
+    <value>System.Drawing.Dll</value>
+    <value>System.Windows.Forms.Dll</value>
+    <value>System.Data.Dll</value>
+    <value>System.Xml.Dll</value>
+    <value>Stimulsoft.Controls.Dll</value>
+    <value>Stimulsoft.Base.Dll</value>
+    <value>Stimulsoft.Report.Dll</value>
+  </ReferencedAssemblies>
+  <ReportAlias>Report</ReportAlias>
+  <ReportChanged>3/24/2020 4:02:09 PM</ReportChanged>
+  <ReportCreated>8/11/2014 9:57:57 AM</ReportCreated>
+  <ReportFile>\\tsclient\VDI 鍏变韩\优惠重算凭证.mrt</ReportFile>
+  <ReportGuid>80d037611ba44fb690dd510454a5a1e4</ReportGuid>
+  <ReportName>Report</ReportName>
+  <ReportUnit>Centimeters</ReportUnit>
+  <ReportVersion>2011.1.1000</ReportVersion>
+  <Script>using System;
+using System.Drawing;
+using System.Windows.Forms;
+using System.Data;
+using Stimulsoft.Controls;
+using Stimulsoft.Base.Drawing;
+using Stimulsoft.Report;
+using Stimulsoft.Report.Dialogs;
+using Stimulsoft.Report.Components;
+
+namespace Reports
+{
+    public class Report : Stimulsoft.Report.StiReport
+    {
+        public Report()        {
+            this.InitializeComponent();
+        }
+
+        #region StiReport Designer generated code - do not modify
+        public Stimulsoft.Report.Components.StiPage Page1;
+        public Stimulsoft.Report.Components.StiPageFooterBand PageFooterBand1;
+        public Stimulsoft.Report.Components.StiText Text15;
+        public Stimulsoft.Report.Components.StiText Text17;
+        public Stimulsoft.Report.Components.StiText Text18;
+        public Stimulsoft.Report.Components.StiText Text19;
+        public Stimulsoft.Report.Components.StiText Text20;
+        public Stimulsoft.Report.Components.StiText Text21;
+        public Stimulsoft.Report.Components.StiText Text22;
+        public Stimulsoft.Report.Components.StiText Text33;
+        public Stimulsoft.Report.Components.StiText Text35;
+        public Stimulsoft.Report.Components.StiText Text36;
+        public Stimulsoft.Report.Components.StiText Text37;
+        public Stimulsoft.Report.Components.StiText Text40;
+        public Stimulsoft.Report.Components.StiText Text41;
+        public Stimulsoft.Report.Components.StiText Text12;
+        public Stimulsoft.Report.Components.StiText Text13;
+        public Stimulsoft.Report.Components.StiImage Image1;
+        public Stimulsoft.Report.Components.StiText Text34;
+        public Stimulsoft.Report.Components.StiText Text38;
+        public Stimulsoft.Report.Components.StiText Text45;
+        public Stimulsoft.Report.Components.StiText Text46;
+        public Stimulsoft.Report.Components.StiText Text55;
+        public Stimulsoft.Report.Components.StiText Text56;
+        public Stimulsoft.Report.Components.StiHeaderBand HeaderBand2;
+        public Stimulsoft.Report.Components.StiText Text10;
+        public Stimulsoft.Report.Components.StiImage Image3;
+        public Stimulsoft.Report.Components.StiText Text26;
+        public Stimulsoft.Report.Components.StiText Text28;
+        public Stimulsoft.Report.Components.StiText Text30;
+        public Stimulsoft.Report.Components.StiText Text32;
+        public Stimulsoft.Report.Components.StiText Text48;
+        public Stimulsoft.Report.Components.StiText Text52;
+        public Stimulsoft.Report.Components.StiText Text54;
+        public Stimulsoft.Report.Components.StiText Text70;
+        public Stimulsoft.Report.Components.StiText Text79;
+        public Stimulsoft.Report.Components.StiText Text14;
+        public Stimulsoft.Report.Components.StiText Text16;
+        public Stimulsoft.Report.Components.StiHorizontalLinePrimitive HorizontalLinePrimitive4;
+        public Stimulsoft.Report.Components.StiDataBand DataBand1;
+        public Stimulsoft.Report.Components.StiText Text2;
+        public Stimulsoft.Report.Components.StiText Text3;
+        public Stimulsoft.Report.Components.StiText Text4;
+        public Stimulsoft.Report.Components.StiText Text5;
+        public Stimulsoft.Report.Components.StiText Text6;
+        public Stimulsoft.Report.Components.StiText Text1;
+        public Stimulsoft.Report.Components.StiText Text7;
+        public Stimulsoft.Report.Components.StiText Text8;
+        public Stimulsoft.Report.Components.StiText Text9;
+        public Stimulsoft.Report.Components.StiText Text11;
+        public Stimulsoft.Report.Components.StiHorizontalLinePrimitive HorizontalLinePrimitive2;
+        public Stimulsoft.Report.Components.StiWatermark Page1_Watermark;
+        public Stimulsoft.Report.Print.StiPrinterSettings Report_PrinterSettings;
+        public ArrayListBusinessObject ArrayList;
+        
+        public void Text15__GetValue(object sender, Stimulsoft.Report.Events.StiGetValueEventArgs e)
+        {
+            e.Value = ToString(sender, ArrayList.dRealReceive, true);
+        }
+        
+        public void Text17__GetValue(object sender, Stimulsoft.Report.Events.StiGetValueEventArgs e)
+        {
+            e.Value = "实收金额：";
+        }
+        
+        public void Text18__GetValue(object sender, Stimulsoft.Report.Events.StiGetValueEventArgs e)
+        {
+            e.Value = "支付方式：" + ToString(sender, ArrayList.sPayType, true);
+        }
+        
+        public void Text19__GetValue(object sender, Stimulsoft.Report.Events.StiGetValueEventArgs e)
+        {
+            e.Value = "本人确定以上内容";
+        }
+        
+        public void Text20__GetValue(object sender, Stimulsoft.Report.Events.StiGetValueEventArgs e)
+        {
+            e.Value = "优惠金额：";
+        }
+        
+        public void Text21__GetValue(object sender, Stimulsoft.Report.Events.StiGetValueEventArgs e)
+        {
+            e.Value = "应收金额：";
+        }
+        
+        public void Text22__GetValue(object sender, Stimulsoft.Report.Events.StiGetValueEventArgs e)
+        {
+            e.Value = "请妥善保存";
+        }
+        
+        public void Text33__GetValue(object sender, Stimulsoft.Report.Events.StiGetValueEventArgs e)
+        {
+            e.Value = "客户代办人签字:";
+        }
+        
+        public void Text35__GetValue(object sender, Stimulsoft.Report.Events.StiGetValueEventArgs e)
+        {
+            e.Value = "操作员:";
+        }
+        
+        public void Text36__GetValue(object sender, Stimulsoft.Report.Events.StiGetValueEventArgs e)
+        {
+            e.Value = ToString(sender, ArrayList.sOperator, true);
+        }
+        
+        public void Text37__GetValue(object sender, Stimulsoft.Report.Events.StiGetValueEventArgs e)
+        {
+            e.Value = "日期：";
+        }
+        
+        public void Text40__GetValue(object sender, Stimulsoft.Report.Events.StiGetValueEventArgs e)
+        {
+            e.Value = ToString(sender, ArrayList.dtCreate, true);
+        }
+        
+        public void Text41__GetValue(object sender, Stimulsoft.Report.Events.StiGetValueEventArgs e)
+        {
+            e.Value = "#%#{PageNofM}";
+            e.StoreToPrinted = true;
+        }
+        
+        public System.String Text41_GetValue_End(Stimulsoft.Report.Components.StiComponent sender)
+        {
+            return ToString(sender, PageNofM, true);
+        }
+        
+        public void Text12__GetValue(object sender, Stimulsoft.Report.Events.StiGetValueEventArgs e)
+        {
+            e.Value = ToString(sender, ArrayList.dShouldReceive, true);
+        }
+        
+        public void Text13__GetValue(object sender, Stimulsoft.Report.Events.StiGetValueEventArgs e)
+        {
+            e.Value = ToString(sender, ArrayList.Discounttype, true);
+        }
+        
+        public void Text34__GetValue(object sender, Stimulsoft.Report.Events.StiGetValueEventArgs e)
+        {
+            e.Value = "客户代办人签字:";
+        }
+        
+        public void Text38__GetValue(object sender, Stimulsoft.Report.Events.StiGetValueEventArgs e)
+        {
+            e.Value = "操作员:";
+        }
+        
+        public void Text45__GetValue(object sender, Stimulsoft.Report.Events.StiGetValueEventArgs e)
+        {
+            e.Value = ToString(sender, ArrayList.sOperatorName, true);
+        }
+        
+        public void Text46__GetValue(object sender, Stimulsoft.Report.Events.StiGetValueEventArgs e)
+        {
+            e.Value = "日期：";
+        }
+        
+        public void Text55__GetValue(object sender, Stimulsoft.Report.Events.StiGetValueEventArgs e)
+        {
+            e.Value = ToString(sender, ArrayList.dtOperatorDate, true);
+        }
+        
+        public void Text56__GetValue(object sender, Stimulsoft.Report.Events.StiGetValueEventArgs e)
+        {
+            e.Value = "请妥善保存";
+        }
+        
+        public void Text10__GetValue(object sender, Stimulsoft.Report.Events.StiGetValueEventArgs e)
+        {
+            e.Value = ToString(sender, ArrayList.sSchoolName, true) + "优惠重算凭证";
+        }
+        
+        public void Text26__GetValue(object sender, Stimulsoft.Report.Events.StiGetValueEventArgs e)
+        {
+            e.Value = "业务类型：";
+        }
+        
+        public void Text28__GetValue(object sender, Stimulsoft.Report.Events.StiGetValueEventArgs e)
+        {
+            e.Value = "学员编码：";
+        }
+        
+        public void Text30__GetValue(object sender, Stimulsoft.Report.Events.StiGetValueEventArgs e)
+        {
+            e.Value = "学员姓名：";
+        }
+        
+        public void Text32__GetValue(object sender, Stimulsoft.Report.Events.StiGetValueEventArgs e)
+        {
+            e.Value = "性别：";
+        }
+        
+        public void Text48__GetValue(object sender, Stimulsoft.Report.Events.StiGetValueEventArgs e)
+        {
+            e.Value = ToString(sender, ArrayList.sBizType, true);
+        }
+        
+        public void Text52__GetValue(object sender, Stimulsoft.Report.Events.StiGetValueEventArgs e)
+        {
+            e.Value = ToString(sender, ArrayList.sStudentCode, true);
+        }
+        
+        public void Text54__GetValue(object sender, Stimulsoft.Report.Events.StiGetValueEventArgs e)
+        {
+            e.Value = ToString(sender, ArrayList.sStudentName, true);
+        }
+        
+        public void Text70__GetValue(object sender, Stimulsoft.Report.Events.StiGetValueEventArgs e)
+        {
+            e.Value = ToString(sender, ArrayList.sGender, true);
+        }
+        
+        public void Text79__GetValue(object sender, Stimulsoft.Report.Events.StiGetValueEventArgs e)
+        {
+            e.Value = "联系电话：" + ToString(sender, ArrayList.sTelePhone, true);
+        }
+        
+        public void Text14__GetValue(object sender, Stimulsoft.Report.Events.StiGetValueEventArgs e)
+        {
+            e.Value = "渠道：";
+        }
+        
+        public void Text16__GetValue(object sender, Stimulsoft.Report.Events.StiGetValueEventArgs e)
+        {
+            e.Value = ToString(sender, ArrayList.sChannel, true);
+        }
+        
+        public void Text2__GetValue(object sender, Stimulsoft.Report.Events.StiGetValueEventArgs e)
+        {
+            e.Value = "班级编码：";
+        }
+        
+        public void Text3__GetValue(object sender, Stimulsoft.Report.Events.StiGetValueEventArgs e)
+        {
+            e.Value = "班级标准金额：";
+        }
+        
+        public void Text4__GetValue(object sender, Stimulsoft.Report.Events.StiGetValueEventArgs e)
+        {
+            e.Value = "班级名称：";
+        }
+        
+        public void Text5__GetValue(object sender, Stimulsoft.Report.Events.StiGetValueEventArgs e)
+        {
+            e.Value = ToString(sender, ArrayList.ClassArray.sClassName, true);
+        }
+        
+        public void Text6__GetValue(object sender, Stimulsoft.Report.Events.StiGetValueEventArgs e)
+        {
+            e.Value = "班级优惠金额：";
+        }
+        
+        public void Text1__GetValue(object sender, Stimulsoft.Report.Events.StiGetValueEventArgs e)
+        {
+            e.Value = "当前报班金额：";
+        }
+        
+        public void Text7__GetValue(object sender, Stimulsoft.Report.Events.StiGetValueEventArgs e)
+        {
+            e.Value = ToString(sender, ArrayList.ClassArray.dRealFee, true);
+        }
+        
+        public void Text8__GetValue(object sender, Stimulsoft.Report.Events.StiGetValueEventArgs e)
+        {
+            e.Value = ToString(sender, ArrayList.ClassArray.dVoucherFee, true);
+        }
+        
+        public void Text9__GetValue(object sender, Stimulsoft.Report.Events.StiGetValueEventArgs e)
+        {
+            e.Value = ToString(sender, ArrayList.ClassArray.sClassCode, true);
+        }
+        
+        public void Text11__GetValue(object sender, Stimulsoft.Report.Events.StiGetValueEventArgs e)
+        {
+            e.Value = ToString(sender, ArrayList.ClassArray.dClassFee, true);
+        }
+        
+        public void ReportWordsToEnd__EndRender(object sender, System.EventArgs e)
+        {
+            this.Text41.SetText(new Stimulsoft.Report.Components.StiGetValue(this.Text41_GetValue_End));
+        }
+        
+        private void InitializeComponent()
+        {
+            this.ArrayList = new ArrayListBusinessObject();
+            this.NeedsCompiling = false;
+            this.EngineVersion = Stimulsoft.Report.Engine.StiEngineVersion.EngineV2;
+            this.ReferencedAssemblies = new System.String[] {
+                    "System.Dll",
+                    "System.Drawing.Dll",
+                    "System.Windows.Forms.Dll",
+                    "System.Data.Dll",
+                    "System.Xml.Dll",
+                    "Stimulsoft.Controls.Dll",
+                    "Stimulsoft.Base.Dll",
+                    "Stimulsoft.Report.Dll"};
+            this.ReportAlias = "Report";
+            // 
+            // ReportChanged
+            // 
+            this.ReportChanged = new DateTime(2019, 3, 8, 13, 20, 55, 355);
+            // 
+            // ReportCreated
+            // 
+            this.ReportCreated = new DateTime(2014, 8, 11, 9, 57, 57, 0);
+            this.ReportFile = "E:\\Proof\\ProofPrintWebApi\\StimulsofMRT\\优惠重算凭证.mrt";
+            this.ReportGuid = "69e46b4d6c6f4d78978a8319058cd4d1";
+            this.ReportName = "Report";
+            this.ReportUnit = Stimulsoft.Report.StiReportUnitType.Centimeters;
+            this.ReportVersion = "2011.2.1001";
+            this.ScriptLanguage = Stimulsoft.Report.StiReportLanguageType.CSharp;
+            // 
+            // Page1
+            // 
+            this.Page1 = new Stimulsoft.Report.Components.StiPage();
+            this.Page1.Guid = "721b69621478429e8ce368ad9379ead7";
+            this.Page1.Name = "Page1";
+            this.Page1.Orientation = Stimulsoft.Report.Components.StiPageOrientation.Landscape;
+            this.Page1.PageHeight = 14.81;
+            this.Page1.PageWidth = 21;
+            this.Page1.PaperSize = System.Drawing.Printing.PaperKind.A5;
+            this.Page1.Border = new Stimulsoft.Base.Drawing.StiBorder(Stimulsoft.Base.Drawing.StiBorderSides.None, System.Drawing.Color.Black, 2, Stimulsoft.Base.Drawing.StiPenStyle.Solid, false, 4, new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black), false);
+            this.Page1.Brush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Transparent);
+            // 
+            // PageFooterBand1
+            // 
+            this.PageFooterBand1 = new Stimulsoft.Report.Components.StiPageFooterBand();
+            this.PageFooterBand1.ClientRectangle = new Stimulsoft.Base.Drawing.RectangleD(0, 10.81, 21, 4);
+            this.PageFooterBand1.Name = "PageFooterBand1";
+            this.PageFooterBand1.Border = new Stimulsoft.Base.Drawing.StiBorder(Stimulsoft.Base.Drawing.StiBorderSides.None, System.Drawing.Color.Black, 1, Stimulsoft.Base.Drawing.StiPenStyle.Solid, false, 4, new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black), false);
+            this.PageFooterBand1.Brush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Transparent);
+            // 
+            // Text15
+            // 
+            this.Text15 = new Stimulsoft.Report.Components.StiText();
+            this.Text15.ClientRectangle = new Stimulsoft.Base.Drawing.RectangleD(18, 0.39, 1.8, 0.4);
+            this.Text15.Guid = "e671a624def0469b8ad8ba5c0d709c4d";
+            this.Text15.Name = "Text15";
+            this.Text15.GetValue += new Stimulsoft.Report.Events.StiGetValueEventHandler(this.Text15__GetValue);
+            this.Text15.Type = Stimulsoft.Report.Components.StiSystemTextType.DataColumn;
+            this.Text15.Border = new Stimulsoft.Base.Drawing.StiBorder(Stimulsoft.Base.Drawing.StiBorderSides.None, System.Drawing.Color.Black, 1, Stimulsoft.Base.Drawing.StiPenStyle.Solid, false, 4, new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black), false);
+            this.Text15.Brush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Transparent);
+            this.Text15.Font = new System.Drawing.Font("黑体", 9F);
+            this.Text15.Indicator = null;
+            this.Text15.Interaction = null;
+            this.Text15.Margins = new Stimulsoft.Report.Components.StiMargins(0, 0, 0, 0);
+            this.Text15.TextBrush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black);
+            this.Text15.TextOptions = new Stimulsoft.Base.Drawing.StiTextOptions(false, false, false, 0F, System.Drawing.Text.HotkeyPrefix.None, System.Drawing.StringTrimming.None);
+            // 
+            // Text17
+            // 
+            this.Text17 = new Stimulsoft.Report.Components.StiText();
+            this.Text17.ClientRectangle = new Stimulsoft.Base.Drawing.RectangleD(16.4, 0.39, 1.6, 0.4);
+            this.Text17.Guid = "7f39eea9b1ea4c3091c6a5741d53bc2a";
+            this.Text17.Name = "Text17";
+            this.Text17.GetValue += new Stimulsoft.Report.Events.StiGetValueEventHandler(this.Text17__GetValue);
+            this.Text17.Type = Stimulsoft.Report.Components.StiSystemTextType.Expression;
+            this.Text17.Border = new Stimulsoft.Base.Drawing.StiBorder(Stimulsoft.Base.Drawing.StiBorderSides.None, System.Drawing.Color.Black, 1, Stimulsoft.Base.Drawing.StiPenStyle.Solid, false, 4, new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black), false);
+            this.Text17.Brush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Transparent);
+            this.Text17.Font = new System.Drawing.Font("黑体", 9F);
+            this.Text17.Indicator = null;
+            this.Text17.Interaction = null;
+            this.Text17.Margins = new Stimulsoft.Report.Components.StiMargins(0, 0, 0, 0);
+            this.Text17.TextBrush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black);
+            this.Text17.TextOptions = new Stimulsoft.Base.Drawing.StiTextOptions(false, false, false, 0F, System.Drawing.Text.HotkeyPrefix.None, System.Drawing.StringTrimming.None);
+            // 
+            // Text18
+            // 
+            this.Text18 = new Stimulsoft.Report.Components.StiText();
+            this.Text18.ClientRectangle = new Stimulsoft.Base.Drawing.RectangleD(7.6, 0.99, 12.2, 0.4);
+            this.Text18.Guid = "a14bd2f31bbf48c6906f99277ac6fd9e";
+            this.Text18.HorAlignment = Stimulsoft.Base.Drawing.StiTextHorAlignment.Right;
+            this.Text18.Name = "Text18";
+            this.Text18.GetValue += new Stimulsoft.Report.Events.StiGetValueEventHandler(this.Text18__GetValue);
+            this.Text18.Type = Stimulsoft.Report.Components.StiSystemTextType.DataColumn;
+            this.Text18.Border = new Stimulsoft.Base.Drawing.StiBorder(Stimulsoft.Base.Drawing.StiBorderSides.None, System.Drawing.Color.Black, 1, Stimulsoft.Base.Drawing.StiPenStyle.Solid, false, 4, new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black), false);
+            this.Text18.Brush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Transparent);
+            this.Text18.Font = new System.Drawing.Font("黑体", 9F);
+            this.Text18.Indicator = null;
+            this.Text18.Interaction = null;
+            this.Text18.Margins = new Stimulsoft.Report.Components.StiMargins(0, 0, 0, 0);
+            this.Text18.TextBrush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black);
+            this.Text18.TextOptions = new Stimulsoft.Base.Drawing.StiTextOptions(false, false, false, 0F, System.Drawing.Text.HotkeyPrefix.None, System.Drawing.StringTrimming.None);
+            // 
+            // Text19
+            // 
+            this.Text19 = new Stimulsoft.Report.Components.StiText();
+            this.Text19.ClientRectangle = new Stimulsoft.Base.Drawing.RectangleD(3.4, 1.39, 2.6, 0.4);
+            this.Text19.Guid = "27ae0f0b7d5949c39f5fcb8e646b0aad";
+            this.Text19.Name = "Text19";
+            this.Text19.GetValue += new Stimulsoft.Report.Events.StiGetValueEventHandler(this.Text19__GetValue);
+            this.Text19.Type = Stimulsoft.Report.Components.StiSystemTextType.Expression;
+            this.Text19.Border = new Stimulsoft.Base.Drawing.StiBorder(Stimulsoft.Base.Drawing.StiBorderSides.None, System.Drawing.Color.Black, 1, Stimulsoft.Base.Drawing.StiPenStyle.Solid, false, 4, new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black), false);
+            this.Text19.Brush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Transparent);
+            this.Text19.Font = new System.Drawing.Font("黑体", 9F);
+            this.Text19.Indicator = null;
+            this.Text19.Interaction = null;
+            this.Text19.Margins = new Stimulsoft.Report.Components.StiMargins(0, 0, 0, 0);
+            this.Text19.TextBrush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black);
+            this.Text19.TextOptions = new Stimulsoft.Base.Drawing.StiTextOptions(false, false, false, 0F, System.Drawing.Text.HotkeyPrefix.None, System.Drawing.StringTrimming.None);
+            // 
+            // Text20
+            // 
+            this.Text20 = new Stimulsoft.Report.Components.StiText();
+            this.Text20.ClientRectangle = new Stimulsoft.Base.Drawing.RectangleD(8.8, 0.39, 1.6, 0.4);
+            this.Text20.Guid = "bbbccca349e94db18cc0dc1d376428e3";
+            this.Text20.Name = "Text20";
+            this.Text20.GetValue += new Stimulsoft.Report.Events.StiGetValueEventHandler(this.Text20__GetValue);
+            this.Text20.Type = Stimulsoft.Report.Components.StiSystemTextType.Expression;
+            this.Text20.Border = new Stimulsoft.Base.Drawing.StiBorder(Stimulsoft.Base.Drawing.StiBorderSides.None, System.Drawing.Color.Black, 1, Stimulsoft.Base.Drawing.StiPenStyle.Solid, false, 4, new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black), false);
+            this.Text20.Brush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Transparent);
+            this.Text20.Font = new System.Drawing.Font("黑体", 9F);
+            this.Text20.Indicator = null;
+            this.Text20.Interaction = null;
+            this.Text20.Margins = new Stimulsoft.Report.Components.StiMargins(0, 0, 0, 0);
+            this.Text20.TextBrush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black);
+            this.Text20.TextOptions = new Stimulsoft.Base.Drawing.StiTextOptions(false, false, false, 0F, System.Drawing.Text.HotkeyPrefix.None, System.Drawing.StringTrimming.None);
+            // 
+            // Text21
+            // 
+            this.Text21 = new Stimulsoft.Report.Components.StiText();
+            this.Text21.ClientRectangle = new Stimulsoft.Base.Drawing.RectangleD(12.6, 0.39, 1.6, 0.4);
+            this.Text21.Guid = "b3e8d5eea07e45359b84f79e5d2f5369";
+            this.Text21.Name = "Text21";
+            this.Text21.GetValue += new Stimulsoft.Report.Events.StiGetValueEventHandler(this.Text21__GetValue);
+            this.Text21.Type = Stimulsoft.Report.Components.StiSystemTextType.Expression;
+            this.Text21.Border = new Stimulsoft.Base.Drawing.StiBorder(Stimulsoft.Base.Drawing.StiBorderSides.None, System.Drawing.Color.Black, 1, Stimulsoft.Base.Drawing.StiPenStyle.Solid, false, 4, new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black), false);
+            this.Text21.Brush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Transparent);
+            this.Text21.Font = new System.Drawing.Font("黑体", 9F);
+            this.Text21.Indicator = null;
+            this.Text21.Interaction = null;
+            this.Text21.Margins = new Stimulsoft.Report.Components.StiMargins(0, 0, 0, 0);
+            this.Text21.TextBrush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black);
+            this.Text21.TextOptions = new Stimulsoft.Base.Drawing.StiTextOptions(false, false, false, 0F, System.Drawing.Text.HotkeyPrefix.None, System.Drawing.StringTrimming.None);
+            // 
+            // Text22
+            // 
+            this.Text22 = new Stimulsoft.Report.Components.StiText();
+            this.Text22.ClientRectangle = new Stimulsoft.Base.Drawing.RectangleD(3.4, 1.99, 1.8, 0.4);
+            this.Text22.Guid = "20e97c6778c54ca0933a010ed0cce696";
+            this.Text22.Name = "Text22";
+            this.Text22.GetValue += new Stimulsoft.Report.Events.StiGetValueEventHandler(this.Text22__GetValue);
+            this.Text22.Type = Stimulsoft.Report.Components.StiSystemTextType.Expression;
+            this.Text22.VertAlignment = Stimulsoft.Base.Drawing.StiVertAlignment.Bottom;
+            this.Text22.Border = new Stimulsoft.Base.Drawing.StiBorder(Stimulsoft.Base.Drawing.StiBorderSides.None, System.Drawing.Color.Black, 1, Stimulsoft.Base.Drawing.StiPenStyle.Solid, false, 4, new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black), false);
+            this.Text22.Brush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Transparent);
+            this.Text22.Font = new System.Drawing.Font("黑体", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 134);
+            this.Text22.Indicator = null;
+            this.Text22.Interaction = null;
+            this.Text22.Margins = new Stimulsoft.Report.Components.StiMargins(0, 0, 0, 0);
+            this.Text22.TextBrush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black);
+            this.Text22.TextOptions = new Stimulsoft.Base.Drawing.StiTextOptions(false, false, false, 0F, System.Drawing.Text.HotkeyPrefix.None, System.Drawing.StringTrimming.None);
+            // 
+            // Text33
+            // 
+            this.Text33 = new Stimulsoft.Report.Components.StiText();
+            this.Text33.ClientRectangle = new Stimulsoft.Base.Drawing.RectangleD(7.6, 2.19, 2.4, 0.4);
+            this.Text33.Guid = "46d7f5bec8fd4e7abfeab16332d7e241";
+            this.Text33.Name = "Text33";
+            this.Text33.GetValue += new Stimulsoft.Report.Events.StiGetValueEventHandler(this.Text33__GetValue);
+            this.Text33.Type = Stimulsoft.Report.Components.StiSystemTextType.Expression;
+            this.Text33.VertAlignment = Stimulsoft.Base.Drawing.StiVertAlignment.Bottom;
+            this.Text33.Border = new Stimulsoft.Base.Drawing.StiBorder(Stimulsoft.Base.Drawing.StiBorderSides.None, System.Drawing.Color.Black, 1, Stimulsoft.Base.Drawing.StiPenStyle.Solid, false, 4, new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black), false);
+            this.Text33.Brush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Transparent);
+            this.Text33.Font = new System.Drawing.Font("黑体", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 134);
+            this.Text33.Indicator = null;
+            this.Text33.Interaction = null;
+            this.Text33.Margins = new Stimulsoft.Report.Components.StiMargins(0, 0, 0, 0);
+            this.Text33.TextBrush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black);
+            this.Text33.TextOptions = new Stimulsoft.Base.Drawing.StiTextOptions(false, false, false, 0F, System.Drawing.Text.HotkeyPrefix.None, System.Drawing.StringTrimming.None);
+            // 
+            // Text35
+            // 
+            this.Text35 = new Stimulsoft.Report.Components.StiText();
+            this.Text35.ClientRectangle = new Stimulsoft.Base.Drawing.RectangleD(11.6, 2.19, 1.2, 0.4);
+            this.Text35.Guid = "008bd1009bc944f9a4e209d5634971bf";
+            this.Text35.Name = "Text35";
+            this.Text35.GetValue += new Stimulsoft.Report.Events.StiGetValueEventHandler(this.Text35__GetValue);
+            this.Text35.Type = Stimulsoft.Report.Components.StiSystemTextType.Expression;
+            this.Text35.VertAlignment = Stimulsoft.Base.Drawing.StiVertAlignment.Bottom;
+            this.Text35.Border = new Stimulsoft.Base.Drawing.StiBorder(Stimulsoft.Base.Drawing.StiBorderSides.None, System.Drawing.Color.Black, 1, Stimulsoft.Base.Drawing.StiPenStyle.Solid, false, 4, new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black), false);
+            this.Text35.Brush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Transparent);
+            this.Text35.Font = new System.Drawing.Font("黑体", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 134);
+            this.Text35.Indicator = null;
+            this.Text35.Interaction = null;
+            this.Text35.Margins = new Stimulsoft.Report.Components.StiMargins(0, 0, 0, 0);
+            this.Text35.TextBrush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black);
+            this.Text35.TextOptions = new Stimulsoft.Base.Drawing.StiTextOptions(false, false, false, 0F, System.Drawing.Text.HotkeyPrefix.None, System.Drawing.StringTrimming.None);
+            // 
+            // Text36
+            // 
+            this.Text36 = new Stimulsoft.Report.Components.StiText();
+            this.Text36.ClientRectangle = new Stimulsoft.Base.Drawing.RectangleD(12.8, 2.19, 2, 0.4);
+            this.Text36.Guid = "c53af5b76f6c49e89dc77f04088452a8";
+            this.Text36.Name = "Text36";
+            this.Text36.GetValue += new Stimulsoft.Report.Events.StiGetValueEventHandler(this.Text36__GetValue);
+            this.Text36.Type = Stimulsoft.Report.Components.StiSystemTextType.DataColumn;
+            this.Text36.VertAlignment = Stimulsoft.Base.Drawing.StiVertAlignment.Bottom;
+            this.Text36.Border = new Stimulsoft.Base.Drawing.StiBorder(Stimulsoft.Base.Drawing.StiBorderSides.None, System.Drawing.Color.Black, 1, Stimulsoft.Base.Drawing.StiPenStyle.Solid, false, 4, new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black), false);
+            this.Text36.Brush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Transparent);
+            this.Text36.Font = new System.Drawing.Font("黑体", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 134);
+            this.Text36.Indicator = null;
+            this.Text36.Interaction = null;
+            this.Text36.Margins = new Stimulsoft.Report.Components.StiMargins(0, 0, 0, 0);
+            this.Text36.TextBrush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black);
+            this.Text36.TextOptions = new Stimulsoft.Base.Drawing.StiTextOptions(false, false, false, 0F, System.Drawing.Text.HotkeyPrefix.None, System.Drawing.StringTrimming.None);
+            // 
+            // Text37
+            // 
+            this.Text37 = new Stimulsoft.Report.Components.StiText();
+            this.Text37.ClientRectangle = new Stimulsoft.Base.Drawing.RectangleD(15.8, 2.19, 1, 0.4);
+            this.Text37.Guid = "28b05cac0daf49c9bdf3d3066a748ad2";
+            this.Text37.Name = "Text37";
+            this.Text37.GetValue += new Stimulsoft.Report.Events.StiGetValueEventHandler(this.Text37__GetValue);
+            this.Text37.Type = Stimulsoft.Report.Components.StiSystemTextType.Expression;
+            this.Text37.VertAlignment = Stimulsoft.Base.Drawing.StiVertAlignment.Bottom;
+            this.Text37.Border = new Stimulsoft.Base.Drawing.StiBorder(Stimulsoft.Base.Drawing.StiBorderSides.None, System.Drawing.Color.Black, 1, Stimulsoft.Base.Drawing.StiPenStyle.Solid, false, 4, new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black), false);
+            this.Text37.Brush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Transparent);
+            this.Text37.Font = new System.Drawing.Font("黑体", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 134);
+            this.Text37.Indicator = null;
+            this.Text37.Interaction = null;
+            this.Text37.Margins = new Stimulsoft.Report.Components.StiMargins(0, 0, 0, 0);
+            this.Text37.TextBrush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black);
+            this.Text37.TextOptions = new Stimulsoft.Base.Drawing.StiTextOptions(false, false, false, 0F, System.Drawing.Text.HotkeyPrefix.None, System.Drawing.StringTrimming.None);
+            // 
+            // Text40
+            // 
+            this.Text40 = new Stimulsoft.Report.Components.StiText();
+            this.Text40.ClientRectangle = new Stimulsoft.Base.Drawing.RectangleD(16.8, 2.19, 3, 0.4);
+            this.Text40.Guid = "eca322325d6f4c46842c0322fa05beee";
+            this.Text40.Name = "Text40";
+            this.Text40.GetValue += new Stimulsoft.Report.Events.StiGetValueEventHandler(this.Text40__GetValue);
+            this.Text40.Type = Stimulsoft.Report.Components.StiSystemTextType.DataColumn;
+            this.Text40.VertAlignment = Stimulsoft.Base.Drawing.StiVertAlignment.Bottom;
+            this.Text40.Border = new Stimulsoft.Base.Drawing.StiBorder(Stimulsoft.Base.Drawing.StiBorderSides.None, System.Drawing.Color.Black, 1, Stimulsoft.Base.Drawing.StiPenStyle.Solid, false, 4, new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black), false);
+            this.Text40.Brush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Transparent);
+            this.Text40.Font = new System.Drawing.Font("黑体", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 134);
+            this.Text40.Indicator = null;
+            this.Text40.Interaction = null;
+            this.Text40.Margins = new Stimulsoft.Report.Components.StiMargins(0, 0, 0, 0);
+            this.Text40.TextBrush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black);
+            this.Text40.TextOptions = new Stimulsoft.Base.Drawing.StiTextOptions(false, false, false, 0F, System.Drawing.Text.HotkeyPrefix.None, System.Drawing.StringTrimming.None);
+            // 
+            // Text41
+            // 
+            this.Text41 = new Stimulsoft.Report.Components.StiText();
+            this.Text41.ClientRectangle = new Stimulsoft.Base.Drawing.RectangleD(17.6, 2.59, 2.2, 0.4);
+            this.Text41.Guid = "42310b8617274614a1bbe4281436a7fa";
+            this.Text41.HorAlignment = Stimulsoft.Base.Drawing.StiTextHorAlignment.Right;
+            this.Text41.Name = "Text41";
+            this.Text41.GetValue += new Stimulsoft.Report.Events.StiGetValueEventHandler(this.Text41__GetValue);
+            this.Text41.Type = Stimulsoft.Report.Components.StiSystemTextType.SystemVariables;
+            this.Text41.VertAlignment = Stimulsoft.Base.Drawing.StiVertAlignment.Bottom;
+            this.Text41.Border = new Stimulsoft.Base.Drawing.StiBorder(Stimulsoft.Base.Drawing.StiBorderSides.None, System.Drawing.Color.Black, 1, Stimulsoft.Base.Drawing.StiPenStyle.Solid, false, 4, new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black), false);
+            this.Text41.Brush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Transparent);
+            this.Text41.Font = new System.Drawing.Font("黑体", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 134);
+            this.Text41.Indicator = null;
+            this.Text41.Interaction = null;
+            this.Text41.Margins = new Stimulsoft.Report.Components.StiMargins(0, 0, 0, 0);
+            this.Text41.TextBrush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black);
+            this.Text41.TextOptions = new Stimulsoft.Base.Drawing.StiTextOptions(false, false, false, 0F, System.Drawing.Text.HotkeyPrefix.None, System.Drawing.StringTrimming.None);
+            // 
+            // Text12
+            // 
+            this.Text12 = new Stimulsoft.Report.Components.StiText();
+            this.Text12.ClientRectangle = new Stimulsoft.Base.Drawing.RectangleD(14.2, 0.39, 1.8, 0.4);
+            this.Text12.Name = "Text12";
+            this.Text12.GetValue += new Stimulsoft.Report.Events.StiGetValueEventHandler(this.Text12__GetValue);
+            this.Text12.Type = Stimulsoft.Report.Components.StiSystemTextType.DataColumn;
+            this.Text12.Border = new Stimulsoft.Base.Drawing.StiBorder(Stimulsoft.Base.Drawing.StiBorderSides.None, System.Drawing.Color.Black, 1, Stimulsoft.Base.Drawing.StiPenStyle.Solid, false, 4, new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black), false);
+            this.Text12.Brush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Transparent);
+            this.Text12.Font = new System.Drawing.Font("黑体", 9F);
+            this.Text12.Guid = null;
+            this.Text12.Indicator = null;
+            this.Text12.Interaction = null;
+            this.Text12.Margins = new Stimulsoft.Report.Components.StiMargins(0, 0, 0, 0);
+            this.Text12.TextBrush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black);
+            this.Text12.TextOptions = new Stimulsoft.Base.Drawing.StiTextOptions(false, false, false, 0F, System.Drawing.Text.HotkeyPrefix.None, System.Drawing.StringTrimming.None);
+            // 
+            // Text13
+            // 
+            this.Text13 = new Stimulsoft.Report.Components.StiText();
+            this.Text13.ClientRectangle = new Stimulsoft.Base.Drawing.RectangleD(10.4, 0.39, 1.8, 0.4);
+            this.Text13.Name = "Text13";
+            this.Text13.GetValue += new Stimulsoft.Report.Events.StiGetValueEventHandler(this.Text13__GetValue);
+            this.Text13.Type = Stimulsoft.Report.Components.StiSystemTextType.DataColumn;
+            this.Text13.Border = new Stimulsoft.Base.Drawing.StiBorder(Stimulsoft.Base.Drawing.StiBorderSides.None, System.Drawing.Color.Black, 1, Stimulsoft.Base.Drawing.StiPenStyle.Solid, false, 4, new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black), false);
+            this.Text13.Brush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Transparent);
+            this.Text13.Font = new System.Drawing.Font("黑体", 9F);
+            this.Text13.Guid = null;
+            this.Text13.Indicator = null;
+            this.Text13.Interaction = null;
+            this.Text13.Margins = new Stimulsoft.Report.Components.StiMargins(0, 0, 0, 0);
+            this.Text13.TextBrush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black);
+            this.Text13.TextOptions = new Stimulsoft.Base.Drawing.StiTextOptions(false, false, false, 0F, System.Drawing.Text.HotkeyPrefix.None, System.Drawing.StringTrimming.None);
+            // 
+            // Image1
+            // 
+            this.Image1 = new Stimulsoft.Report.Components.StiImage();
+            this.Image1.ClientRectangle = new Stimulsoft.Base.Drawing.RectangleD(0.8, 0.59, 2.2, 2.2);
+            this.Image1.DataColumn = "ArrayList.RWMImage";
+            this.Image1.Guid = "01ce25216e494f1f9ae70ca487aae858";
+            this.Image1.Name = "Image1";
+            this.Image1.Stretch = true;
+            this.Image1.Border = new Stimulsoft.Base.Drawing.StiBorder(Stimulsoft.Base.Drawing.StiBorderSides.None, System.Drawing.Color.Black, 1, Stimulsoft.Base.Drawing.StiPenStyle.Solid, false, 4, new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black), false);
+            this.Image1.Brush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Transparent);
+            this.Image1.Image = null;
+            this.Image1.Interaction = null;
+            this.PageFooterBand1.Guid = null;
+            this.PageFooterBand1.Interaction = null;
+            // 
+            // Text34
+            // 
+            this.Text34 = new Stimulsoft.Report.Components.StiText();
+            this.Text34.ClientRectangle = new Stimulsoft.Base.Drawing.RectangleD(7.81, 15.4, 2.39, 0.41);
+            this.Text34.Guid = "13cba67e2f514c9bb484d6fa7a99f279";
+            this.Text34.Name = "Text34";
+            this.Text34.GetValue += new Stimulsoft.Report.Events.StiGetValueEventHandler(this.Text34__GetValue);
+            this.Text34.Type = Stimulsoft.Report.Components.StiSystemTextType.Expression;
+            this.Text34.VertAlignment = Stimulsoft.Base.Drawing.StiVertAlignment.Bottom;
+            this.Text34.Border = new Stimulsoft.Base.Drawing.StiBorder(Stimulsoft.Base.Drawing.StiBorderSides.None, System.Drawing.Color.Black, 1, Stimulsoft.Base.Drawing.StiPenStyle.Solid, false, 4, new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black), false);
+            this.Text34.Brush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Transparent);
+            this.Text34.Font = new System.Drawing.Font("黑体", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 134);
+            this.Text34.Indicator = null;
+            this.Text34.Interaction = null;
+            this.Text34.Margins = new Stimulsoft.Report.Components.StiMargins(0, 0, 0, 0);
+            this.Text34.TextBrush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black);
+            this.Text34.TextOptions = new Stimulsoft.Base.Drawing.StiTextOptions(false, false, false, 0F, System.Drawing.Text.HotkeyPrefix.None, System.Drawing.StringTrimming.None);
+            // 
+            // Text38
+            // 
+            this.Text38 = new Stimulsoft.Report.Components.StiText();
+            this.Text38.ClientRectangle = new Stimulsoft.Base.Drawing.RectangleD(12.21, 15.4, 1.2, 0.4);
+            this.Text38.Guid = "13f92deafa4444698229c65c1853c52f";
+            this.Text38.Name = "Text38";
+            this.Text38.GetValue += new Stimulsoft.Report.Events.StiGetValueEventHandler(this.Text38__GetValue);
+            this.Text38.Type = Stimulsoft.Report.Components.StiSystemTextType.Expression;
+            this.Text38.VertAlignment = Stimulsoft.Base.Drawing.StiVertAlignment.Bottom;
+            this.Text38.Border = new Stimulsoft.Base.Drawing.StiBorder(Stimulsoft.Base.Drawing.StiBorderSides.None, System.Drawing.Color.Black, 1, Stimulsoft.Base.Drawing.StiPenStyle.Solid, false, 4, new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black), false);
+            this.Text38.Brush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Transparent);
+            this.Text38.Font = new System.Drawing.Font("黑体", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 134);
+            this.Text38.Indicator = null;
+            this.Text38.Interaction = null;
+            this.Text38.Margins = new Stimulsoft.Report.Components.StiMargins(0, 0, 0, 0);
+            this.Text38.TextBrush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black);
+            this.Text38.TextOptions = new Stimulsoft.Base.Drawing.StiTextOptions(false, false, false, 0F, System.Drawing.Text.HotkeyPrefix.None, System.Drawing.StringTrimming.None);
+            // 
+            // Text45
+            // 
+            this.Text45 = new Stimulsoft.Report.Components.StiText();
+            this.Text45.ClientRectangle = new Stimulsoft.Base.Drawing.RectangleD(13.41, 15.4, 1.8, 0.4);
+            this.Text45.Guid = "aaf749e2952c4bc691b31c686eb23695";
+            this.Text45.Name = "Text45";
+            this.Text45.GetValue += new Stimulsoft.Report.Events.StiGetValueEventHandler(this.Text45__GetValue);
+            this.Text45.Type = Stimulsoft.Report.Components.StiSystemTextType.DataColumn;
+            this.Text45.VertAlignment = Stimulsoft.Base.Drawing.StiVertAlignment.Bottom;
+            this.Text45.Border = new Stimulsoft.Base.Drawing.StiBorder(Stimulsoft.Base.Drawing.StiBorderSides.None, System.Drawing.Color.Black, 1, Stimulsoft.Base.Drawing.StiPenStyle.Solid, false, 4, new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black), false);
+            this.Text45.Brush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Transparent);
+            this.Text45.Font = new System.Drawing.Font("黑体", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 134);
+            this.Text45.Indicator = null;
+            this.Text45.Interaction = null;
+            this.Text45.Margins = new Stimulsoft.Report.Components.StiMargins(0, 0, 0, 0);
+            this.Text45.TextBrush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black);
+            this.Text45.TextOptions = new Stimulsoft.Base.Drawing.StiTextOptions(false, false, false, 0F, System.Drawing.Text.HotkeyPrefix.None, System.Drawing.StringTrimming.None);
+            // 
+            // Text46
+            // 
+            this.Text46 = new Stimulsoft.Report.Components.StiText();
+            this.Text46.ClientRectangle = new Stimulsoft.Base.Drawing.RectangleD(15.61, 15.4, 1, 0.4);
+            this.Text46.Guid = "f8ddc41b5be54585ac9fa48ea3f97e54";
+            this.Text46.Name = "Text46";
+            this.Text46.GetValue += new Stimulsoft.Report.Events.StiGetValueEventHandler(this.Text46__GetValue);
+            this.Text46.Type = Stimulsoft.Report.Components.StiSystemTextType.Expression;
+            this.Text46.VertAlignment = Stimulsoft.Base.Drawing.StiVertAlignment.Bottom;
+            this.Text46.Border = new Stimulsoft.Base.Drawing.StiBorder(Stimulsoft.Base.Drawing.StiBorderSides.None, System.Drawing.Color.Black, 1, Stimulsoft.Base.Drawing.StiPenStyle.Solid, false, 4, new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black), false);
+            this.Text46.Brush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Transparent);
+            this.Text46.Font = new System.Drawing.Font("黑体", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 134);
+            this.Text46.Indicator = null;
+            this.Text46.Interaction = null;
+            this.Text46.Margins = new Stimulsoft.Report.Components.StiMargins(0, 0, 0, 0);
+            this.Text46.TextBrush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black);
+            this.Text46.TextOptions = new Stimulsoft.Base.Drawing.StiTextOptions(false, false, false, 0F, System.Drawing.Text.HotkeyPrefix.None, System.Drawing.StringTrimming.None);
+            // 
+            // Text55
+            // 
+            this.Text55 = new Stimulsoft.Report.Components.StiText();
+            this.Text55.ClientRectangle = new Stimulsoft.Base.Drawing.RectangleD(15.61, 15.4, 1, 0.4);
+            this.Text55.Guid = "afc4250ca99d485a86230f18e5d62dfb";
+            this.Text55.Name = "Text55";
+            this.Text55.GetValue += new Stimulsoft.Report.Events.StiGetValueEventHandler(this.Text55__GetValue);
+            this.Text55.Type = Stimulsoft.Report.Components.StiSystemTextType.DataColumn;
+            this.Text55.VertAlignment = Stimulsoft.Base.Drawing.StiVertAlignment.Bottom;
+            this.Text55.Border = new Stimulsoft.Base.Drawing.StiBorder(Stimulsoft.Base.Drawing.StiBorderSides.None, System.Drawing.Color.Black, 1, Stimulsoft.Base.Drawing.StiPenStyle.Solid, false, 4, new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black), false);
+            this.Text55.Brush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Transparent);
+            this.Text55.Font = new System.Drawing.Font("黑体", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 134);
+            this.Text55.Indicator = null;
+            this.Text55.Interaction = null;
+            this.Text55.Margins = new Stimulsoft.Report.Components.StiMargins(0, 0, 0, 0);
+            this.Text55.TextBrush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black);
+            this.Text55.TextOptions = new Stimulsoft.Base.Drawing.StiTextOptions(false, false, false, 0F, System.Drawing.Text.HotkeyPrefix.None, System.Drawing.StringTrimming.None);
+            // 
+            // Text56
+            // 
+            this.Text56 = new Stimulsoft.Report.Components.StiText();
+            this.Text56.ClientRectangle = new Stimulsoft.Base.Drawing.RectangleD(3.2, 15.2, 1.8, 0.4);
+            this.Text56.Guid = "6d84285c122142769b5baec9a7de23c2";
+            this.Text56.Name = "Text56";
+            this.Text56.GetValue += new Stimulsoft.Report.Events.StiGetValueEventHandler(this.Text56__GetValue);
+            this.Text56.Type = Stimulsoft.Report.Components.StiSystemTextType.Expression;
+            this.Text56.VertAlignment = Stimulsoft.Base.Drawing.StiVertAlignment.Bottom;
+            this.Text56.Border = new Stimulsoft.Base.Drawing.StiBorder(Stimulsoft.Base.Drawing.StiBorderSides.None, System.Drawing.Color.Black, 1, Stimulsoft.Base.Drawing.StiPenStyle.Solid, false, 4, new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black), false);
+            this.Text56.Brush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Transparent);
+            this.Text56.Font = new System.Drawing.Font("黑体", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 134);
+            this.Text56.Indicator = null;
+            this.Text56.Interaction = null;
+            this.Text56.Margins = new Stimulsoft.Report.Components.StiMargins(0, 0, 0, 0);
+            this.Text56.TextBrush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black);
+            this.Text56.TextOptions = new Stimulsoft.Base.Drawing.StiTextOptions(false, false, false, 0F, System.Drawing.Text.HotkeyPrefix.None, System.Drawing.StringTrimming.None);
+            // 
+            // HeaderBand2
+            // 
+            this.HeaderBand2 = new Stimulsoft.Report.Components.StiHeaderBand();
+            this.HeaderBand2.ClientRectangle = new Stimulsoft.Base.Drawing.RectangleD(0, 0.4, 21, 1.6);
+            this.HeaderBand2.Name = "HeaderBand2";
+            this.HeaderBand2.Border = new Stimulsoft.Base.Drawing.StiBorder(Stimulsoft.Base.Drawing.StiBorderSides.None, System.Drawing.Color.Black, 1, Stimulsoft.Base.Drawing.StiPenStyle.Solid, false, 4, new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black), false);
+            this.HeaderBand2.Brush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Transparent);
+            // 
+            // Text10
+            // 
+            this.Text10 = new Stimulsoft.Report.Components.StiText();
+            this.Text10.ClientRectangle = new Stimulsoft.Base.Drawing.RectangleD(3, 0.2, 4.8, 0.6);
+            this.Text10.Guid = "82ca3a9601974048ae64659d4853821d";
+            this.Text10.Linked = true;
+            this.Text10.Name = "Text10";
+            this.Text10.GetValue += new Stimulsoft.Report.Events.StiGetValueEventHandler(this.Text10__GetValue);
+            this.Text10.Type = Stimulsoft.Report.Components.StiSystemTextType.DataColumn;
+            this.Text10.VertAlignment = Stimulsoft.Base.Drawing.StiVertAlignment.Bottom;
+            this.Text10.Border = new Stimulsoft.Base.Drawing.StiBorder(Stimulsoft.Base.Drawing.StiBorderSides.None, System.Drawing.Color.Black, 1, Stimulsoft.Base.Drawing.StiPenStyle.Solid, false, 4, new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black), false);
+            this.Text10.Brush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Transparent);
+            this.Text10.Font = new System.Drawing.Font("黑体", 10.5F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, 134);
+            this.Text10.Indicator = null;
+            this.Text10.Interaction = null;
+            this.Text10.Margins = new Stimulsoft.Report.Components.StiMargins(0, 0, 0, 0);
+            this.Text10.TextBrush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black);
+            this.Text10.TextOptions = new Stimulsoft.Base.Drawing.StiTextOptions(false, false, false, 0F, System.Drawing.Text.HotkeyPrefix.None, System.Drawing.StringTrimming.None);
+            // 
+            // Image3
+            // 
+            this.Image3 = new Stimulsoft.Report.Components.StiImage();
+            this.Image3.ClientRectangle = new Stimulsoft.Base.Drawing.RectangleD(0.8, 0.2, 2, 0.8);
+            this.Image3.Guid = "04fdc7d79cfa46bba65a2d77b9dbd275";
+            this.Image3.Image = StiImageConverter.StringToImage("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");
+            this.Image3.Linked = true;
+            this.Image3.Locked = true;
+            this.Image3.Name = "Image3";
+            this.Image3.Stretch = true;
+            this.Image3.Border = new Stimulsoft.Base.Drawing.StiBorder(Stimulsoft.Base.Drawing.StiBorderSides.None, System.Drawing.Color.Black, 1, Stimulsoft.Base.Drawing.StiPenStyle.Solid, false, 4, new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black), false);
+            this.Image3.Brush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Transparent);
+            this.Image3.Interaction = null;
+            // 
+            // Text26
+            // 
+            this.Text26 = new Stimulsoft.Report.Components.StiText();
+            this.Text26.ClientRectangle = new Stimulsoft.Base.Drawing.RectangleD(0.8, 1.2, 1.6, 0.4);
+            this.Text26.Guid = "8ed771f48bdd43a59666b0954c83f672";
+            this.Text26.Linked = true;
+            this.Text26.Locked = true;
+            this.Text26.Name = "Text26";
+            this.Text26.GetValue += new Stimulsoft.Report.Events.StiGetValueEventHandler(this.Text26__GetValue);
+            this.Text26.Type = Stimulsoft.Report.Components.StiSystemTextType.Expression;
+            this.Text26.VertAlignment = Stimulsoft.Base.Drawing.StiVertAlignment.Bottom;
+            this.Text26.Border = new Stimulsoft.Base.Drawing.StiBorder(Stimulsoft.Base.Drawing.StiBorderSides.None, System.Drawing.Color.Black, 1, Stimulsoft.Base.Drawing.StiPenStyle.Solid, false, 4, new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black), false);
+            this.Text26.Brush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Transparent);
+            this.Text26.Font = new System.Drawing.Font("黑体", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 134);
+            this.Text26.Indicator = null;
+            this.Text26.Interaction = null;
+            this.Text26.Margins = new Stimulsoft.Report.Components.StiMargins(1, 0.5, 0.2, 0.5);
+            this.Text26.TextBrush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black);
+            this.Text26.TextOptions = new Stimulsoft.Base.Drawing.StiTextOptions(false, false, false, 0F, System.Drawing.Text.HotkeyPrefix.None, System.Drawing.StringTrimming.None);
+            // 
+            // Text28
+            // 
+            this.Text28 = new Stimulsoft.Report.Components.StiText();
+            this.Text28.ClientRectangle = new Stimulsoft.Base.Drawing.RectangleD(7, 1.2, 1.6, 0.4);
+            this.Text28.Guid = "092fe81d52c94e60afd78f867f6cd905";
+            this.Text28.Linked = true;
+            this.Text28.Name = "Text28";
+            this.Text28.GetValue += new Stimulsoft.Report.Events.StiGetValueEventHandler(this.Text28__GetValue);
+            this.Text28.Type = Stimulsoft.Report.Components.StiSystemTextType.Expression;
+            this.Text28.VertAlignment = Stimulsoft.Base.Drawing.StiVertAlignment.Bottom;
+            this.Text28.Border = new Stimulsoft.Base.Drawing.StiBorder(Stimulsoft.Base.Drawing.StiBorderSides.None, System.Drawing.Color.Black, 1, Stimulsoft.Base.Drawing.StiPenStyle.Solid, false, 4, new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black), false);
+            this.Text28.Brush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Transparent);
+            this.Text28.Font = new System.Drawing.Font("黑体", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 134);
+            this.Text28.Indicator = null;
+            this.Text28.Interaction = null;
+            this.Text28.Margins = new Stimulsoft.Report.Components.StiMargins(1, 0.5, 0.2, 0.5);
+            this.Text28.TextBrush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black);
+            this.Text28.TextOptions = new Stimulsoft.Base.Drawing.StiTextOptions(false, false, false, 0F, System.Drawing.Text.HotkeyPrefix.None, System.Drawing.StringTrimming.None);
+            // 
+            // Text30
+            // 
+            this.Text30 = new Stimulsoft.Report.Components.StiText();
+            this.Text30.ClientRectangle = new Stimulsoft.Base.Drawing.RectangleD(10.8, 1.2, 1.6, 0.4);
+            this.Text30.Guid = "0d01292691114c3aa0cd28690bd4fb85";
+            this.Text30.Linked = true;
+            this.Text30.Name = "Text30";
+            this.Text30.GetValue += new Stimulsoft.Report.Events.StiGetValueEventHandler(this.Text30__GetValue);
+            this.Text30.Type = Stimulsoft.Report.Components.StiSystemTextType.Expression;
+            this.Text30.VertAlignment = Stimulsoft.Base.Drawing.StiVertAlignment.Bottom;
+            this.Text30.Border = new Stimulsoft.Base.Drawing.StiBorder(Stimulsoft.Base.Drawing.StiBorderSides.None, System.Drawing.Color.Black, 1, Stimulsoft.Base.Drawing.StiPenStyle.Solid, false, 4, new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black), false);
+            this.Text30.Brush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Transparent);
+            this.Text30.Font = new System.Drawing.Font("黑体", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 134);
+            this.Text30.Indicator = null;
+            this.Text30.Interaction = null;
+            this.Text30.Margins = new Stimulsoft.Report.Components.StiMargins(1, 0.5, 0.2, 0.5);
+            this.Text30.TextBrush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black);
+            this.Text30.TextOptions = new Stimulsoft.Base.Drawing.StiTextOptions(false, false, false, 0F, System.Drawing.Text.HotkeyPrefix.None, System.Drawing.StringTrimming.None);
+            // 
+            // Text32
+            // 
+            this.Text32 = new Stimulsoft.Report.Components.StiText();
+            this.Text32.ClientRectangle = new Stimulsoft.Base.Drawing.RectangleD(14.6, 1.2, 1, 0.4);
+            this.Text32.Guid = "0dec1ccf587f4b51bac4898523d4fc6a";
+            this.Text32.Linked = true;
+            this.Text32.Name = "Text32";
+            this.Text32.GetValue += new Stimulsoft.Report.Events.StiGetValueEventHandler(this.Text32__GetValue);
+            this.Text32.Type = Stimulsoft.Report.Components.StiSystemTextType.Expression;
+            this.Text32.VertAlignment = Stimulsoft.Base.Drawing.StiVertAlignment.Bottom;
+            this.Text32.Border = new Stimulsoft.Base.Drawing.StiBorder(Stimulsoft.Base.Drawing.StiBorderSides.None, System.Drawing.Color.Black, 1, Stimulsoft.Base.Drawing.StiPenStyle.Solid, false, 4, new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black), false);
+            this.Text32.Brush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Transparent);
+            this.Text32.Font = new System.Drawing.Font("黑体", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 134);
+            this.Text32.Indicator = null;
+            this.Text32.Interaction = null;
+            this.Text32.Margins = new Stimulsoft.Report.Components.StiMargins(1, 0.5, 0.2, 0.5);
+            this.Text32.TextBrush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black);
+            this.Text32.TextOptions = new Stimulsoft.Base.Drawing.StiTextOptions(false, false, false, 0F, System.Drawing.Text.HotkeyPrefix.None, System.Drawing.StringTrimming.None);
+            // 
+            // Text48
+            // 
+            this.Text48 = new Stimulsoft.Report.Components.StiText();
+            this.Text48.ClientRectangle = new Stimulsoft.Base.Drawing.RectangleD(2.4, 1.2, 1.6, 0.4);
+            this.Text48.Guid = "9621501e21cf4a85a875c7e1dd66d2d5";
+            this.Text48.Linked = true;
+            this.Text48.Name = "Text48";
+            this.Text48.GetValue += new Stimulsoft.Report.Events.StiGetValueEventHandler(this.Text48__GetValue);
+            this.Text48.Type = Stimulsoft.Report.Components.StiSystemTextType.DataColumn;
+            this.Text48.VertAlignment = Stimulsoft.Base.Drawing.StiVertAlignment.Bottom;
+            this.Text48.Border = new Stimulsoft.Base.Drawing.StiBorder(Stimulsoft.Base.Drawing.StiBorderSides.None, System.Drawing.Color.Black, 1, Stimulsoft.Base.Drawing.StiPenStyle.Solid, false, 4, new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black), false);
+            this.Text48.Brush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Transparent);
+            this.Text48.Font = new System.Drawing.Font("黑体", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 134);
+            this.Text48.Indicator = null;
+            this.Text48.Interaction = null;
+            this.Text48.Margins = new Stimulsoft.Report.Components.StiMargins(1, 0.5, 0.2, 0.5);
+            this.Text48.TextBrush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black);
+            this.Text48.TextOptions = new Stimulsoft.Base.Drawing.StiTextOptions(false, false, false, 0F, System.Drawing.Text.HotkeyPrefix.None, System.Drawing.StringTrimming.None);
+            // 
+            // Text52
+            // 
+            this.Text52 = new Stimulsoft.Report.Components.StiText();
+            this.Text52.ClientRectangle = new Stimulsoft.Base.Drawing.RectangleD(8.6, 1.2, 1.8, 0.4);
+            this.Text52.Guid = "e37a055421dd4f6cac23b9e88b0ba1ca";
+            this.Text52.Linked = true;
+            this.Text52.Name = "Text52";
+            this.Text52.GetValue += new Stimulsoft.Report.Events.StiGetValueEventHandler(this.Text52__GetValue);
+            this.Text52.Type = Stimulsoft.Report.Components.StiSystemTextType.DataColumn;
+            this.Text52.VertAlignment = Stimulsoft.Base.Drawing.StiVertAlignment.Bottom;
+            this.Text52.Border = new Stimulsoft.Base.Drawing.StiBorder(Stimulsoft.Base.Drawing.StiBorderSides.None, System.Drawing.Color.Black, 1, Stimulsoft.Base.Drawing.StiPenStyle.Solid, false, 4, new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black), false);
+            this.Text52.Brush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Transparent);
+            this.Text52.Font = new System.Drawing.Font("黑体", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 134);
+            this.Text52.Indicator = null;
+            this.Text52.Interaction = null;
+            this.Text52.Margins = new Stimulsoft.Report.Components.StiMargins(1, 0.5, 0.2, 0.5);
+            this.Text52.TextBrush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black);
+            this.Text52.TextOptions = new Stimulsoft.Base.Drawing.StiTextOptions(false, false, false, 0F, System.Drawing.Text.HotkeyPrefix.None, System.Drawing.StringTrimming.None);
+            // 
+            // Text54
+            // 
+            this.Text54 = new Stimulsoft.Report.Components.StiText();
+            this.Text54.ClientRectangle = new Stimulsoft.Base.Drawing.RectangleD(12.4, 1.2, 1.8, 0.4);
+            this.Text54.Guid = "a4cab51f8e6146f2abdadfdf652d2d9a";
+            this.Text54.Linked = true;
+            this.Text54.Name = "Text54";
+            this.Text54.GetValue += new Stimulsoft.Report.Events.StiGetValueEventHandler(this.Text54__GetValue);
+            this.Text54.Type = Stimulsoft.Report.Components.StiSystemTextType.DataColumn;
+            this.Text54.VertAlignment = Stimulsoft.Base.Drawing.StiVertAlignment.Bottom;
+            this.Text54.Border = new Stimulsoft.Base.Drawing.StiBorder(Stimulsoft.Base.Drawing.StiBorderSides.None, System.Drawing.Color.Black, 1, Stimulsoft.Base.Drawing.StiPenStyle.Solid, false, 4, new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black), false);
+            this.Text54.Brush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Transparent);
+            this.Text54.Font = new System.Drawing.Font("黑体", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 134);
+            this.Text54.Indicator = null;
+            this.Text54.Interaction = null;
+            this.Text54.Margins = new Stimulsoft.Report.Components.StiMargins(1, 0.5, 0.2, 0.5);
+            this.Text54.TextBrush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black);
+            this.Text54.TextOptions = new Stimulsoft.Base.Drawing.StiTextOptions(false, false, false, 0F, System.Drawing.Text.HotkeyPrefix.None, System.Drawing.StringTrimming.None);
+            // 
+            // Text70
+            // 
+            this.Text70 = new Stimulsoft.Report.Components.StiText();
+            this.Text70.ClientRectangle = new Stimulsoft.Base.Drawing.RectangleD(15.6, 1.2, 1, 0.4);
+            this.Text70.Guid = "9ba0a8d486ad432f88d641377880d768";
+            this.Text70.Linked = true;
+            this.Text70.Name = "Text70";
+            this.Text70.GetValue += new Stimulsoft.Report.Events.StiGetValueEventHandler(this.Text70__GetValue);
+            this.Text70.Type = Stimulsoft.Report.Components.StiSystemTextType.DataColumn;
+            this.Text70.VertAlignment = Stimulsoft.Base.Drawing.StiVertAlignment.Bottom;
+            this.Text70.Border = new Stimulsoft.Base.Drawing.StiBorder(Stimulsoft.Base.Drawing.StiBorderSides.None, System.Drawing.Color.Black, 1, Stimulsoft.Base.Drawing.StiPenStyle.Solid, false, 4, new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black), false);
+            this.Text70.Brush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Transparent);
+            this.Text70.Font = new System.Drawing.Font("黑体", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 134);
+            this.Text70.Indicator = null;
+            this.Text70.Interaction = null;
+            this.Text70.Margins = new Stimulsoft.Report.Components.StiMargins(1, 0.5, 0.2, 0.5);
+            this.Text70.TextBrush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black);
+            this.Text70.TextOptions = new Stimulsoft.Base.Drawing.StiTextOptions(false, false, false, 0F, System.Drawing.Text.HotkeyPrefix.None, System.Drawing.StringTrimming.None);
+            // 
+            // Text79
+            // 
+            this.Text79 = new Stimulsoft.Report.Components.StiText();
+            this.Text79.ClientRectangle = new Stimulsoft.Base.Drawing.RectangleD(8.4, 0.4, 3.6, 0.4);
+            this.Text79.Guid = "28ff161b396d4f7b9f1d61b17c5a9e1c";
+            this.Text79.HorAlignment = Stimulsoft.Base.Drawing.StiTextHorAlignment.Right;
+            this.Text79.Linked = true;
+            this.Text79.Name = "Text79";
+            this.Text79.GetValue += new Stimulsoft.Report.Events.StiGetValueEventHandler(this.Text79__GetValue);
+            this.Text79.Type = Stimulsoft.Report.Components.StiSystemTextType.DataColumn;
+            this.Text79.VertAlignment = Stimulsoft.Base.Drawing.StiVertAlignment.Bottom;
+            this.Text79.Border = new Stimulsoft.Base.Drawing.StiBorder(Stimulsoft.Base.Drawing.StiBorderSides.None, System.Drawing.Color.Black, 1, Stimulsoft.Base.Drawing.StiPenStyle.Solid, false, 4, new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black), false);
+            this.Text79.Brush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Transparent);
+            this.Text79.Font = new System.Drawing.Font("黑体", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 134);
+            this.Text79.Indicator = null;
+            this.Text79.Interaction = null;
+            this.Text79.Margins = new Stimulsoft.Report.Components.StiMargins(1, 0.5, 0.2, 0.5);
+            this.Text79.TextBrush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black);
+            this.Text79.TextOptions = new Stimulsoft.Base.Drawing.StiTextOptions(false, false, false, 0F, System.Drawing.Text.HotkeyPrefix.None, System.Drawing.StringTrimming.None);
+            // 
+            // Text14
+            // 
+            this.Text14 = new Stimulsoft.Report.Components.StiText();
+            this.Text14.ClientRectangle = new Stimulsoft.Base.Drawing.RectangleD(4.4, 1.2, 0.8, 0.4);
+            this.Text14.Name = "Text14";
+            this.Text14.GetValue += new Stimulsoft.Report.Events.StiGetValueEventHandler(this.Text14__GetValue);
+            this.Text14.Border = new Stimulsoft.Base.Drawing.StiBorder(Stimulsoft.Base.Drawing.StiBorderSides.None, System.Drawing.Color.Black, 1, Stimulsoft.Base.Drawing.StiPenStyle.Solid, false, 4, new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black), false);
+            this.Text14.Brush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Transparent);
+            this.Text14.Font = new System.Drawing.Font("黑体", 9F);
+            this.Text14.Guid = null;
+            this.Text14.Indicator = null;
+            this.Text14.Interaction = null;
+            this.Text14.Margins = new Stimulsoft.Report.Components.StiMargins(0, 0, 0, 0);
+            this.Text14.TextBrush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black);
+            this.Text14.TextOptions = new Stimulsoft.Base.Drawing.StiTextOptions(false, false, false, 0F, System.Drawing.Text.HotkeyPrefix.None, System.Drawing.StringTrimming.None);
+            // 
+            // Text16
+            // 
+            this.Text16 = new Stimulsoft.Report.Components.StiText();
+            this.Text16.ClientRectangle = new Stimulsoft.Base.Drawing.RectangleD(5.2, 1.2, 1.4, 0.4);
+            this.Text16.Name = "Text16";
+            this.Text16.GetValue += new Stimulsoft.Report.Events.StiGetValueEventHandler(this.Text16__GetValue);
+            this.Text16.Type = Stimulsoft.Report.Components.StiSystemTextType.DataColumn;
+            this.Text16.Border = new Stimulsoft.Base.Drawing.StiBorder(Stimulsoft.Base.Drawing.StiBorderSides.None, System.Drawing.Color.Black, 1, Stimulsoft.Base.Drawing.StiPenStyle.Solid, false, 4, new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black), false);
+            this.Text16.Brush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Transparent);
+            this.Text16.Font = new System.Drawing.Font("Arial", 8F);
+            this.Text16.Guid = null;
+            this.Text16.Indicator = null;
+            this.Text16.Interaction = null;
+            this.Text16.Margins = new Stimulsoft.Report.Components.StiMargins(0, 0, 0, 0);
+            this.Text16.TextBrush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black);
+            this.Text16.TextOptions = new Stimulsoft.Base.Drawing.StiTextOptions(false, false, false, 0F, System.Drawing.Text.HotkeyPrefix.None, System.Drawing.StringTrimming.None);
+            // 
+            // HorizontalLinePrimitive4
+            // 
+            this.HorizontalLinePrimitive4 = new Stimulsoft.Report.Components.StiHorizontalLinePrimitive();
+            this.HorizontalLinePrimitive4.ClientRectangle = new Stimulsoft.Base.Drawing.RectangleD(0.8, 1.6, 19, 0.0254);
+            this.HorizontalLinePrimitive4.Color = System.Drawing.Color.DimGray;
+            this.HorizontalLinePrimitive4.Guid = "d9f23f339e304a018f7e829414855496";
+            this.HorizontalLinePrimitive4.Name = "HorizontalLinePrimitive4";
+            this.HorizontalLinePrimitive4.EndCap = new Stimulsoft.Base.Drawing.StiCap(10, Stimulsoft.Base.Drawing.StiCapStyle.None, 10, true, System.Drawing.Color.Black);
+            this.HorizontalLinePrimitive4.Interaction = null;
+            this.HorizontalLinePrimitive4.StartCap = new Stimulsoft.Base.Drawing.StiCap(10, Stimulsoft.Base.Drawing.StiCapStyle.None, 10, true, System.Drawing.Color.Black);
+            this.HeaderBand2.Guid = null;
+            this.HeaderBand2.Interaction = null;
+            // 
+            // DataBand1
+            // 
+            this.DataBand1 = new Stimulsoft.Report.Components.StiDataBand();
+            this.DataBand1.BusinessObjectGuid = "d77cf8450da44e8bba69f1c4fe1672d0";
+            this.DataBand1.ClientRectangle = new Stimulsoft.Base.Drawing.RectangleD(0, 2.8, 21, 1.4);
+            this.DataBand1.Name = "DataBand1";
+            this.DataBand1.Sort = new System.String[0];
+            this.DataBand1.Border = new Stimulsoft.Base.Drawing.StiBorder(Stimulsoft.Base.Drawing.StiBorderSides.None, System.Drawing.Color.Black, 1, Stimulsoft.Base.Drawing.StiPenStyle.Solid, false, 4, new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black), false);
+            this.DataBand1.Brush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Transparent);
+            // 
+            // Text2
+            // 
+            this.Text2 = new Stimulsoft.Report.Components.StiText();
+            this.Text2.ClientRectangle = new Stimulsoft.Base.Drawing.RectangleD(1.8, 0.2, 1.6, 0.4);
+            this.Text2.Guid = "d4c2e7651d2b4c7eb8bae05d09c1370c";
+            this.Text2.Name = "Text2";
+            this.Text2.GetValue += new Stimulsoft.Report.Events.StiGetValueEventHandler(this.Text2__GetValue);
+            this.Text2.Type = Stimulsoft.Report.Components.StiSystemTextType.DataColumn;
+            this.Text2.Border = new Stimulsoft.Base.Drawing.StiBorder(Stimulsoft.Base.Drawing.StiBorderSides.None, System.Drawing.Color.Black, 1, Stimulsoft.Base.Drawing.StiPenStyle.Solid, false, 4, new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black), false);
+            this.Text2.Brush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Transparent);
+            this.Text2.Font = new System.Drawing.Font("黑体", 9F);
+            this.Text2.Indicator = null;
+            this.Text2.Interaction = null;
+            this.Text2.Margins = new Stimulsoft.Report.Components.StiMargins(0, 0, 0, 0);
+            this.Text2.TextBrush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black);
+            this.Text2.TextOptions = new Stimulsoft.Base.Drawing.StiTextOptions(false, false, false, 0F, System.Drawing.Text.HotkeyPrefix.None, System.Drawing.StringTrimming.None);
+            // 
+            // Text3
+            // 
+            this.Text3 = new Stimulsoft.Report.Components.StiText();
+            this.Text3.ClientRectangle = new Stimulsoft.Base.Drawing.RectangleD(1.8, 0.8, 2.2, 0.4);
+            this.Text3.Guid = "b343c2082fc34f37aeaaa2c87411f0e7";
+            this.Text3.Name = "Text3";
+            this.Text3.GetValue += new Stimulsoft.Report.Events.StiGetValueEventHandler(this.Text3__GetValue);
+            this.Text3.Type = Stimulsoft.Report.Components.StiSystemTextType.DataColumn;
+            this.Text3.Border = new Stimulsoft.Base.Drawing.StiBorder(Stimulsoft.Base.Drawing.StiBorderSides.None, System.Drawing.Color.Black, 1, Stimulsoft.Base.Drawing.StiPenStyle.Solid, false, 4, new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black), false);
+            this.Text3.Brush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Transparent);
+            this.Text3.Font = new System.Drawing.Font("黑体", 9F);
+            this.Text3.Indicator = null;
+            this.Text3.Interaction = null;
+            this.Text3.Margins = new Stimulsoft.Report.Components.StiMargins(0, 0, 0, 0);
+            this.Text3.TextBrush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black);
+            this.Text3.TextOptions = new Stimulsoft.Base.Drawing.StiTextOptions(false, false, false, 0F, System.Drawing.Text.HotkeyPrefix.None, System.Drawing.StringTrimming.None);
+            // 
+            // Text4
+            // 
+            this.Text4 = new Stimulsoft.Report.Components.StiText();
+            this.Text4.ClientRectangle = new Stimulsoft.Base.Drawing.RectangleD(8, 0.2, 1.6, 0.4);
+            this.Text4.Guid = "3279168bec304b81ba1ef0153876c383";
+            this.Text4.Name = "Text4";
+            this.Text4.GetValue += new Stimulsoft.Report.Events.StiGetValueEventHandler(this.Text4__GetValue);
+            this.Text4.Type = Stimulsoft.Report.Components.StiSystemTextType.DataColumn;
+            this.Text4.Border = new Stimulsoft.Base.Drawing.StiBorder(Stimulsoft.Base.Drawing.StiBorderSides.None, System.Drawing.Color.Black, 1, Stimulsoft.Base.Drawing.StiPenStyle.Solid, false, 4, new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black), false);
+            this.Text4.Brush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Transparent);
+            this.Text4.Font = new System.Drawing.Font("黑体", 9F);
+            this.Text4.Indicator = null;
+            this.Text4.Interaction = null;
+            this.Text4.Margins = new Stimulsoft.Report.Components.StiMargins(0, 0, 0, 0);
+            this.Text4.TextBrush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black);
+            this.Text4.TextOptions = new Stimulsoft.Base.Drawing.StiTextOptions(false, false, false, 0F, System.Drawing.Text.HotkeyPrefix.None, System.Drawing.StringTrimming.None);
+            // 
+            // Text5
+            // 
+            this.Text5 = new Stimulsoft.Report.Components.StiText();
+            this.Text5.ClientRectangle = new Stimulsoft.Base.Drawing.RectangleD(9.6, 0.2, 9.4, 0.4);
+            this.Text5.Guid = "2f3502e3eb4e4ec7a4fe9ebc136ea9b0";
+            this.Text5.Name = "Text5";
+            this.Text5.GetValue += new Stimulsoft.Report.Events.StiGetValueEventHandler(this.Text5__GetValue);
+            this.Text5.Type = Stimulsoft.Report.Components.StiSystemTextType.DataColumn;
+            this.Text5.Border = new Stimulsoft.Base.Drawing.StiBorder(Stimulsoft.Base.Drawing.StiBorderSides.None, System.Drawing.Color.Black, 1, Stimulsoft.Base.Drawing.StiPenStyle.Solid, false, 4, new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black), false);
+            this.Text5.Brush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Transparent);
+            this.Text5.Font = new System.Drawing.Font("黑体", 9F);
+            this.Text5.Indicator = null;
+            this.Text5.Interaction = null;
+            this.Text5.Margins = new Stimulsoft.Report.Components.StiMargins(0, 0, 0, 0);
+            this.Text5.TextBrush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black);
+            this.Text5.TextOptions = new Stimulsoft.Base.Drawing.StiTextOptions(false, false, false, 0F, System.Drawing.Text.HotkeyPrefix.None, System.Drawing.StringTrimming.None);
+            // 
+            // Text6
+            // 
+            this.Text6 = new Stimulsoft.Report.Components.StiText();
+            this.Text6.ClientRectangle = new Stimulsoft.Base.Drawing.RectangleD(14.6, 0.8, 2.2, 0.4);
+            this.Text6.Guid = "ec8a2cdd33484ff1a5c0a96b79d599e0";
+            this.Text6.Name = "Text6";
+            this.Text6.GetValue += new Stimulsoft.Report.Events.StiGetValueEventHandler(this.Text6__GetValue);
+            this.Text6.Type = Stimulsoft.Report.Components.StiSystemTextType.DataColumn;
+            this.Text6.Border = new Stimulsoft.Base.Drawing.StiBorder(Stimulsoft.Base.Drawing.StiBorderSides.None, System.Drawing.Color.Black, 1, Stimulsoft.Base.Drawing.StiPenStyle.Solid, false, 4, new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black), false);
+            this.Text6.Brush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Transparent);
+            this.Text6.Font = new System.Drawing.Font("黑体", 9F);
+            this.Text6.Indicator = null;
+            this.Text6.Interaction = null;
+            this.Text6.Margins = new Stimulsoft.Report.Components.StiMargins(0, 0, 0, 0);
+            this.Text6.TextBrush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black);
+            this.Text6.TextOptions = new Stimulsoft.Base.Drawing.StiTextOptions(false, false, false, 0F, System.Drawing.Text.HotkeyPrefix.None, System.Drawing.StringTrimming.None);
+            // 
+            // Text1
+            // 
+            this.Text1 = new Stimulsoft.Report.Components.StiText();
+            this.Text1.ClientRectangle = new Stimulsoft.Base.Drawing.RectangleD(8, 0.8, 2.2, 0.4);
+            this.Text1.Name = "Text1";
+            this.Text1.GetValue += new Stimulsoft.Report.Events.StiGetValueEventHandler(this.Text1__GetValue);
+            this.Text1.Type = Stimulsoft.Report.Components.StiSystemTextType.Expression;
+            this.Text1.Border = new Stimulsoft.Base.Drawing.StiBorder(Stimulsoft.Base.Drawing.StiBorderSides.None, System.Drawing.Color.Black, 1, Stimulsoft.Base.Drawing.StiPenStyle.Solid, false, 4, new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black), false);
+            this.Text1.Brush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Transparent);
+            this.Text1.Font = new System.Drawing.Font("黑体", 9F);
+            this.Text1.Guid = null;
+            this.Text1.Indicator = null;
+            this.Text1.Interaction = null;
+            this.Text1.Margins = new Stimulsoft.Report.Components.StiMargins(0, 0, 0, 0);
+            this.Text1.TextBrush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black);
+            this.Text1.TextOptions = new Stimulsoft.Base.Drawing.StiTextOptions(false, false, false, 0F, System.Drawing.Text.HotkeyPrefix.None, System.Drawing.StringTrimming.None);
+            // 
+            // Text7
+            // 
+            this.Text7 = new Stimulsoft.Report.Components.StiText();
+            this.Text7.ClientRectangle = new Stimulsoft.Base.Drawing.RectangleD(10.2, 0.8, 2, 0.4);
+            this.Text7.Name = "Text7";
+            this.Text7.GetValue += new Stimulsoft.Report.Events.StiGetValueEventHandler(this.Text7__GetValue);
+            this.Text7.Type = Stimulsoft.Report.Components.StiSystemTextType.DataColumn;
+            this.Text7.Border = new Stimulsoft.Base.Drawing.StiBorder(Stimulsoft.Base.Drawing.StiBorderSides.None, System.Drawing.Color.Black, 1, Stimulsoft.Base.Drawing.StiPenStyle.Solid, false, 4, new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black), false);
+            this.Text7.Brush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Transparent);
+            this.Text7.Font = new System.Drawing.Font("Arial", 8F);
+            this.Text7.Guid = null;
+            this.Text7.Indicator = null;
+            this.Text7.Interaction = null;
+            this.Text7.Margins = new Stimulsoft.Report.Components.StiMargins(0, 0, 0, 0);
+            this.Text7.TextBrush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black);
+            this.Text7.TextOptions = new Stimulsoft.Base.Drawing.StiTextOptions(false, false, false, 0F, System.Drawing.Text.HotkeyPrefix.None, System.Drawing.StringTrimming.None);
+            // 
+            // Text8
+            // 
+            this.Text8 = new Stimulsoft.Report.Components.StiText();
+            this.Text8.ClientRectangle = new Stimulsoft.Base.Drawing.RectangleD(16.8, 0.8, 2.2, 0.4);
+            this.Text8.Name = "Text8";
+            this.Text8.GetValue += new Stimulsoft.Report.Events.StiGetValueEventHandler(this.Text8__GetValue);
+            this.Text8.Type = Stimulsoft.Report.Components.StiSystemTextType.DataColumn;
+            this.Text8.Border = new Stimulsoft.Base.Drawing.StiBorder(Stimulsoft.Base.Drawing.StiBorderSides.None, System.Drawing.Color.Black, 1, Stimulsoft.Base.Drawing.StiPenStyle.Solid, false, 4, new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black), false);
+            this.Text8.Brush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Transparent);
+            this.Text8.Font = new System.Drawing.Font("Arial", 8F);
+            this.Text8.Guid = null;
+            this.Text8.Indicator = null;
+            this.Text8.Interaction = null;
+            this.Text8.Margins = new Stimulsoft.Report.Components.StiMargins(0, 0, 0, 0);
+            this.Text8.TextBrush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black);
+            this.Text8.TextOptions = new Stimulsoft.Base.Drawing.StiTextOptions(false, false, false, 0F, System.Drawing.Text.HotkeyPrefix.None, System.Drawing.StringTrimming.None);
+            // 
+            // Text9
+            // 
+            this.Text9 = new Stimulsoft.Report.Components.StiText();
+            this.Text9.ClientRectangle = new Stimulsoft.Base.Drawing.RectangleD(3.4, 0.2, 2.6, 0.4);
+            this.Text9.Name = "Text9";
+            this.Text9.GetValue += new Stimulsoft.Report.Events.StiGetValueEventHandler(this.Text9__GetValue);
+            this.Text9.Type = Stimulsoft.Report.Components.StiSystemTextType.DataColumn;
+            this.Text9.Border = new Stimulsoft.Base.Drawing.StiBorder(Stimulsoft.Base.Drawing.StiBorderSides.None, System.Drawing.Color.Black, 1, Stimulsoft.Base.Drawing.StiPenStyle.Solid, false, 4, new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black), false);
+            this.Text9.Brush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Transparent);
+            this.Text9.Font = new System.Drawing.Font("Arial", 8F);
+            this.Text9.Guid = null;
+            this.Text9.Indicator = null;
+            this.Text9.Interaction = null;
+            this.Text9.Margins = new Stimulsoft.Report.Components.StiMargins(0, 0, 0, 0);
+            this.Text9.TextBrush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black);
+            this.Text9.TextOptions = new Stimulsoft.Base.Drawing.StiTextOptions(false, false, false, 0F, System.Drawing.Text.HotkeyPrefix.None, System.Drawing.StringTrimming.None);
+            // 
+            // Text11
+            // 
+            this.Text11 = new Stimulsoft.Report.Components.StiText();
+            this.Text11.ClientRectangle = new Stimulsoft.Base.Drawing.RectangleD(4, 0.8, 2, 0.4);
+            this.Text11.Name = "Text11";
+            this.Text11.GetValue += new Stimulsoft.Report.Events.StiGetValueEventHandler(this.Text11__GetValue);
+            this.Text11.Type = Stimulsoft.Report.Components.StiSystemTextType.DataColumn;
+            this.Text11.Border = new Stimulsoft.Base.Drawing.StiBorder(Stimulsoft.Base.Drawing.StiBorderSides.None, System.Drawing.Color.Black, 1, Stimulsoft.Base.Drawing.StiPenStyle.Solid, false, 4, new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black), false);
+            this.Text11.Brush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Transparent);
+            this.Text11.Font = new System.Drawing.Font("Arial", 8F);
+            this.Text11.Guid = null;
+            this.Text11.Indicator = null;
+            this.Text11.Interaction = null;
+            this.Text11.Margins = new Stimulsoft.Report.Components.StiMargins(0, 0, 0, 0);
+            this.Text11.TextBrush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.Black);
+            this.Text11.TextOptions = new Stimulsoft.Base.Drawing.StiTextOptions(false, false, false, 0F, System.Drawing.Text.HotkeyPrefix.None, System.Drawing.StringTrimming.None);
+            // 
+            // HorizontalLinePrimitive2
+            // 
+            this.HorizontalLinePrimitive2 = new Stimulsoft.Report.Components.StiHorizontalLinePrimitive();
+            this.HorizontalLinePrimitive2.ClientRectangle = new Stimulsoft.Base.Drawing.RectangleD(0.8, 1.4, 19, 0.0254);
+            this.HorizontalLinePrimitive2.Color = System.Drawing.Color.DimGray;
+            this.HorizontalLinePrimitive2.Guid = "748d98ed150941668c0c3ad73489de1d";
+            this.HorizontalLinePrimitive2.Name = "HorizontalLinePrimitive2";
+            this.HorizontalLinePrimitive2.EndCap = new Stimulsoft.Base.Drawing.StiCap(10, Stimulsoft.Base.Drawing.StiCapStyle.None, 10, true, System.Drawing.Color.Black);
+            this.HorizontalLinePrimitive2.Interaction = null;
+            this.HorizontalLinePrimitive2.StartCap = new Stimulsoft.Base.Drawing.StiCap(10, Stimulsoft.Base.Drawing.StiCapStyle.None, 10, true, System.Drawing.Color.Black);
+            this.DataBand1.DataRelationName = null;
+            this.DataBand1.DataSourceName = null;
+            this.DataBand1.Guid = null;
+            this.DataBand1.Interaction = null;
+            this.DataBand1.MasterComponent = null;
+            this.Page1.ExcelSheetValue = null;
+            this.Page1.Interaction = null;
+            this.Page1.Margins = new Stimulsoft.Report.Components.StiMargins(0, 0, 0, 0);
+            this.Page1_Watermark = new Stimulsoft.Report.Components.StiWatermark();
+            this.Page1_Watermark.Font = new System.Drawing.Font("Arial", 100F);
+            this.Page1_Watermark.Image = null;
+            this.Page1_Watermark.TextBrush = new Stimulsoft.Base.Drawing.StiSolidBrush(System.Drawing.Color.FromArgb(50, 0, 0, 0));
+            this.Report_PrinterSettings = new Stimulsoft.Report.Print.StiPrinterSettings();
+            this.ReportResources.Add(new Stimulsoft.Report.StiReportResource("Image3.png", "Image3", "Image", Stimulsoft.Report.StiReportResourceType.Bitmap));
+            this.PrinterSettings = this.Report_PrinterSettings;
+            this.Page1.Report = this;
+            this.Page1.Watermark = this.Page1_Watermark;
+            this.PageFooterBand1.Page = this.Page1;
+            this.PageFooterBand1.Parent = this.Page1;
+            this.Text15.Page = this.Page1;
+            this.Text15.Parent = this.PageFooterBand1;
+            this.Text17.Page = this.Page1;
+            this.Text17.Parent = this.PageFooterBand1;
+            this.Text18.Page = this.Page1;
+            this.Text18.Parent = this.PageFooterBand1;
+            this.Text19.Page = this.Page1;
+            this.Text19.Parent = this.PageFooterBand1;
+            this.Text20.Page = this.Page1;
+            this.Text20.Parent = this.PageFooterBand1;
+            this.Text21.Page = this.Page1;
+            this.Text21.Parent = this.PageFooterBand1;
+            this.Text22.Page = this.Page1;
+            this.Text22.Parent = this.PageFooterBand1;
+            this.Text33.Page = this.Page1;
+            this.Text33.Parent = this.PageFooterBand1;
+            this.Text35.Page = this.Page1;
+            this.Text35.Parent = this.PageFooterBand1;
+            this.Text36.Page = this.Page1;
+            this.Text36.Parent = this.PageFooterBand1;
+            this.Text37.Page = this.Page1;
+            this.Text37.Parent = this.PageFooterBand1;
+            this.Text40.Page = this.Page1;
+            this.Text40.Parent = this.PageFooterBand1;
+            this.Text41.Page = this.Page1;
+            this.Text41.Parent = this.PageFooterBand1;
+            this.Text12.Page = this.Page1;
+            this.Text12.Parent = this.PageFooterBand1;
+            this.Text13.Page = this.Page1;
+            this.Text13.Parent = this.PageFooterBand1;
+            this.Image1.Page = this.Page1;
+            this.Image1.Parent = this.PageFooterBand1;
+            this.Text34.Page = this.Page1;
+            this.Text34.Parent = this.Page1;
+            this.Text38.Page = this.Page1;
+            this.Text38.Parent = this.Page1;
+            this.Text45.Page = this.Page1;
+            this.Text45.Parent = this.Page1;
+            this.Text46.Page = this.Page1;
+            this.Text46.Parent = this.Page1;
+            this.Text55.Page = this.Page1;
+            this.Text55.Parent = this.Page1;
+            this.Text56.Page = this.Page1;
+            this.Text56.Parent = this.Page1;
+            this.HeaderBand2.Page = this.Page1;
+            this.HeaderBand2.Parent = this.Page1;
+            this.Text10.Page = this.Page1;
+            this.Text10.Parent = this.HeaderBand2;
+            this.Image3.Page = this.Page1;
+            this.Image3.Parent = this.HeaderBand2;
+            this.Text26.Page = this.Page1;
+            this.Text26.Parent = this.HeaderBand2;
+            this.Text28.Page = this.Page1;
+            this.Text28.Parent = this.HeaderBand2;
+            this.Text30.Page = this.Page1;
+            this.Text30.Parent = this.HeaderBand2;
+            this.Text32.Page = this.Page1;
+            this.Text32.Parent = this.HeaderBand2;
+            this.Text48.Page = this.Page1;
+            this.Text48.Parent = this.HeaderBand2;
+            this.Text52.Page = this.Page1;
+            this.Text52.Parent = this.HeaderBand2;
+            this.Text54.Page = this.Page1;
+            this.Text54.Parent = this.HeaderBand2;
+            this.Text70.Page = this.Page1;
+            this.Text70.Parent = this.HeaderBand2;
+            this.Text79.Page = this.Page1;
+            this.Text79.Parent = this.HeaderBand2;
+            this.Text14.Page = this.Page1;
+            this.Text14.Parent = this.HeaderBand2;
+            this.Text16.Page = this.Page1;
+            this.Text16.Parent = this.HeaderBand2;
+            this.HorizontalLinePrimitive4.Page = this.Page1;
+            this.HorizontalLinePrimitive4.Parent = this.HeaderBand2;
+            this.DataBand1.Page = this.Page1;
+            this.DataBand1.Parent = this.Page1;
+            this.Text2.Page = this.Page1;
+            this.Text2.Parent = this.DataBand1;
+            this.Text3.Page = this.Page1;
+            this.Text3.Parent = this.DataBand1;
+            this.Text4.Page = this.Page1;
+            this.Text4.Parent = this.DataBand1;
+            this.Text5.Page = this.Page1;
+            this.Text5.Parent = this.DataBand1;
+            this.Text6.Page = this.Page1;
+            this.Text6.Parent = this.DataBand1;
+            this.Text1.Page = this.Page1;
+            this.Text1.Parent = this.DataBand1;
+            this.Text7.Page = this.Page1;
+            this.Text7.Parent = this.DataBand1;
+            this.Text8.Page = this.Page1;
+            this.Text8.Parent = this.DataBand1;
+            this.Text9.Page = this.Page1;
+            this.Text9.Parent = this.DataBand1;
+            this.Text11.Page = this.Page1;
+            this.Text11.Parent = this.DataBand1;
+            this.HorizontalLinePrimitive2.Page = this.Page1;
+            this.HorizontalLinePrimitive2.Parent = this.DataBand1;
+            this.EndRender += new System.EventHandler(this.ReportWordsToEnd__EndRender);
+            // 
+            // Add to PageFooterBand1.Components
+            // 
+            this.PageFooterBand1.Components.Clear();
+            this.PageFooterBand1.Components.AddRange(new Stimulsoft.Report.Components.StiComponent[] {
+                        this.Text15,
+                        this.Text17,
+                        this.Text18,
+                        this.Text19,
+                        this.Text20,
+                        this.Text21,
+                        this.Text22,
+                        this.Text33,
+                        this.Text35,
+                        this.Text36,
+                        this.Text37,
+                        this.Text40,
+                        this.Text41,
+                        this.Text12,
+                        this.Text13,
+                        this.Image1});
+            this.InitializeComponent2();
+        }
+        
+        public void InitializeComponent2()
+        {
+            // 
+            // Add to HeaderBand2.Components
+            // 
+            this.HeaderBand2.Components.Clear();
+            this.HeaderBand2.Components.AddRange(new Stimulsoft.Report.Components.StiComponent[] {
+                        this.Text10,
+                        this.Image3,
+                        this.Text26,
+                        this.Text28,
+                        this.Text30,
+                        this.Text32,
+                        this.Text48,
+                        this.Text52,
+                        this.Text54,
+                        this.Text70,
+                        this.Text79,
+                        this.Text14,
+                        this.Text16,
+                        this.HorizontalLinePrimitive4});
+            // 
+            // Add to DataBand1.Components
+            // 
+            this.DataBand1.Components.Clear();
+            this.DataBand1.Components.AddRange(new Stimulsoft.Report.Components.StiComponent[] {
+                        this.Text2,
+                        this.Text3,
+                        this.Text4,
+                        this.Text5,
+                        this.Text6,
+                        this.Text1,
+                        this.Text7,
+                        this.Text8,
+                        this.Text9,
+                        this.Text11,
+                        this.HorizontalLinePrimitive2});
+            // 
+            // Add to Page1.Components
+            // 
+            this.Page1.Components.Clear();
+            this.Page1.Components.AddRange(new Stimulsoft.Report.Components.StiComponent[] {
+                        this.PageFooterBand1,
+                        this.Text34,
+                        this.Text38,
+                        this.Text45,
+                        this.Text46,
+                        this.Text55,
+                        this.Text56,
+                        this.HeaderBand2,
+                        this.DataBand1});
+            // 
+            // Add to Pages
+            // 
+            this.Pages.Clear();
+            this.Pages.AddRange(new Stimulsoft.Report.Components.StiPage[] {
+                        this.Page1});
+            this.ArrayList.Columns.AddRange(new Stimulsoft.Report.Dictionary.StiDataColumn[] {
+                        new Stimulsoft.Report.Dictionary.StiDataColumn("sBizType", "sBizType", "sBizType", typeof(string)),
+                        new Stimulsoft.Report.Dictionary.StiDataColumn("sSchoolName", "sSchoolName", "sSchoolName", typeof(string)),
+                        new Stimulsoft.Report.Dictionary.StiDataColumn("sTelePhone", "sTelePhone", "sTelePhone", typeof(string)),
+                        new Stimulsoft.Report.Dictionary.StiDataColumn("sStudentCode", "sStudentCode", "sStudentCode", typeof(string)),
+                        new Stimulsoft.Report.Dictionary.StiDataColumn("sStudentName", "sStudentName", "sStudentName", typeof(string)),
+                        new Stimulsoft.Report.Dictionary.StiDataColumn("sGender", "sGender", "sGender", typeof(string)),
+                        new Stimulsoft.Report.Dictionary.StiDataColumn("Discounttype", "Discounttype", "Discounttype", typeof(decimal)),
+                        new Stimulsoft.Report.Dictionary.StiDataColumn("sChannel", "sChannel", "sChannel", typeof(string)),
+                        new Stimulsoft.Report.Dictionary.StiDataColumn("dShouldReceive", "dShouldReceive", "dShouldReceive", typeof(decimal)),
+                        new Stimulsoft.Report.Dictionary.StiDataColumn("dRealReceive", "dRealReceive", "dRealReceive", typeof(decimal)),
+                        new Stimulsoft.Report.Dictionary.StiDataColumn("sPayType", "sPayType", "sPayType", typeof(string)),
+                        new Stimulsoft.Report.Dictionary.StiDataColumn("RWMImage", "RWMImage", "RWMImage", typeof(byte[])),
+                        new Stimulsoft.Report.Dictionary.StiDataColumn("dtCreate", "dtCreate", "dtCreate", typeof(DateTime)),
+                        new Stimulsoft.Report.Dictionary.StiDataColumn("sOperator", "sOperator", "sOperator", typeof(string))});
+            this.Dictionary.BusinessObjects.Add(this.ArrayList);
+        }
+        
+        #region BusinessObject ArrayList
+        public class ArrayListBusinessObject : Stimulsoft.Report.Dictionary.StiBusinessObject
+        {
+            
+            public ArrayListBusinessObject() : 
+                    base("ArrayList", "ArrayList", "ArrayList", "b95edd22a11547e48bc47e27cbc0bd15")
+            {
+                this.ClassArray = new ClassArrayBusinessObject();
+                this.ClassArray.Columns.AddRange(new Stimulsoft.Report.Dictionary.StiDataColumn[] {
+                            new Stimulsoft.Report.Dictionary.StiDataColumn("sClassCode", "sClassCode", "sClassCode", typeof(string)),
+                            new Stimulsoft.Report.Dictionary.StiDataColumn("sClassName", "sClassName", "sClassName", typeof(string)),
+                            new Stimulsoft.Report.Dictionary.StiDataColumn("dClassFee", "dClassFee", "dClassFee", typeof(decimal)),
+                            new Stimulsoft.Report.Dictionary.StiDataColumn("dVoucherFee", "dVoucherFee", "dVoucherFee", typeof(decimal)),
+                            new Stimulsoft.Report.Dictionary.StiDataColumn("dRealFee", "dRealFee", "dRealFee", typeof(decimal))});
+                this.BusinessObjects.Add(this.ClassArray);
+            }
+            public ClassArrayBusinessObject ClassArray;
+            
+            public virtual string sBizType
+            {
+                get
+                {
+                    return ((string)(StiReport.ChangeType(this["sBizType"], typeof(string), true)));
+                }
+            }
+            
+            public virtual string sSchoolName
+            {
+                get
+                {
+                    return ((string)(StiReport.ChangeType(this["sSchoolName"], typeof(string), true)));
+                }
+            }
+            
+            public virtual string sTelePhone
+            {
+                get
+                {
+                    return ((string)(StiReport.ChangeType(this["sTelePhone"], typeof(string), true)));
+                }
+            }
+            
+            public virtual string sStudentCode
+            {
+                get
+                {
+                    return ((string)(StiReport.ChangeType(this["sStudentCode"], typeof(string), true)));
+                }
+            }
+            
+            public virtual string sStudentName
+            {
+                get
+                {
+                    return ((string)(StiReport.ChangeType(this["sStudentName"], typeof(string), true)));
+                }
+            }
+            
+            public virtual string sGender
+            {
+                get
+                {
+                    return ((string)(StiReport.ChangeType(this["sGender"], typeof(string), true)));
+                }
+            }
+            
+            public virtual decimal Discounttype
+            {
+                get
+                {
+                    return ((decimal)(StiReport.ChangeType(this["Discounttype"], typeof(decimal), true)));
+                }
+            }
+            
+            public virtual string sChannel
+            {
+                get
+                {
+                    return ((string)(StiReport.ChangeType(this["sChannel"], typeof(string), true)));
+                }
+            }
+            
+            public virtual decimal dShouldReceive
+            {
+                get
+                {
+                    return ((decimal)(StiReport.ChangeType(this["dShouldReceive"], typeof(decimal), true)));
+                }
+            }
+            
+            public virtual decimal dRealReceive
+            {
+                get
+                {
+                    return ((decimal)(StiReport.ChangeType(this["dRealReceive"], typeof(decimal), true)));
+                }
+            }
+            
+            public virtual string sPayType
+            {
+                get
+                {
+                    return ((string)(StiReport.ChangeType(this["sPayType"], typeof(string), true)));
+                }
+            }
+            
+            public virtual byte[] RWMImage
+            {
+                get
+                {
+                    return ((byte[])(StiReport.ChangeType(this["RWMImage"], typeof(byte[]), true)));
+                }
+            }
+            
+            public virtual DateTime dtCreate
+            {
+                get
+                {
+                    return ((DateTime)(StiReport.ChangeType(this["dtCreate"], typeof(DateTime), true)));
+                }
+            }
+            
+            public virtual string sOperator
+            {
+                get
+                {
+                    return ((string)(StiReport.ChangeType(this["sOperator"], typeof(string), true)));
+                }
+            }
+            
+            #region BusinessObject ClassArray
+            public class ClassArrayBusinessObject : Stimulsoft.Report.Dictionary.StiBusinessObject
+            {
+                
+                public ClassArrayBusinessObject() : 
+                        base("", "ClassArray", "ClassArray", "d77cf8450da44e8bba69f1c4fe1672d0")
+                {
+                }
+                
+                public virtual string sClassCode
+                {
+                    get
+                    {
+                        return ((string)(StiReport.ChangeType(this["sClassCode"], typeof(string), true)));
+                    }
+                }
+                
+                public virtual string sClassName
+                {
+                    get
+                    {
+                        return ((string)(StiReport.ChangeType(this["sClassName"], typeof(string), true)));
+                    }
+                }
+                
+                public virtual decimal dClassFee
+                {
+                    get
+                    {
+                        return ((decimal)(StiReport.ChangeType(this["dClassFee"], typeof(decimal), true)));
+                    }
+                }
+                
+                public virtual decimal dVoucherFee
+                {
+                    get
+                    {
+                        return ((decimal)(StiReport.ChangeType(this["dVoucherFee"], typeof(decimal), true)));
+                    }
+                }
+                
+                public virtual decimal dRealFee
+                {
+                    get
+                    {
+                        return ((decimal)(StiReport.ChangeType(this["dRealFee"], typeof(decimal), true)));
+                    }
+                }
+            }
+            #endregion BusinessObject ClassArray
+        }
+        #endregion BusinessObject ArrayList
+        #endregion StiReport Designer generated code - do not modify
+    }
+}
+</Script>
+  <ScriptLanguage>CSharp</ScriptLanguage>
+  <Styles isList="true" count="0" />
+</StiSerializer>
