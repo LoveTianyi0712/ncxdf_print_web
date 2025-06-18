@@ -31,26 +31,26 @@ CERTIFICATE_MAPPING = {
         'processor': 'refund_fee_certificate'
     },
     
-    # 新架构凭证类型
+    # 保留编码供将来扩展使用
     101: {
-        'name': '班级凭证（报班凭证）',
-        'template': '班级凭证.mrt',
-        'processor': 'enrollment_certificate'
+        'name': '扩展凭证类型1',
+        'template': '学员账户充值提现凭证.mrt',
+        'processor': 'student_account_certificate'
     },
     102: {
-        'name': '学员账户充值凭证',
+        'name': '扩展凭证类型2',
         'template': '学员账户充值提现凭证.mrt',
         'processor': 'student_account_certificate'
     },
     103: {
-        'name': '学员账户提现凭证',
+        'name': '扩展凭证类型3',
         'template': '学员账户充值提现凭证.mrt',
         'processor': 'student_account_certificate'
     },
     104: {
-        'name': '退费凭证',
-        'template': '退费凭证.mrt',
-        'processor': 'refund_fee_certificate'
+        'name': '扩展凭证类型4',
+        'template': '学员账户充值提现凭证.mrt',
+        'processor': 'student_account_certificate'
     }
 }
 

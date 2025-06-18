@@ -222,14 +222,14 @@ def search_student():
     
     # 模拟数据 - 后续需要替换为实际的数据库查询
     mock_data = {
-        # 新架构凭证测试数据
+        # 新功能测试数据（使用原有编码）
         'NC2024001': {
             'student_name': '张小明',
             'gender': '男',
             'reports': [
                 {
-                    'biz_type': 101,  # 班级凭证
-                    'biz_name': '班级凭证（报班凭证）',
+                    'biz_type': 5,  # 班级凭证（使用原有编码5）
+                    'biz_name': '学员账户充值提现凭证',
                     'data': {
                         # 基本信息
                         'sSchoolName': '南昌学校',
@@ -276,8 +276,8 @@ def search_student():
             'gender': '女',
             'reports': [
                 {
-                    'biz_type': 102,  # 学员账户凭证 - 充值
-                    'biz_name': '学员账户充值凭证',
+                    'biz_type': 6,  # 学员账户凭证 - 充值（使用原有编码6）
+                    'biz_name': '学员账户充值提现凭证',
                     'data': {
                         'nSchoolId': '001',
                         'sSchoolName': '南昌学校',
@@ -295,8 +295,8 @@ def search_student():
                     }
                 },
                 {
-                    'biz_type': 103,  # 学员账户凭证 - 提现
-                    'biz_name': '学员账户提现凭证',
+                    'biz_type': 6,  # 学员账户凭证 - 提现（使用原有编码6）
+                    'biz_name': '学员账户充值提现凭证',
                     'data': {
                         'nSchoolId': '001',
                         'sSchoolName': '南昌学校',
@@ -320,8 +320,8 @@ def search_student():
             'gender': '男',
             'reports': [
                 {
-                    'biz_type': 104,  # 退费凭证
-                    'biz_name': '退费凭证',
+                    'biz_type': 8,  # 退费凭证（使用原有编码8）
+                    'biz_name': '学员账户充值提现凭证',
                     'data': {
                         # 基本信息
                         'sSchoolName': '南昌学校',
@@ -477,13 +477,15 @@ def generate_print():
             # 获取文件名
             filename = os.path.basename(image_path)
             
-            # 记录打印日志
+            # 记录打印日志 - 统一显示为"学员账户充值提现凭证"
+            biz_name = "学员账户充值提现凭证"
+            
             print_log = PrintLog(
                 user_id=current_user.id,
                 student_code=student_data.get('sStudentCode', ''),
                 student_name=student_data.get('sStudentName', ''),
                 biz_type=biz_type,
-                biz_name=TEMPLATE_MAPPING.get(biz_type, '未知类型').replace('.mrt', ''),
+                biz_name=biz_name,
                 print_data=json.dumps(student_data, ensure_ascii=False)
             )
             db.session.add(print_log)
