@@ -52,11 +52,73 @@ def init_database():
             create_admin_user()
             print("✅ 默认管理员账户创建成功")
             
+            # 创建默认的Cookies配置（如果不存在）
+            create_default_cookies_config()
+            print("✅ 默认Cookies配置创建成功")
+            
         return True
         
     except Exception as e:
         print(f"❌ 数据库初始化失败: {str(e)}")
         return False
+
+def create_default_cookies_config():
+    """创建默认的Cookies配置"""
+    try:
+        from app import CookiesConfig, User
+        
+        # 检查是否已存在活跃配置
+        existing_config = CookiesConfig.query.filter_by(is_active=True).first()
+        if existing_config:
+            print("已存在活跃的Cookies配置，跳过创建默认配置")
+            return
+        
+        # 获取管理员用户
+        admin_user = User.query.filter_by(username='admin').first()
+        if not admin_user:
+            print("未找到管理员用户，跳过创建默认Cookies配置")
+            return
+        
+        # 创建默认配置（使用原来的DEFAULT_COOKIES）
+        default_cookies = {
+            'FE_USER_CODE': 'NC24048S6UzC',
+            'FE_USER_NAME': '%E5%BC%A0%E8%B0%A6235',
+            'rem': 'on',
+            'XDFUUID': 'ce6a5a3d-9251-5279-d83a-8f1fc6dcd799',
+            'erpSchoolId': '35',
+            'gr_user_id': '581a8283-1851-4e73-a092-9075db03f151',
+            'a28834c02dcdb241_gr_last_sent_cs1': 'zhangqian235@xdf.cn',
+            '964de61476ecd75d_gr_last_sent_cs1': '01027b0e73ba43728dc1e96228e6d606',
+            'a28834c02dcdb241_gr_cs1': 'zhangqian235@xdf.cn',
+            '964de61476ecd75d_gr_cs1': '01027b0e73ba43728dc1e96228e6d606',
+            'jiaowuSchoolId': '35',
+            'OA_USER_KEY': 'YjQ2NTBkM2NjNzA0MTUwZTNlMGNmNjQwMDczMGVkNzE7emhhbmdxaWFuMjM1OzE3NDk3ODAwMDM%3D',
+            'e2e': 'A2722AEC8CB1725A84385253E3D81D09',
+            'casgwusercred': 'NGjz2HfXFFWhcL8Ih_gnED4-mc30XuIwvU7M7bF6wQBciD11s9Pj4GZNsoLFfBhezRZ3fF3uBWh0jJ_MIi9xp56CT6r6-E51i9CfYubbVa-jPmWHuQVTOnsZG0r2miw-F5Z6lkbev2yXITkrUajCbakhU0xK-ZWvarh6jPTzn7U',
+            'crosgwusercred': '4qLA-_bkyBtbQspD5OITWCxRI1aviyzNjG-Q-VBq4Gma1hjjUgP2g2yGPmbIjfpQSiiHv2zNTZmJUXEnjbzDUg546d24fe41ac0ff94a449d5f52e6aeba',
+            'e2mf': '4c558bdd0e2f4b8893daf159e6a3d4f7',
+            'erpUserId': 'zhangqian235',
+        }
+        
+        import json
+        from app import db
+        
+        default_config = CookiesConfig(
+            name='默认ERP Cookies配置',
+            cookies_data=json.dumps(default_cookies, ensure_ascii=False),
+            is_active=True,
+            created_by=admin_user.id,
+            test_status='未测试'
+        )
+        
+        db.session.add(default_config)
+        db.session.commit()
+        
+        print("✅ 已创建默认Cookies配置")
+        
+    except Exception as e:
+        print(f"⚠️ 创建默认Cookies配置失败: {str(e)}")
+        # 不抛出异常，因为这不是必需的
 
 def main():
     """主函数"""

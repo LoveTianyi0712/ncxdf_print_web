@@ -66,6 +66,17 @@ class PrintLog(db.Model):
     # 新增字段用于列表展示
     detail_info = db.Column(db.String(200), nullable=True)  # 详细信息，如"类型：充值，金额：¥1000.00"
 
+class CookiesConfig(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False, default='ERP Cookies')
+    cookies_data = db.Column(db.Text, nullable=False)  # JSON格式存储cookies
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=get_beijing_datetime)
+    updated_at = db.Column(db.DateTime, default=get_beijing_datetime, onupdate=get_beijing_datetime)
+    created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    last_test_time = db.Column(db.DateTime, nullable=True)  # 最后测试时间
+    test_status = db.Column(db.String(20), default='未测试')  # 测试状态：成功、失败、未测试
+
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
@@ -227,8 +238,14 @@ def search_student():
     try:
         from utils.certificate_processors.search_student_certificate import search_student
         
-        # 从用户会话获取cookies，如果没有则使用None（函数内部会使用默认配置）
-        cookies = session.get('user_cookies', None)
+        # 从数据库获取活跃的cookies配置
+        cookies = None
+        active_config = CookiesConfig.query.filter_by(is_active=True).first()
+        if active_config:
+            try:
+                cookies = json.loads(active_config.cookies_data)
+            except:
+                pass
         
         # 调用实际的搜索功能
         search_result = search_student(cookies, current_user, student_code)
@@ -236,8 +253,18 @@ def search_student():
         if search_result == 0:
             return jsonify({'error': '未找到该学员的信息'}), 404
         elif search_result == 404:
-            # 如果API调用失败，回退到模拟数据
-            return _fallback_mock_search(student_code)
+            # API调用失败，返回错误信息并提醒管理员更新cookies
+            error_msg = 'API调用失败，可能是网络问题或认证失效。'
+            if current_user.role != 'admin':
+                error_msg += '请联系管理员更新系统认证配置。'
+            else:
+                error_msg += '请前往Cookies配置页面更新认证信息。'
+            
+            return jsonify({
+                'error': error_msg,
+                'need_admin_attention': True,
+                'is_admin': current_user.role == 'admin'
+            }), 404
         elif isinstance(search_result, dict) and 'reports' in search_result:
             # 成功获取到实际数据（新格式）
             student_info = search_result
@@ -441,6 +468,149 @@ def change_password():
 def tech_support():
     """技术支持页面"""
     return render_template('tech_support.html')
+
+@app.route('/cookies_config')
+@login_required
+@admin_required
+def cookies_config():
+    """Cookies配置管理页面"""
+    configs = CookiesConfig.query.order_by(CookiesConfig.updated_at.desc()).all()
+    active_config = CookiesConfig.query.filter_by(is_active=True).first()
+    return render_template('cookies_config.html', configs=configs, active_config=active_config)
+
+@app.route('/save_cookies', methods=['POST'])
+@login_required
+@admin_required
+def save_cookies():
+    """保存cookies配置"""
+    try:
+        cookies_text = request.form.get('cookies_data', '').strip()
+        config_name = request.form.get('config_name', 'ERP Cookies').strip()
+        
+        if not cookies_text:
+            flash('请输入cookies数据', 'error')
+            return redirect(url_for('cookies_config'))
+        
+        # 解析cookies文本
+        cookies_dict = {}
+        try:
+            # 支持多种格式的cookies输入
+            if cookies_text.startswith('{'):
+                # JSON格式
+                cookies_dict = json.loads(cookies_text)
+            else:
+                # 键值对格式，支持分号或换行分隔
+                lines = cookies_text.replace(';', '\n').split('\n')
+                for line in lines:
+                    line = line.strip()
+                    if '=' in line:
+                        key, value = line.split('=', 1)
+                        cookies_dict[key.strip()] = value.strip()
+        except Exception as e:
+            flash(f'Cookies格式解析失败：{str(e)}', 'error')
+            return redirect(url_for('cookies_config'))
+        
+        if not cookies_dict:
+            flash('未能解析到有效的cookies数据', 'error')
+            return redirect(url_for('cookies_config'))
+        
+        # 将所有其他配置设为非活跃
+        CookiesConfig.query.update({'is_active': False})
+        
+        # 创建新配置
+        new_config = CookiesConfig(
+            name=config_name,
+            cookies_data=json.dumps(cookies_dict, ensure_ascii=False),
+            is_active=True,
+            created_by=current_user.id
+        )
+        
+        db.session.add(new_config)
+        db.session.commit()
+        
+        flash(f'Cookies配置 "{config_name}" 保存成功！', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'保存失败：{str(e)}', 'error')
+    
+    return redirect(url_for('cookies_config'))
+
+@app.route('/test_cookies/<int:config_id>')
+@login_required
+@admin_required
+def test_cookies(config_id):
+    """测试cookies配置"""
+    try:
+        config = CookiesConfig.query.get_or_404(config_id)
+        cookies_dict = json.loads(config.cookies_data)
+        
+        # 使用测试学员编号测试API
+        from utils.certificate_processors.search_student_certificate import search_student
+        test_result = search_student(cookies_dict, current_user, 'NC24048S6UzC')  # 使用一个测试学员编号
+        
+        # 更新测试状态
+        config.last_test_time = get_beijing_datetime()
+        
+        if test_result == 404:
+            config.test_status = '失败'
+            flash(f'Cookies测试失败：API请求失败', 'error')
+        elif test_result == 0:
+            config.test_status = '成功'
+            flash(f'Cookies测试成功：API连接正常（测试学员不存在是正常的）', 'success')
+        elif isinstance(test_result, dict):
+            config.test_status = '成功'
+            flash(f'Cookies测试成功：找到学员数据', 'success')
+        else:
+            config.test_status = '失败'
+            flash(f'Cookies测试失败：返回异常结果', 'error')
+        
+        db.session.commit()
+        
+    except Exception as e:
+        flash(f'测试失败：{str(e)}', 'error')
+    
+    return redirect(url_for('cookies_config'))
+
+@app.route('/activate_cookies/<int:config_id>')
+@login_required
+@admin_required
+def activate_cookies(config_id):
+    """激活指定的cookies配置"""
+    try:
+        # 将所有配置设为非活跃
+        CookiesConfig.query.update({'is_active': False})
+        
+        # 激活指定配置
+        config = CookiesConfig.query.get_or_404(config_id)
+        config.is_active = True
+        db.session.commit()
+        
+        flash(f'已激活配置：{config.name}', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'激活失败：{str(e)}', 'error')
+    
+    return redirect(url_for('cookies_config'))
+
+@app.route('/delete_cookies/<int:config_id>')
+@login_required
+@admin_required
+def delete_cookies(config_id):
+    """删除cookies配置"""
+    try:
+        config = CookiesConfig.query.get_or_404(config_id)
+        db.session.delete(config)
+        db.session.commit()
+        
+        flash(f'已删除配置：{config.name}', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'删除失败：{str(e)}', 'error')
+    
+    return redirect(url_for('cookies_config'))
 
 @app.route('/test_class_search')
 @login_required

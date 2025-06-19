@@ -122,7 +122,12 @@ document.getElementById('searchForm').addEventListener('submit', function(e) {
         .then(response => response.json())
         .then(data => {
             if (data.error) {
-                showError(data.error);
+                // 检查是否需要管理员注意
+                if (data.need_admin_attention) {
+                    showCookiesError(data.error, data.is_admin);
+                } else {
+                    showError(data.error);
+                }
                 hideStudentInfo();
             } else {
                 showStudentInfo(data, studentCode);
@@ -156,6 +161,45 @@ function hideStudentInfo() {
 // 显示错误信息
 function showError(message) {
     document.getElementById('errorText').textContent = message;
+    document.getElementById('errorMessage').style.display = 'block';
+    document.getElementById('studentInfo').style.display = 'none';
+    document.getElementById('reportsCard').style.display = 'none';
+    resetPreview();
+}
+
+// 显示Cookies错误信息（特殊处理）
+function showCookiesError(message, isAdmin) {
+    let errorHtml = `
+        <div class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <strong>系统认证失效</strong>
+            <p class="mt-2 mb-2">${message}</p>
+    `;
+    
+    if (isAdmin) {
+        errorHtml += `
+            <hr>
+            <div class="mt-3">
+                <a href="/cookies_config" class="btn btn-warning">
+                    <i class="fas fa-cookie-bite me-2"></i>前往Cookies配置页面
+                </a>
+            </div>
+        `;
+    } else {
+        errorHtml += `
+            <hr>
+            <div class="mt-3">
+                <p class="mb-0">
+                    <i class="fas fa-info-circle me-2"></i>
+                    如果此问题持续出现，请联系系统管理员更新认证配置。
+                </p>
+            </div>
+        `;
+    }
+    
+    errorHtml += `</div>`;
+    
+    document.getElementById('errorMessage').innerHTML = errorHtml;
     document.getElementById('errorMessage').style.display = 'block';
     document.getElementById('studentInfo').style.display = 'none';
     document.getElementById('reportsCard').style.display = 'none';
