@@ -56,6 +56,8 @@ class User(UserMixin, db.Model):
     is_first_login = db.Column(db.Boolean, default=True)  # 是否是首次登录
     created_at = db.Column(db.DateTime, default=get_beijing_datetime)
     created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    # 软删除字段
+    is_deleted = db.Column(db.Boolean, default=False, nullable=False)  # 软删除标记
     
     print_logs = db.relationship('PrintLog', backref='user', lazy=True)
 
@@ -363,14 +365,12 @@ def dashboard():
     user_print_count = PrintLog.query.filter_by(user_id=current_user.id).count()
     
     # 如果是管理员，获取更多统计信息
-    stats = {}
-    if current_user.role == 'admin':
-        stats = {
-            'total_users': User.query.count(),
-            'active_users': User.query.filter_by(is_enabled=True).count(),
-            'total_prints': PrintLog.query.count(),
-            'recent_prints': PrintLog.query.order_by(PrintLog.print_time.desc()).limit(5).all()
-        }
+    stats = {
+        'total_users': User.query.filter_by(is_deleted=False).count(),
+        'active_users': User.query.filter_by(is_deleted=False, is_enabled=True).count(),
+        'total_prints': PrintLog.query.count(),
+        'recent_prints': PrintLog.query.order_by(PrintLog.print_time.desc()).limit(5).all()
+    }
     
     return render_template('dashboard.html', user_print_count=user_print_count, stats=stats)
 
@@ -379,8 +379,127 @@ def dashboard():
 @first_login_required
 @admin_required
 def users():
-    users = User.query.all()
-    return render_template('users.html', users=users)
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 20, type=int)
+    
+    # 限制每页记录数量范围
+    if per_page not in [10, 20, 50, 100]:
+        per_page = 20
+    
+    # 搜索参数
+    search_username = request.args.get('search_username', '').strip()
+    search_role = request.args.get('search_role', '').strip()
+    search_status = request.args.get('search_status', '').strip()
+    search_activation = request.args.get('search_activation', '').strip()
+    search_date_start = request.args.get('search_date_start', '').strip()
+    search_date_end = request.args.get('search_date_end', '').strip()
+    search_creator = request.args.get('search_creator', '').strip()
+    
+    # 构建查询 - 只显示未删除的用户
+    query = User.query.filter_by(is_deleted=False)
+    
+    # 用户名筛选
+    if search_username:
+        query = query.filter(User.username.like(f'%{search_username}%'))
+    
+    # 角色筛选
+    if search_role:
+        query = query.filter(User.role == search_role)
+    
+    # 状态筛选（启用/禁用）
+    if search_status:
+        is_enabled = search_status == 'enabled'
+        query = query.filter(User.is_enabled == is_enabled)
+    
+    # 激活状态筛选
+    if search_activation:
+        is_first_login = search_activation == 'pending'
+        query = query.filter(User.is_first_login == is_first_login)
+    
+    # 时间范围筛选
+    if search_date_start:
+        try:
+            start_date = datetime.strptime(search_date_start, '%Y-%m-%d')
+            query = query.filter(User.created_at >= start_date)
+        except ValueError:
+            pass
+    
+    if search_date_end:
+        try:
+            end_date = datetime.strptime(search_date_end, '%Y-%m-%d')
+            # 结束日期包含当天，所以加1天
+            end_date = end_date + timedelta(days=1)
+            query = query.filter(User.created_at < end_date)
+        except ValueError:
+            pass
+    
+    # 创建者筛选
+    if search_creator:
+        # 先查找创建者用户
+        creator_query = User.query.filter(User.username.like(f'%{search_creator}%')).with_entities(User.id)
+        creator_ids = [c.id for c in creator_query.all()]
+        if creator_ids:
+            query = query.filter(User.created_by.in_(creator_ids))
+        else:
+            # 如果没有找到匹配的创建者，返回空结果
+            query = query.filter(User.id == -1)
+    
+    # 排序和分页
+    users = query.order_by(User.created_at.desc()).paginate(
+        page=page, per_page=per_page, error_out=False
+    )
+    
+    # 获取所有用户用于创建者显示（只获取未删除的）
+    all_users = User.query.filter_by(is_deleted=False).all()
+    
+    # 构建搜索参数字典，用于分页链接保持搜索状态
+    search_params = {}
+    if search_username:
+        search_params['search_username'] = search_username
+    if search_role:
+        search_params['search_role'] = search_role
+    if search_status:
+        search_params['search_status'] = search_status
+    if search_activation:
+        search_params['search_activation'] = search_activation
+    if search_date_start:
+        search_params['search_date_start'] = search_date_start
+    if search_date_end:
+        search_params['search_date_end'] = search_date_end
+    if search_creator:
+        search_params['search_creator'] = search_creator
+    
+    # 添加per_page参数
+    search_params['per_page'] = per_page
+    
+    # 构建分页URL参数字符串
+    search_query_string = ''
+    if search_params:
+        query_parts = []
+        for key, value in search_params.items():
+            if value:  # 只包含非空值
+                query_parts.append(f'{key}={value}')
+        if query_parts:
+            search_query_string = '&' + '&'.join(query_parts)
+    
+    # 获取统计信息
+    stats = {
+        'total_users': User.query.filter_by(is_deleted=False).count(),
+        'enabled_users': User.query.filter_by(is_deleted=False, is_enabled=True).count(),
+        'disabled_users': User.query.filter_by(is_deleted=False, is_enabled=False).count(),
+        'activated_users': User.query.filter_by(is_deleted=False, is_first_login=False).count(),
+        'pending_users': User.query.filter_by(is_deleted=False, is_first_login=True).count(),
+        'admin_users': User.query.filter_by(is_deleted=False, role='admin').count(),
+        'regular_users': User.query.filter_by(is_deleted=False, role='user').count(),
+    }
+    
+    return render_template('users.html', 
+                         users=users, 
+                         all_users=all_users,
+                         search_params=search_params,
+                         search_query_string=search_query_string,
+                         current_per_page=per_page,
+                         stats=stats)
 
 @app.route('/create_user', methods=['GET', 'POST'])
 @login_required
@@ -406,7 +525,7 @@ def create_user():
         errors = []
         
         for i, username in enumerate(username_list):
-            if User.query.filter_by(username=username).first():
+            if User.query.filter_by(username=username, is_deleted=False).first():
                 errors.append(f'用户名 {username} 已存在')
                 continue
             
@@ -451,6 +570,30 @@ def toggle_user(user_id):
         db.session.commit()
         status = '启用' if user.is_enabled else '禁用'
         flash(f'已{status}用户 {user.username}', 'success')
+    return redirect(url_for('users'))
+
+@app.route('/delete_user/<int:user_id>')
+@login_required
+@admin_required
+def delete_user(user_id):
+    """软删除用户 - 仅管理员可操作"""
+    user = User.query.get_or_404(user_id)
+    
+    # 不能删除自己
+    if user.id == current_user.id:
+        flash('不能删除自己的账号', 'error')
+        return redirect(url_for('users'))
+    
+    # 检查用户是否已被删除
+    if user.is_deleted:
+        flash('用户已被删除', 'warning')
+        return redirect(url_for('users'))
+    
+    # 执行软删除
+    user.is_deleted = True
+    db.session.commit()
+    
+    flash(f'已删除用户 {user.username}', 'success')
     return redirect(url_for('users'))
 
 @app.route('/print')

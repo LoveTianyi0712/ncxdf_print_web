@@ -12,6 +12,8 @@ import pymysql
 from config import Config, config
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
+from werkzeug.security import generate_password_hash
+from app import app, db, User
 
 # 安装PyMySQL作为MySQLdb的替代
 pymysql.install_as_MySQLdb()
@@ -152,6 +154,57 @@ def migrate_database():
             print(f"数据库迁移失败: {str(e)}")
             db.session.rollback()
 
+def setup_database():
+    """初始化数据库"""
+    with app.app_context():
+        print("正在创建数据库表...")
+        db.create_all()
+        print("数据库表创建完成！")
+
+def create_admin_user():
+    """创建管理员用户"""
+    with app.app_context():
+        # 检查是否已存在管理员
+        admin = User.query.filter_by(username='admin').first()
+        if admin:
+            print("管理员用户已存在")
+            return
+        
+        # 创建管理员用户
+        admin = User(
+            username='admin',
+            password_hash=generate_password_hash('admin123'),
+            role='admin',
+            is_first_login=False,  # 管理员默认已激活
+            is_deleted=False  # 确保管理员不被删除
+        )
+        db.session.add(admin)
+        db.session.commit()
+        print("管理员用户创建成功: admin / admin123")
+
+def migrate_user_table():
+    """为User表添加is_deleted字段的迁移"""
+    with app.app_context():
+        try:
+            # 检查is_deleted字段是否已存在
+            from sqlalchemy import inspect, text
+            inspector = inspect(db.engine)
+            columns = [column['name'] for column in inspector.get_columns('user')]
+            
+            if 'is_deleted' not in columns:
+                print("正在为User表添加is_deleted字段...")
+                # 使用新的语法执行SQL
+                with db.engine.connect() as connection:
+                    connection.execute(text('ALTER TABLE user ADD COLUMN is_deleted BOOLEAN DEFAULT 0 NOT NULL'))
+                    connection.commit()
+                print("is_deleted字段添加成功！")
+            else:
+                print("is_deleted字段已存在，跳过迁移")
+                
+        except Exception as e:
+            print(f"迁移过程中出现错误: {str(e)}")
+            print("这可能是因为表结构已经是最新的")
+
 def main():
     """主函数"""
     print("=" * 50)
@@ -175,4 +228,6 @@ def main():
 
 if __name__ == "__main__":
     migrate_database()
+    migrate_user_table()
+    create_admin_user()
     main() 

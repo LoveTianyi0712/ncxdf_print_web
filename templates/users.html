@@ -14,6 +14,129 @@
     </div>
 </div>
 
+<!-- 统计信息 -->
+<div class="row mb-4">
+    <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title text-primary">{{ stats.total_users }}</h5>
+                <p class="card-text">总用户数</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title text-success">{{ stats.enabled_users }}</h5>
+                <p class="card-text">启用用户</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title text-danger">{{ stats.disabled_users }}</h5>
+                <p class="card-text">禁用用户</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title text-success">{{ stats.activated_users }}</h5>
+                <p class="card-text">已激活用户</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title text-warning">{{ stats.pending_users }}</h5>
+                <p class="card-text">待激活用户</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title text-info">{{ stats.admin_users }}</h5>
+                <p class="card-text">管理员</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 搜索筛选表单 -->
+<div class="card mb-3">
+    <div class="card-header">
+        <h5 class="card-title mb-0">
+            <i class="fas fa-search me-2"></i>搜索筛选
+        </h5>
+    </div>
+    <div class="card-body">
+        <form method="GET" action="{{ url_for('users') }}">
+            <div class="row">
+                <div class="col-md-2">
+                    <label for="search_username" class="form-label">用户名</label>
+                    <input type="text" class="form-control" id="search_username" name="search_username" 
+                           placeholder="用户名" value="{{ search_params.get('search_username', '') }}">
+                </div>
+                <div class="col-md-2">
+                    <label for="search_role" class="form-label">角色</label>
+                    <select class="form-select" id="search_role" name="search_role">
+                        <option value="">全部角色</option>
+                        <option value="admin" {% if search_params.get('search_role') == 'admin' %}selected{% endif %}>管理员</option>
+                        <option value="user" {% if search_params.get('search_role') == 'user' %}selected{% endif %}>普通用户</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="search_status" class="form-label">状态</label>
+                    <select class="form-select" id="search_status" name="search_status">
+                        <option value="">全部状态</option>
+                        <option value="enabled" {% if search_params.get('search_status') == 'enabled' %}selected{% endif %}>启用</option>
+                        <option value="disabled" {% if search_params.get('search_status') == 'disabled' %}selected{% endif %}>禁用</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="search_activation" class="form-label">激活状态</label>
+                    <select class="form-select" id="search_activation" name="search_activation">
+                        <option value="">全部状态</option>
+                        <option value="activated" {% if search_params.get('search_activation') == 'activated' %}selected{% endif %}>已激活</option>
+                        <option value="pending" {% if search_params.get('search_activation') == 'pending' %}selected{% endif %}>待激活</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="search_date_start" class="form-label">开始日期</label>
+                    <input type="date" class="form-control" id="search_date_start" name="search_date_start" 
+                           value="{{ search_params.get('search_date_start', '') }}">
+                </div>
+                <div class="col-md-2">
+                    <label for="search_date_end" class="form-label">结束日期</label>
+                    <input type="date" class="form-control" id="search_date_end" name="search_date_end" 
+                           value="{{ search_params.get('search_date_end', '') }}">
+                </div>
+            </div>
+            <div class="row mt-3">
+                <div class="col-md-2">
+                    <label for="search_creator" class="form-label">创建者</label>
+                    <input type="text" class="form-control" id="search_creator" name="search_creator" 
+                           placeholder="创建者用户名" value="{{ search_params.get('search_creator', '') }}">
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <div class="btn-group w-100">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-search me-1"></i>搜索
+                        </button>
+                        <a href="{{ url_for('users') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-1"></i>清空
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
 <div class="card">
     <div class="card-header">
         <h5 class="card-title mb-0">
@@ -21,26 +144,28 @@
         </h5>
     </div>
     <div class="card-body">
-        <!-- 激活状态说明 -->
-        <div class="alert alert-info">
-            <h6 class="alert-heading">
-                <i class="fas fa-info-circle me-2"></i>激活状态说明
-            </h6>
-            <div class="row">
-                <div class="col-md-6">
-                    <small>
-                        <span class="badge bg-warning me-2"><i class="fas fa-exclamation-triangle me-1"></i>待激活</span>
-                        用户尚未完成首次登录密码修改
-                    </small>
-                </div>
-                <div class="col-md-6">
-                    <small>
-                        <span class="badge bg-success me-2"><i class="fas fa-check-circle me-1"></i>已激活</span>
-                        用户已完成首次登录密码修改，可正常使用系统
-                    </small>
+        {% if users.items %}
+        <!-- 每页记录数量控制 -->
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <div class="d-flex align-items-center">
+                    <label for="perPageSelect" class="form-label me-2 mb-0">每页显示：</label>
+                    <select class="form-select form-select-sm" id="perPageSelect" style="width: auto;" onchange="changePerPage(this.value)">
+                        <option value="10" {% if current_per_page == 10 %}selected{% endif %}>10条</option>
+                        <option value="20" {% if current_per_page == 20 %}selected{% endif %}>20条</option>
+                        <option value="50" {% if current_per_page == 50 %}selected{% endif %}>50条</option>
+                        <option value="100" {% if current_per_page == 100 %}selected{% endif %}>100条</option>
+                    </select>
                 </div>
             </div>
+            <div class="col-md-6 text-end">
+                <small class="text-muted">
+                    共 {{ users.total }} 条记录，第 {{ users.page }} / {{ users.pages }} 页
+                </small>
+            </div>
         </div>
+
+        <!-- 表格容器 -->
         <div class="table-responsive">
             <table class="table table-hover">
                 <thead>
@@ -56,7 +181,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for user in users %}
+                    {% for user in users.items %}
                     <tr>
                         <td>{{ user.id }}</td>
                         <td>
@@ -102,7 +227,7 @@
                         <td>
                             {% if user.created_by %}
                             <small class="text-muted">
-                                {% for creator in users %}
+                                {% for creator in all_users %}
                                     {% if creator.id == user.created_by %}
                                         {{ creator.username }}
                                     {% endif %}
@@ -114,15 +239,23 @@
                         </td>
                         <td>
                             {% if user.id != current_user.id %}
-                            <a href="{{ url_for('toggle_user', user_id=user.id) }}" 
-                               class="btn btn-sm {% if user.is_enabled %}btn-outline-danger{% else %}btn-outline-success{% endif %}"
-                               onclick="return confirm('确定要{% if user.is_enabled %}禁用{% else %}启用{% endif %}用户 {{ user.username }} 吗？')">
-                                {% if user.is_enabled %}
-                                <i class="fas fa-ban me-1"></i>禁用
-                                {% else %}
-                                <i class="fas fa-check me-1"></i>启用
-                                {% endif %}
-                            </a>
+                            <div class="btn-group" role="group">
+                                <a href="{{ url_for('toggle_user', user_id=user.id) }}" 
+                                   class="btn btn-sm {% if user.is_enabled %}btn-outline-warning{% else %}btn-outline-success{% endif %}"
+                                   onclick="return confirm('确定要{% if user.is_enabled %}禁用{% else %}启用{% endif %}用户 {{ user.username }} 吗？')"
+                                   title="{% if user.is_enabled %}禁用{% else %}启用{% endif %}用户">
+                                    {% if user.is_enabled %}
+                                    <i class="fas fa-ban"></i>
+                                    {% else %}
+                                    <i class="fas fa-check"></i>
+                                    {% endif %}
+                                </a>
+                                <button class="btn btn-sm btn-outline-danger" 
+                                        onclick="deleteUser({{ user.id }}, '{{ user.username }}')" 
+                                        title="删除用户">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
                             {% else %}
                             <span class="text-muted">当前用户</span>
                             {% endif %}
@@ -132,65 +265,307 @@
                 </tbody>
             </table>
         </div>
-        
-        {% if users|length == 0 %}
-        <div class="text-center py-4">
-            <i class="fas fa-users fa-3x text-muted mb-3"></i>
-            <p class="text-muted">暂无用户数据</p>
+
+        <!-- 分页 -->
+        {% if users.pages > 1 %}
+        <nav aria-label="用户分页">
+            <ul class="pagination justify-content-center">
+                {% if users.has_prev %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('users', page=users.prev_num) }}{{ search_query_string }}">
+                        <i class="fas fa-chevron-left"></i>
+                    </a>
+                </li>
+                {% endif %}
+                
+                {% for page_num in users.iter_pages() %}
+                    {% if page_num %}
+                        {% if page_num != users.page %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('users', page=page_num) }}{{ search_query_string }}">{{ page_num }}</a>
+                        </li>
+                        {% else %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ page_num }}</span>
+                        </li>
+                        {% endif %}
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">…</span>
+                    </li>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if users.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('users', page=users.next_num) }}{{ search_query_string }}">
+                        <i class="fas fa-chevron-right"></i>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+            
+            <!-- 快速跳转 -->
+            <div class="d-flex justify-content-center align-items-center mt-2">
+                <div class="page-jump-container">
+                    <span class="text-muted me-2">跳转至</span>
+                    <div class="input-group input-group-sm" style="width: 120px; display: inline-flex;">
+                        <input type="number" 
+                               class="form-control" 
+                               id="pageJumpInput" 
+                               placeholder="页码" 
+                               min="1" 
+                               max="{{ users.pages }}"
+                               title="输入1-{{ users.pages }}之间的页码">
+                        <button class="btn btn-outline-secondary" 
+                                type="button" 
+                                onclick="jumpToPage()"
+                                title="跳转到指定页面">
+                            <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+                    <span class="text-muted ms-2">页</span>
+                </div>
+            </div>
+        </nav>
+        {% endif %}
+
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-users fa-4x text-muted mb-3"></i>
+            <h5 class="text-muted">暂无用户数据</h5>
+            <p class="text-muted">
+                {% if search_params %}
+                没有找到符合条件的用户，请尝试调整搜索条件
+                {% else %}
+                暂无用户数据
+                {% endif %}
+            </p>
+            {% if not search_params %}
+            <a href="{{ url_for('create_user') }}" class="btn btn-primary">
+                <i class="fas fa-user-plus me-1"></i>创建用户
+            </a>
+            {% else %}
+            <a href="{{ url_for('users') }}" class="btn btn-secondary">
+                <i class="fas fa-list me-1"></i>查看所有用户
+            </a>
+            {% endif %}
         </div>
         {% endif %}
     </div>
 </div>
 
-<!-- 统计信息 -->
-<div class="row mt-4">
-    <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
-        <div class="card text-center">
-            <div class="card-body">
-                <h5 class="card-title text-primary">{{ users|length }}</h5>
-                <p class="card-text">总用户数</p>
+<!-- 删除确认模态框 -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle me-2 text-warning"></i>确认删除
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-        </div>
-    </div>
-    <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
-        <div class="card text-center">
-            <div class="card-body">
-                <h5 class="card-title text-success">{{ users|selectattr('is_enabled')|list|length }}</h5>
-                <p class="card-text">启用用户</p>
+            <div class="modal-body">
+                <p>确定要删除用户 <strong id="deleteUsername"></strong> 吗？</p>
+                <p class="text-muted small">此操作将软删除用户，用户将无法登录系统。</p>
             </div>
-        </div>
-    </div>
-    <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
-        <div class="card text-center">
-            <div class="card-body">
-                <h5 class="card-title text-success">{{ users|rejectattr('is_first_login')|list|length }}</h5>
-                <p class="card-text">已激活用户</p>
-            </div>
-        </div>
-    </div>
-    <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
-        <div class="card text-center">
-            <div class="card-body">
-                <h5 class="card-title text-warning">{{ users|selectattr('is_first_login')|list|length }}</h5>
-                <p class="card-text">待激活用户</p>
-            </div>
-        </div>
-    </div>
-    <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
-        <div class="card text-center">
-            <div class="card-body">
-                <h5 class="card-title text-warning">{{ users|selectattr('role', 'equalto', 'admin')|list|length }}</h5>
-                <p class="card-text">管理员</p>
-            </div>
-        </div>
-    </div>
-    <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
-        <div class="card text-center">
-            <div class="card-body">
-                <h5 class="card-title text-info">{{ users|selectattr('role', 'equalto', 'user')|list|length }}</h5>
-                <p class="card-text">普通用户</p>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <a href="#" id="confirmDelete" class="btn btn-danger">
+                    <i class="fas fa-trash me-1"></i>确认删除
+                </a>
             </div>
         </div>
     </div>
 </div>
+
+<!-- 激活状态说明 -->
+<div class="row mt-3">
+    <div class="col-md-12">
+        <div class="alert alert-info">
+            <h6 class="alert-heading">
+                <i class="fas fa-info-circle me-2"></i>激活状态说明
+            </h6>
+            <div class="row">
+                <div class="col-md-6">
+                    <small>
+                        <span class="badge bg-warning me-2"><i class="fas fa-exclamation-triangle me-1"></i>待激活</span>
+                        用户尚未完成首次登录密码修改
+                    </small>
+                </div>
+                <div class="col-md-6">
+                    <small>
+                        <span class="badge bg-success me-2"><i class="fas fa-check-circle me-1"></i>已激活</span>
+                        用户已完成首次登录密码修改，可正常使用系统
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// 删除确认
+function deleteUser(userId, username) {
+    // 设置用户名
+    document.getElementById('deleteUsername').textContent = username;
+    
+    // 设置删除链接
+    document.getElementById('confirmDelete').href = `{{ url_for('delete_user', user_id=0) }}`.replace('0', userId);
+    
+    // 显示确认对话框
+    const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    modal.show();
+}
+
+// 改变每页显示数量
+function changePerPage(perPage) {
+    // 构建新的URL参数
+    const url = new URL(window.location);
+    url.searchParams.set('per_page', perPage);
+    url.searchParams.set('page', '1'); // 重置到第一页
+    
+    // 重定向到新URL
+    window.location.href = url.toString();
+}
+
+// 快速跳转到指定页面
+function jumpToPage() {
+    const input = document.getElementById('pageJumpInput');
+    const pageValue = input.value.trim();
+    
+    // 验证输入是否为空
+    if (!pageValue) {
+        showJumpMessage('请输入页码', 'warning');
+        input.focus();
+        return;
+    }
+    
+    // 验证是否为数字
+    const pageNum = parseInt(pageValue, 10);
+    if (isNaN(pageNum) || pageValue.includes('.') || pageValue.includes('e') || pageValue.includes('E')) {
+        showJumpMessage('请输入有效的页码数字', 'error');
+        input.focus();
+        input.select();
+        return;
+    }
+    
+    // 获取最大页码数
+    const maxPages = parseInt(input.getAttribute('max'), 10);
+    const minPages = parseInt(input.getAttribute('min'), 10);
+    
+    // 验证页码范围
+    if (pageNum < minPages) {
+        showJumpMessage(`页码不能小于 ${minPages}`, 'error');
+        input.focus();
+        input.select();
+        return;
+    }
+    
+    if (pageNum > maxPages) {
+        showJumpMessage(`页码不能大于 ${maxPages}`, 'error');
+        input.focus();
+        input.select();
+        return;
+    }
+    
+    // 检查是否跳转到当前页
+    const currentPage = {{ users.page }};
+    if (pageNum === currentPage) {
+        showJumpMessage('已经在当前页面了', 'info');
+        input.value = '';
+        return;
+    }
+    
+    // 构建跳转URL
+    const url = new URL(window.location);
+    url.searchParams.set('page', pageNum);
+    
+    // 执行跳转
+    window.location.href = url.toString();
+}
+
+// 显示跳转提示消息
+function showJumpMessage(message, type) {
+    // 创建或更新提示元素
+    let messageElement = document.getElementById('pageJumpMessage');
+    if (!messageElement) {
+        messageElement = document.createElement('div');
+        messageElement.id = 'pageJumpMessage';
+        messageElement.className = 'alert alert-dismissible fade show mt-2 mb-0';
+        messageElement.style.fontSize = '0.875rem';
+        messageElement.style.padding = '0.5rem 0.75rem';
+        
+        // 插入到跳转容器后面
+        const jumpContainer = document.querySelector('.page-jump-container').parentElement;
+        jumpContainer.appendChild(messageElement);
+    }
+    
+    // 设置消息类型样式
+    messageElement.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show mt-2 mb-0`;
+    messageElement.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="alert"></button>
+    `;
+    
+    // 自动隐藏消息（除了错误消息）
+    if (type !== 'error') {
+        setTimeout(() => {
+            if (messageElement.parentElement) {
+                messageElement.remove();
+            }
+        }, 3000);
+    }
+}
+
+// 初始化页面组件
+document.addEventListener('DOMContentLoaded', function() {
+    // 初始化页面跳转功能
+    initPageJump();
+});
+
+// 初始化页面跳转功能
+function initPageJump() {
+    const jumpInput = document.getElementById('pageJumpInput');
+    if (jumpInput) {
+        // 支持回车键快速跳转
+        jumpInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                jumpToPage();
+            }
+        });
+        
+        // 防止输入非数字字符（除了删除、方向键等）
+        jumpInput.addEventListener('keydown', function(e) {
+            // 允许的键：数字、退格、删除、方向键、Tab、Enter
+            const allowedKeys = [
+                'Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 
+                'ArrowUp', 'ArrowDown', 'Tab', 'Enter'
+            ];
+            
+            const isNumber = (e.key >= '0' && e.key <= '9');
+            const isAllowedKey = allowedKeys.includes(e.key);
+            const isCtrlKey = e.ctrlKey || e.metaKey; // 允许Ctrl+A, Ctrl+C等
+            
+            if (!isNumber && !isAllowedKey && !isCtrlKey) {
+                e.preventDefault();
+                showJumpMessage('只能输入数字', 'warning');
+            }
+        });
+        
+        // 防止粘贴非数字内容
+        jumpInput.addEventListener('paste', function(e) {
+            setTimeout(() => {
+                const value = e.target.value;
+                if (!/^\d*$/.test(value)) {
+                    e.target.value = value.replace(/\D/g, '');
+                    showJumpMessage('已过滤非数字字符', 'warning');
+                }
+            }, 10);
+        });
+    }
+}
+</script>
 {% endblock %} 

@@ -11,7 +11,7 @@ from app import app, db, User
 def check_user_status():
     """检查所有用户的激活状态"""
     with app.app_context():
-        users = User.query.all()
+        users = User.query.filter_by(is_deleted=False).all()
         
         print("=" * 60)
         print("用户激活状态列表")
