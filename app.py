@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session, make_response
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -26,6 +26,10 @@ import base64
 from io import BytesIO
 from config import config
 import pymysql
+# 验证码相关导入
+from PIL import Image, ImageDraw, ImageFont
+import random
+import string
 
 # 安装PyMySQL作为MySQLdb的替代
 pymysql.install_as_MySQLdb()
@@ -82,6 +86,56 @@ class CookiesConfig(db.Model):
 def load_user(user_id):
     return User.query.get(int(user_id))
 
+# 验证码生成函数
+def generate_captcha_code():
+    """生成4位随机验证码"""
+    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))
+
+def create_captcha_image(code):
+    """创建验证码图片"""
+    # 图片尺寸
+    width, height = 120, 50
+    
+    # 创建图片和绘图对象
+    image = Image.new('RGB', (width, height), color='white')
+    draw = ImageDraw.Draw(image)
+    
+    # 尝试使用系统字体，如果失败则使用默认字体
+    try:
+        # Windows 系统常见字体
+        font = ImageFont.truetype('arial.ttf', 24)
+    except:
+        try:
+            # 备选字体
+            font = ImageFont.truetype('calibri.ttf', 24)
+        except:
+            # 使用默认字体
+            font = ImageFont.load_default()
+    
+    # 绘制验证码文字
+    for i, char in enumerate(code):
+        x = 20 + i * 20
+        y = random.randint(10, 15)
+        # 随机颜色
+        color = (random.randint(0, 100), random.randint(0, 100), random.randint(0, 100))
+        draw.text((x, y), char, font=font, fill=color)
+    
+    # 添加干扰线
+    for _ in range(5):
+        x1 = random.randint(0, width)
+        y1 = random.randint(0, height)
+        x2 = random.randint(0, width)
+        y2 = random.randint(0, height)
+        draw.line([(x1, y1), (x2, y2)], fill=(random.randint(100, 200), random.randint(100, 200), random.randint(100, 200)), width=1)
+    
+    # 添加干扰点
+    for _ in range(50):
+        x = random.randint(0, width)
+        y = random.randint(0, height)
+        draw.point((x, y), fill=(random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)))
+    
+    return image
+
 # 权限装饰器
 def admin_required(f):
     def decorated_function(*args, **kwargs):
@@ -109,11 +163,49 @@ def index():
         return redirect(url_for('dashboard'))
     return redirect(url_for('login'))
 
+@app.route('/captcha')
+def captcha():
+    """生成验证码图片"""
+    # 生成验证码
+    code = generate_captcha_code()
+    
+    # 将验证码存储到session中
+    session['captcha_code'] = code.upper()
+    
+    # 创建验证码图片
+    image = create_captcha_image(code)
+    
+    # 将图片转换为字节流
+    img_io = BytesIO()
+    image.save(img_io, 'PNG')
+    img_io.seek(0)
+    
+    # 返回图片响应
+    response = make_response(img_io.getvalue())
+    response.headers['Content-Type'] = 'image/png'
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    
+    return response
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
+        captcha_input = request.form.get('captcha', '').upper()
+        
+        # 验证验证码
+        if 'captcha_code' not in session or captcha_input != session.get('captcha_code'):
+            flash('验证码错误', 'error')
+            # 清除旧的验证码
+            session.pop('captcha_code', None)
+            return render_template('login.html')
+        
+        # 清除验证码（一次性使用）
+        session.pop('captcha_code', None)
+        
         user = User.query.filter_by(username=username).first()
         
         if user and check_password_hash(user.password_hash, password):

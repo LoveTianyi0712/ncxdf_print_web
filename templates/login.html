@@ -30,6 +30,22 @@
                         </div>
                     </div>
                     
+                    <div class="mb-3">
+                        <label for="captcha" class="form-label">验证码</label>
+                        <div class="row">
+                            <div class="col-7">
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-shield-alt"></i></span>
+                                    <input type="text" class="form-control" id="captcha" name="captcha" required placeholder="请输入验证码" maxlength="4" autocomplete="off">
+                                </div>
+                            </div>
+                            <div class="col-5">
+                                <img id="captcha-img" src="{{ url_for('captcha') }}" alt="验证码" class="img-fluid border rounded" style="height: 38px; cursor: pointer;" onclick="refreshCaptcha()" title="点击刷新验证码">
+                            </div>
+                        </div>
+                        <small class="text-muted">点击验证码图片可刷新</small>
+                    </div>
+                    
                     <div class="d-grid">
                         <button type="submit" class="btn btn-primary btn-lg">
                             <i class="fas fa-sign-in-alt me-2"></i>登录
@@ -46,4 +62,26 @@
         </div>
     </div>
 </div>
+
+<script>
+function refreshCaptcha() {
+    // 添加时间戳避免缓存
+    const timestamp = new Date().getTime();
+    document.getElementById('captcha-img').src = "{{ url_for('captcha') }}" + "?t=" + timestamp;
+    // 清空验证码输入框
+    document.getElementById('captcha').value = '';
+    // 聚焦到验证码输入框
+    document.getElementById('captcha').focus();
+}
+
+// 页面加载完成后聚焦到用户名输入框
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('username').focus();
+});
+
+// 验证码输入框自动转换为大写
+document.getElementById('captcha').addEventListener('input', function() {
+    this.value = this.value.toUpperCase();
+});
+</script>
 {% endblock %} 
