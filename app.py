@@ -96,10 +96,40 @@ def check_cookie_timeout():
     if request.endpoint in excluded_endpoints:
         return
     
-    # 如果用户已登录，检查cookies超时
+    # 如果用户已登录，检查cookies超时和用户身份
     if current_user.is_authenticated:
         login_time_cookie = request.cookies.get('login_time')
+        login_user_cookie = request.cookies.get('login_user')
+        login_user_id_cookie = request.cookies.get('login_user_id')
         
+        # 检查用户身份是否匹配
+        if login_user_cookie and login_user_id_cookie:
+            try:
+                cookie_user_id = int(login_user_id_cookie)
+                if (login_user_cookie != current_user.username or 
+                    cookie_user_id != current_user.id):
+                    # 用户身份不匹配，可能是会话劫持或用户切换
+                    logout_user()
+                    session.clear()
+                    response = make_response(redirect(url_for('login')))
+                    # 删除所有相关cookies
+                    response.set_cookie('login_time', '', expires=0)
+                    response.set_cookie('login_user', '', expires=0)
+                    response.set_cookie('login_user_id', '', expires=0)
+                    flash('登录身份验证失败，请重新登录', 'warning')
+                    return response
+            except (ValueError, TypeError):
+                # cookie值无效，强制退出
+                logout_user()
+                session.clear()
+                response = make_response(redirect(url_for('login')))
+                response.set_cookie('login_time', '', expires=0)
+                response.set_cookie('login_user', '', expires=0)
+                response.set_cookie('login_user_id', '', expires=0)
+                flash('登录状态异常，请重新登录', 'warning')
+                return response
+        
+        # 检查登录时间
         if login_time_cookie:
             try:
                 # 解析登录时间
@@ -112,8 +142,10 @@ def check_cookie_timeout():
                     logout_user()
                     session.clear()
                     response = make_response(redirect(url_for('login')))
-                    # 删除登录时间cookie
+                    # 删除所有相关cookies
                     response.set_cookie('login_time', '', expires=0)
+                    response.set_cookie('login_user', '', expires=0)
+                    response.set_cookie('login_user_id', '', expires=0)
                     flash('登录已超时（12小时），请重新登录', 'warning')
                     return response
             except (ValueError, TypeError):
@@ -122,13 +154,23 @@ def check_cookie_timeout():
                 session.clear()
                 response = make_response(redirect(url_for('login')))
                 response.set_cookie('login_time', '', expires=0)
+                response.set_cookie('login_user', '', expires=0)
+                response.set_cookie('login_user_id', '', expires=0)
                 flash('登录状态异常，请重新登录', 'warning')
                 return response
         else:
-            # 没有登录时间cookie，设置一个
+            # 没有登录时间cookie，设置相关cookies
             response = make_response()
+            current_timestamp = str(datetime.now().timestamp())
+            
             response.set_cookie('login_time', 
-                              str(datetime.now().timestamp()), 
+                              current_timestamp, 
+                              max_age=12*60*60)  # 12小时
+            response.set_cookie('login_user', 
+                              current_user.username, 
+                              max_age=12*60*60)  # 12小时
+            response.set_cookie('login_user_id', 
+                              str(current_user.id), 
                               max_age=12*60*60)  # 12小时
             return response
 
@@ -269,9 +311,23 @@ def login():
                 flash(f'欢迎回来，{user.username}！', 'success')
                 response = make_response(redirect(url_for('dashboard')))
             
-            # 设置登录时间cookie，有效期12小时
+            # 设置登录时间cookie和用户绑定cookie，有效期12小时
+            current_timestamp = str(datetime.now().timestamp())
+            
             response.set_cookie('login_time', 
-                              str(datetime.now().timestamp()), 
+                              current_timestamp, 
+                              max_age=12*60*60,  # 12小时（秒）
+                              httponly=True,     # 防止JavaScript访问
+                              secure=False)      # 开发环境设为False，生产环境应设为True
+            
+            response.set_cookie('login_user', 
+                              user.username,     # 存储用户名
+                              max_age=12*60*60,  # 12小时（秒）
+                              httponly=True,     # 防止JavaScript访问
+                              secure=False)      # 开发环境设为False，生产环境应设为True
+            
+            response.set_cookie('login_user_id', 
+                              str(user.id),      # 存储用户ID作为双重验证
                               max_age=12*60*60,  # 12小时（秒）
                               httponly=True,     # 防止JavaScript访问
                               secure=False)      # 开发环境设为False，生产环境应设为True
@@ -289,9 +345,11 @@ def logout():
     session.clear()  # 清除所有session数据
     flash('已成功退出登录', 'info')
     
-    # 创建响应并删除登录时间cookie
+    # 创建响应并删除所有登录相关cookies
     response = make_response(redirect(url_for('login')))
     response.set_cookie('login_time', '', expires=0)
+    response.set_cookie('login_user', '', expires=0)
+    response.set_cookie('login_user_id', '', expires=0)
     
     return response
 
@@ -683,6 +741,58 @@ def change_password():
 def tech_support():
     """技术支持页面"""
     return render_template('tech_support.html')
+
+@app.route('/debug_cookies')
+@login_required
+def debug_cookies():
+    """调试：显示当前所有cookies"""
+    cookies_info = {}
+    
+    for cookie_name, cookie_value in request.cookies.items():
+        cookies_info[cookie_name] = cookie_value
+        
+        # 特别处理login_time cookie
+        if cookie_name == 'login_time':
+            try:
+                timestamp = float(cookie_value)
+                login_time = datetime.fromtimestamp(timestamp)
+                now = datetime.now()
+                elapsed = now - login_time
+                remaining = timedelta(hours=12) - elapsed
+                
+                cookies_info[f'{cookie_name}_详细信息'] = {
+                    '原始时间戳': timestamp,
+                    '登录时间': login_time.strftime('%Y-%m-%d %H:%M:%S'),
+                    '当前时间': now.strftime('%Y-%m-%d %H:%M:%S'),
+                    '已使用时间': f'{elapsed.total_seconds()/3600:.2f} 小时',
+                    '剩余时间': f'{remaining.total_seconds()/3600:.2f} 小时',
+                    '是否即将过期': remaining.total_seconds() < 3600,
+                    '过期时间': (login_time + timedelta(hours=12)).strftime('%Y-%m-%d %H:%M:%S')
+                }
+            except:
+                cookies_info[f'{cookie_name}_详细信息'] = '解析失败'
+    
+    # 用户身份验证状态
+    login_user_cookie = request.cookies.get('login_user')
+    login_user_id_cookie = request.cookies.get('login_user_id')
+    
+    identity_check = {
+        'cookie中的用户名': login_user_cookie,
+        'cookie中的用户ID': login_user_id_cookie,
+        '当前登录用户名': current_user.username,
+        '当前登录用户ID': current_user.id,
+        '用户名匹配': login_user_cookie == current_user.username if login_user_cookie else False,
+        '用户ID匹配': str(login_user_id_cookie) == str(current_user.id) if login_user_id_cookie else False,
+        '身份验证通过': (login_user_cookie == current_user.username and 
+                      str(login_user_id_cookie) == str(current_user.id)) if login_user_cookie and login_user_id_cookie else False
+    }
+    
+    return jsonify({
+        '当前cookies': cookies_info,
+        '用户身份验证': identity_check,
+        '总cookies数量': len(request.cookies),
+        '检查时间': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    })
 
 
 
