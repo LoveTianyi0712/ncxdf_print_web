@@ -1,0 +1,241 @@
+{% extends "base.html" %}
+
+{% block title %}个人资料编辑{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-user-edit me-2"></i>个人资料编辑</h2>
+                <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-1"></i>返回首页
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 当前信息卡片 -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-info-circle me-2"></i>当前信息
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-sm-4"><strong>用户名：</strong></div>
+                        <div class="col-sm-8"><code>{{ current_user.username }}</code></div>
+                    </div>
+                    <hr>
+                    <div class="row">
+                        <div class="col-sm-4"><strong>姓名：</strong></div>
+                        <div class="col-sm-8">
+                            {% if current_user.name %}
+                                {{ current_user.name }}
+                            {% else %}
+                                <span class="text-muted">未设置</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="row">
+                        <div class="col-sm-4"><strong>邮箱：</strong></div>
+                        <div class="col-sm-8">
+                            {% if current_user.email %}
+                                {{ current_user.email }}
+                            {% else %}
+                                <span class="text-muted">未设置</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="row">
+                        <div class="col-sm-4"><strong>角色：</strong></div>
+                        <div class="col-sm-8">
+                            {% if current_user.role == 'admin' %}
+                                <span class="badge bg-warning">管理员</span>
+                            {% else %}
+                                <span class="badge bg-primary">普通用户</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 权限说明 -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-shield-alt me-2"></i>变更权限说明
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if current_user.role == 'admin' %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-crown me-2"></i><strong>管理员权限</strong>
+                        <ul class="mb-0 mt-2">
+                            <li>可以直接修改<strong>姓名</strong>和<strong>邮箱</strong></li>
+                            <li>修改<strong>用户名</strong>需要其他管理员审批</li>
+                        </ul>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-warning">
+                        <i class="fas fa-user me-2"></i><strong>普通用户权限</strong>
+                        <ul class="mb-0 mt-2">
+                            <li>可以申请修改<strong>用户名</strong>、<strong>姓名</strong>和<strong>邮箱</strong></li>
+                            <li>所有变更都需要<strong>管理员审批</strong>后生效</li>
+                        </ul>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 修改表单 -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-edit me-2"></i>
+                        {% if current_user.role == 'admin' %}修改个人信息{% else %}申请修改个人信息{% endif %}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="username" class="form-label">
+                                        用户名
+                                        {% if current_user.role != 'admin' %}
+                                            <span class="badge bg-warning ms-1">需审批</span>
+                                        {% else %}
+                                            <span class="badge bg-warning ms-1">需审批</span>
+                                        {% endif %}
+                                    </label>
+                                    <input type="text" class="form-control" id="username" name="username" 
+                                           value="{{ current_user.username }}" required>
+                                    <div class="form-text">用户名用于登录系统</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="name" class="form-label">
+                                        姓名
+                                        {% if current_user.role == 'admin' %}
+                                            <span class="badge bg-success ms-1">直接生效</span>
+                                        {% else %}
+                                            <span class="badge bg-warning ms-1">需审批</span>
+                                        {% endif %}
+                                    </label>
+                                    <input type="text" class="form-control" id="name" name="name" 
+                                           value="{{ current_user.name or '' }}" placeholder="请输入真实姓名">
+                                    <div class="form-text">真实姓名将显示在打印凭证上</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="email" class="form-label">
+                                        邮箱
+                                        {% if current_user.role == 'admin' %}
+                                            <span class="badge bg-success ms-1">直接生效</span>
+                                        {% else %}
+                                            <span class="badge bg-warning ms-1">需审批</span>
+                                        {% endif %}
+                                    </label>
+                                    <input type="email" class="form-control" id="email" name="email" 
+                                           value="{{ current_user.email or '' }}" placeholder="请输入邮箱地址">
+                                    <div class="form-text">用于接收系统通知</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="reason" class="form-label">变更理由 <span class="text-danger">*</span></label>
+                                    <textarea class="form-control" id="reason" name="reason" rows="3" 
+                                              placeholder="请说明变更原因..." required></textarea>
+                                    <div class="form-text">请详细说明变更的原因</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i>
+                                {% if current_user.role == 'admin' %}提交修改{% else %}提交申请{% endif %}
+                            </button>
+                            <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-1"></i>取消
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 我的申请记录 -->
+    {% if pending_requests %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-clock me-2"></i>我的待处理申请
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>申请时间</th>
+                                    <th>变更内容</th>
+                                    <th>申请理由</th>
+                                    <th>状态</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for req in pending_requests %}
+                                <tr>
+                                    <td>
+                                        <small>{{ req.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</small>
+                                    </td>
+                                    <td>
+                                        {% if req.new_username and req.new_username != req.old_username %}
+                                            <div><strong>用户名：</strong> {{ req.old_username }} → {{ req.new_username }}</div>
+                                        {% endif %}
+                                        {% if req.new_name is not none and req.new_name != req.old_name %}
+                                            <div><strong>姓名：</strong> {{ req.old_name or '未设置' }} → {{ req.new_name or '未设置' }}</div>
+                                        {% endif %}
+                                        {% if req.new_email is not none and req.new_email != req.old_email %}
+                                            <div><strong>邮箱：</strong> {{ req.old_email or '未设置' }} → {{ req.new_email or '未设置' }}</div>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <small>{{ req.reason }}</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-warning">
+                                            <i class="fas fa-clock me-1"></i>待审批
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %} 

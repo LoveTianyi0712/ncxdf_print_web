@@ -225,6 +225,60 @@ def migrate_user_table():
             print(f"迁移过程中出现错误: {str(e)}")
             print("这可能是因为表结构已经是最新的")
 
+def migrate_user_change_request_table():
+    """创建用户变更请求表"""
+    with app.app_context():
+        try:
+            from sqlalchemy import inspect, text
+            inspector = inspect(db.engine)
+            
+            # 检查表是否存在
+            tables = inspector.get_table_names()
+            if 'user_change_request' not in tables:
+                print("正在创建user_change_request表...")
+                # 使用db.create_all()来创建新表
+                db.create_all()
+                print("user_change_request表创建成功！")
+            else:
+                print("user_change_request表已存在，跳过创建")
+                
+        except Exception as e:
+            print(f"创建user_change_request表时出现错误: {str(e)}")
+            print("这可能是因为表已经存在或者权限不足")
+
+def migrate_message_table():
+    """创建消息表"""
+    with app.app_context():
+        try:
+            from sqlalchemy import inspect, text
+            inspector = inspect(db.engine)
+            
+            # 检查表是否存在
+            tables = inspector.get_table_names()
+            if 'message' not in tables:
+                print("正在创建message表...")
+                # 使用db.create_all()来创建新表
+                db.create_all()
+                print("message表创建成功！")
+            else:
+                print("message表已存在，检查字段长度...")
+                # 检查message_type字段长度
+                try:
+                    result = db.session.execute(text("SHOW COLUMNS FROM message WHERE Field = 'message_type'")).fetchone()
+                    if result and 'varchar(100)' not in result[1].lower():
+                        print("正在更新message_type字段长度为100...")
+                        db.session.execute(text('ALTER TABLE message MODIFY COLUMN message_type VARCHAR(100) NOT NULL'))
+                        db.session.commit()
+                        print("message_type字段长度已更新为100")
+                    else:
+                        print("message_type字段长度已是100，跳过更新")
+                except Exception as e:
+                    print(f"更新message_type字段长度时出现错误: {str(e)}")
+                
+        except Exception as e:
+            print(f"处理message表时出现错误: {str(e)}")
+            print("这可能是因为表已经存在或者权限不足")
+
 def main():
     """主函数"""
     print("=" * 50)
@@ -249,5 +303,7 @@ def main():
 if __name__ == "__main__":
     migrate_database()
     migrate_user_table()
+    migrate_user_change_request_table()
+    migrate_message_table()
     create_admin_user()
     main() 

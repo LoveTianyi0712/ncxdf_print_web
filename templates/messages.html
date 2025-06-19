@@ -1,0 +1,447 @@
+{% extends "base.html" %}
+
+{% block title %}消息盒子{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>
+                    <i class="fas fa-inbox"></i> 消息盒子
+                    {% if stats.unread > 0 %}
+                    <span class="badge badge-danger">{{ stats.unread }}</span>
+                    {% endif %}
+                </h2>
+                <div>
+                    <button class="btn btn-outline-primary" onclick="markAllAsRead()">
+                        <i class="fas fa-check-double"></i> 全部标记已读
+                    </button>
+                </div>
+            </div>
+
+            <!-- 统计信息卡片 -->
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="card text-white bg-info">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center">
+                                <div class="mr-3">
+                                    <i class="fas fa-envelope fa-2x"></i>
+                                </div>
+                                <div>
+                                    <div class="text-xs font-weight-bold text-uppercase mb-1">全部消息</div>
+                                    <div class="h5 mb-0 font-weight-bold">{{ stats.total }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card text-white bg-warning">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center">
+                                <div class="mr-3">
+                                    <i class="fas fa-envelope-open fa-2x"></i>
+                                </div>
+                                <div>
+                                    <div class="text-xs font-weight-bold text-uppercase mb-1">未读消息</div>
+                                    <div class="h5 mb-0 font-weight-bold">{{ stats.unread }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card text-white bg-success">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center">
+                                <div class="mr-3">
+                                    <i class="fas fa-check fa-2x"></i>
+                                </div>
+                                <div>
+                                    <div class="text-xs font-weight-bold text-uppercase mb-1">已读消息</div>
+                                    <div class="h5 mb-0 font-weight-bold">{{ stats.read }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 筛选器 -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-filter"></i> 筛选器
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="GET" class="row">
+                        <div class="col-md-3">
+                            <label for="message_type">消息类型</label>
+                            <select name="message_type" id="message_type" class="form-control">
+                                <option value="">全部类型</option>
+                                <option value="print_success" {% if message_type == 'print_success' %}selected{% endif %}>打印成功</option>
+                                <option value="change_request_submitted" {% if message_type == 'change_request_submitted' %}selected{% endif %}>申请已提交</option>
+                                <option value="change_request_approved" {% if message_type == 'change_request_approved' %}selected{% endif %}>申请已批准</option>
+                                <option value="change_request_rejected" {% if message_type == 'change_request_rejected' %}selected{% endif %}>申请已拒绝</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="is_read">阅读状态</label>
+                            <select name="is_read" id="is_read" class="form-control">
+                                <option value="">全部状态</option>
+                                <option value="false" {% if is_read == 'false' %}selected{% endif %}>未读</option>
+                                <option value="true" {% if is_read == 'true' %}selected{% endif %}>已读</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="per_page">每页显示</label>
+                            <select name="per_page" id="per_page" class="form-control">
+                                <option value="10" {% if per_page == 10 %}selected{% endif %}>10条</option>
+                                <option value="20" {% if per_page == 20 %}selected{% endif %}>20条</option>
+                                <option value="50" {% if per_page == 50 %}selected{% endif %}>50条</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary mr-2">
+                                <i class="fas fa-search"></i> 筛选
+                            </button>
+                            <a href="{{ url_for('messages') }}" class="btn btn-secondary">
+                                <i class="fas fa-undo"></i> 重置
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 消息列表 -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list"></i> 消息列表
+                        {% if pagination.total > 0 %}
+                        <small class="text-muted">(共{{ pagination.total }}条)</small>
+                        {% endif %}
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if messages %}
+                        <div class="list-group list-group-flush">
+                            {% for message in messages %}
+                            <div class="list-group-item {% if not message.is_read %}list-group-item-warning message-clickable{% endif %}" 
+                                 id="message-{{ message.id }}"
+                                 {% if not message.is_read %}onclick="markAsReadByClick({{ message.id }}, event)" style="cursor: pointer;"{% endif %}>
+                                <div class="d-flex w-100 justify-content-between align-items-start">
+                                    <div class="flex-grow-1">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <!-- 消息类型图标 -->
+                                            {% if message.message_type == 'print_success' %}
+                                                <span class="badge badge-success mr-2">
+                                                    <i class="fas fa-print"></i> 打印成功
+                                                </span>
+                                            {% elif message.message_type == 'change_request_submitted' %}
+                                                <span class="badge badge-info mr-2">
+                                                    <i class="fas fa-paper-plane"></i> 申请提交
+                                                </span>
+                                            {% elif message.message_type == 'change_request_approved' %}
+                                                <span class="badge badge-success mr-2">
+                                                    <i class="fas fa-check-circle"></i> 申请批准
+                                                </span>
+                                            {% elif message.message_type == 'change_request_rejected' %}
+                                                <span class="badge badge-danger mr-2">
+                                                    <i class="fas fa-times-circle"></i> 申请拒绝
+                                                </span>
+                                            {% endif %}
+                                            
+                                            <!-- 已读/未读标识 -->
+                                            {% if not message.is_read %}
+                                                <span class="badge badge-warning mr-2">
+                                                    <i class="fas fa-circle"></i> 未读
+                                                </span>
+                                            {% endif %}
+                                            
+                                            <h6 class="mb-0">{{ message.title }}</h6>
+                                        </div>
+                                        
+                                        <div class="message-content">
+                                            <pre class="mb-0">{{ message.content }}</pre>
+                                        </div>
+                                        
+                                        <small class="text-muted">
+                                            <i class="fas fa-clock"></i> {{ message.created_at.strftime('%Y-%m-%d %H:%M:%S') }}
+                                            {% if message.is_read and message.read_at %}
+                                                | <i class="fas fa-eye"></i> 已读于 {{ message.read_at.strftime('%Y-%m-%d %H:%M:%S') }}
+                                            {% endif %}
+                                        </small>
+                                    </div>
+                                    
+                                    <div class="btn-group-vertical ml-3" onclick="event.stopPropagation();">
+                                        {% if not message.is_read %}
+                                        <button class="btn btn-sm btn-outline-primary" onclick="markAsRead({{ message.id }})" title="标记已读">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                        {% endif %}
+                                        <button class="btn btn-sm btn-outline-danger" onclick="deleteMessage({{ message.id }})" title="删除消息">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">暂无消息</h5>
+                            <p class="text-muted">当您有新的操作通知时，会在这里显示</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- 分页 -->
+            {% if pagination.pages > 1 %}
+            <nav aria-label="消息分页" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if pagination.has_prev %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('messages', page=pagination.prev_num, message_type=message_type, is_read=is_read, per_page=per_page) }}">
+                                <i class="fas fa-chevron-left"></i> 上一页
+                            </a>
+                        </li>
+                    {% endif %}
+                    
+                    {% for page_num in pagination.iter_pages() %}
+                        {% if page_num %}
+                            {% if page_num != pagination.page %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('messages', page=page_num, message_type=message_type, is_read=is_read, per_page=per_page) }}">{{ page_num }}</a>
+                                </li>
+                            {% else %}
+                                <li class="page-item active">
+                                    <span class="page-link">{{ page_num }}</span>
+                                </li>
+                            {% endif %}
+                        {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link">…</span>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if pagination.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('messages', page=pagination.next_num, message_type=message_type, is_read=is_read, per_page=per_page) }}">
+                                下一页 <i class="fas fa-chevron-right"></i>
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.message-content pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    font-family: inherit;
+    font-size: inherit;
+    color: inherit;
+}
+
+.list-group-item-warning {
+    background-color: #fff3cd;
+    border-color: #ffeaa7;
+}
+
+.btn-group-vertical .btn {
+    margin-bottom: 2px;
+}
+
+.message-clickable:hover {
+    background-color: #fff3cd !important;
+    border-color: #ffeaa7 !important;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transition: all 0.2s ease;
+}
+
+.message-clickable {
+    transition: all 0.2s ease;
+}
+</style>
+
+<script>
+function markAsRead(messageId) {
+    fetch(`/api/mark_message_read/${messageId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('操作失败：' + (data.error || '未知错误'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('操作失败，请稍后重试');
+    });
+}
+
+// 点击消息卡片标记为已读
+function markAsReadByClick(messageId, event) {
+    // 阻止事件冒泡，避免影响按钮点击
+    if (event) {
+        event.preventDefault();
+    }
+    
+    // 检查是否点击的是按钮区域
+    if (event && event.target.closest('.btn-group-vertical')) {
+        return; // 如果点击的是按钮，不执行标记已读
+    }
+    
+    fetch(`/api/mark_message_read/${messageId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // 更新UI而不刷新页面
+            const messageElement = document.getElementById(`message-${messageId}`);
+            if (messageElement) {
+                // 移除未读样式
+                messageElement.classList.remove('list-group-item-warning', 'message-clickable');
+                messageElement.style.cursor = 'default';
+                messageElement.removeAttribute('onclick');
+                
+                // 移除未读徽章
+                const unreadBadge = messageElement.querySelector('.badge-warning');
+                if (unreadBadge) {
+                    unreadBadge.remove();
+                }
+                
+                // 移除标记已读按钮
+                const markReadBtn = messageElement.querySelector('.btn-outline-primary');
+                if (markReadBtn) {
+                    markReadBtn.remove();
+                }
+                
+                // 更新时间显示
+                const timeElement = messageElement.querySelector('small.text-muted');
+                if (timeElement) {
+                    const now = new Date();
+                    const timeStr = now.getFullYear() + '-' + 
+                                  String(now.getMonth() + 1).padStart(2, '0') + '-' + 
+                                  String(now.getDate()).padStart(2, '0') + ' ' + 
+                                  String(now.getHours()).padStart(2, '0') + ':' + 
+                                  String(now.getMinutes()).padStart(2, '0') + ':' + 
+                                  String(now.getSeconds()).padStart(2, '0');
+                    timeElement.innerHTML = timeElement.innerHTML + 
+                                          ` | <i class="fas fa-eye"></i> 已读于 ${timeStr}`;
+                }
+                
+                // 更新未读消息数量
+                updateUnreadCount();
+            }
+        } else {
+            alert('操作失败：' + (data.error || '未知错误'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('操作失败，请稍后重试');
+    });
+}
+
+function markAllAsRead() {
+    if (confirm('确定要将所有未读消息标记为已读吗？')) {
+        fetch('/api/mark_all_messages_read', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('操作失败：' + (data.error || '未知错误'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('操作失败，请稍后重试');
+        });
+    }
+}
+
+function deleteMessage(messageId) {
+    if (confirm('确定要删除这条消息吗？删除后无法恢复。')) {
+        fetch(`/api/delete_message/${messageId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById(`message-${messageId}`).remove();
+                // 如果页面没有消息了，刷新页面
+                if (document.querySelectorAll('.list-group-item').length === 0) {
+                    location.reload();
+                }
+            } else {
+                alert('删除失败：' + (data.error || '未知错误'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('删除失败，请稍后重试');
+        });
+    }
+}
+
+// 页面加载完成后更新未读消息数量
+document.addEventListener('DOMContentLoaded', function() {
+    updateUnreadCount();
+});
+
+function updateUnreadCount() {
+    fetch('/api/get_unread_count')
+    .then(response => response.json())
+    .then(data => {
+        const badge = document.querySelector('.navbar .badge');
+        if (badge) {
+            if (data.count > 0) {
+                badge.textContent = data.count;
+                badge.style.display = 'inline';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Error updating unread count:', error);
+    });
+}
+</script>
+{% endblock %} 

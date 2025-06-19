@@ -1,6 +1,33 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""
+南昌新东方凭证打印系统
+Version: 2.1.0
+Release Date: 2025-06-19
+
+更新日志:
+v2.1.0 (2025-06-19)
+- 新增消息盒子系统，支持打印成功、变更申请等各种消息通知
+- 增强管理员审批功能，支持备注信息
+- 优化用户信息变更流程，增加详细的状态反馈
+- 改进操作员显示逻辑，智能判断显示用户姓名或用户名
+- 完善用户信息管理，支持姓名和邮箱字段的搜索排序
+- 增加消息类型字段长度至100字符，支持更长的消息类型名称
+
+v2.0.0 (2025-06-18)
+- 新增用户信息变更审批系统
+- 添加姓名和邮箱字段支持
+- 实现分级权限管理（管理员直接修改，普通用户需审批）
+- 完善用户管理界面，支持搜索和排序功能
+
+v1.0.0 (2025-06-01)
+- 基础凭证打印功能
+- 用户认证和权限管理
+- 打印记录管理
+- Cookies配置管理
+"""
+
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session, make_response
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
@@ -88,9 +115,85 @@ class CookiesConfig(db.Model):
     last_test_time = db.Column(db.DateTime, nullable=True)  # 最后测试时间
     test_status = db.Column(db.String(20), default='未测试')  # 测试状态：成功、失败、未测试
 
+class UserChangeRequest(db.Model):
+    """用户信息变更请求模型"""
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    request_type = db.Column(db.String(20), nullable=False)  # 'profile' 个人信息变更
+    
+    # 变更字段
+    new_username = db.Column(db.String(80), nullable=True)  # 新用户名
+    new_name = db.Column(db.String(100), nullable=True)     # 新姓名
+    new_email = db.Column(db.String(120), nullable=True)    # 新邮箱
+    
+    # 原始字段（用于对比）
+    old_username = db.Column(db.String(80), nullable=True)  # 原用户名
+    old_name = db.Column(db.String(100), nullable=True)     # 原姓名
+    old_email = db.Column(db.String(120), nullable=True)    # 原邮箱
+    
+    # 请求状态
+    status = db.Column(db.String(20), default='pending', nullable=False)  # pending, approved, rejected
+    reason = db.Column(db.Text, nullable=True)  # 申请理由
+    admin_comment = db.Column(db.Text, nullable=True)  # 管理员备注
+    
+    # 时间字段
+    created_at = db.Column(db.DateTime, default=get_beijing_datetime)
+    processed_at = db.Column(db.DateTime, nullable=True)  # 处理时间
+    processed_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)  # 处理人
+    
+    # 关联关系
+    user = db.relationship('User', foreign_keys=[user_id], backref='change_requests')
+    processor = db.relationship('User', foreign_keys=[processed_by])
+
+class Message(db.Model):
+    """用户消息模型"""
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    
+    # 消息类型
+    message_type = db.Column(db.String(100), nullable=False)  # 'print_success', 'change_request_submitted', 'change_request_approved', 'change_request_rejected'
+    
+    # 消息内容
+    title = db.Column(db.String(200), nullable=False)  # 消息标题
+    content = db.Column(db.Text, nullable=False)  # 消息内容
+    
+    # 关联的对象ID（可选）
+    related_id = db.Column(db.Integer, nullable=True)  # 关联的对象ID，如变更请求ID、打印记录ID等
+    related_type = db.Column(db.String(50), nullable=True)  # 关联对象类型：'change_request', 'print_log'
+    
+    # 消息状态
+    is_read = db.Column(db.Boolean, default=False, nullable=False)  # 是否已读
+    
+    # 时间字段
+    created_at = db.Column(db.DateTime, default=get_beijing_datetime)
+    read_at = db.Column(db.DateTime, nullable=True)  # 阅读时间
+    
+    # 关联关系
+    user = db.relationship('User', backref='messages')
+
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
+
+# 消息创建辅助函数
+def create_message(user_id, message_type, title, content, related_id=None, related_type=None):
+    """创建用户消息"""
+    try:
+        message = Message(
+            user_id=user_id,
+            message_type=message_type,
+            title=title,
+            content=content,
+            related_id=related_id,
+            related_type=related_type
+        )
+        db.session.add(message)
+        db.session.commit()
+        return message  # 返回消息对象而不是True
+    except Exception as e:
+        print(f"创建消息失败: {e}")
+        db.session.rollback()
+        return None  # 返回None而不是False
 
 # Cookies超时检查
 @app.before_request
@@ -540,6 +643,170 @@ def users():
                          current_per_page=per_page,
                          stats=stats)
 
+@app.route('/change_requests')
+@login_required
+@first_login_required
+@admin_required
+def change_requests():
+    """管理员查看变更请求"""
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 20, type=int)
+    status_filter = request.args.get('status', 'all').strip()
+    
+    # 构建查询
+    query = UserChangeRequest.query
+    
+    # 状态筛选
+    if status_filter and status_filter != 'all':
+        query = query.filter(UserChangeRequest.status == status_filter)
+    
+    # 按创建时间倒序
+    query = query.order_by(UserChangeRequest.created_at.desc())
+    
+    # 分页
+    requests_page = query.paginate(page=page, per_page=per_page, error_out=False)
+    
+    # 获取所有用户信息用于显示
+    all_users = User.query.filter_by(is_deleted=False).all()
+    user_dict = {user.id: user for user in all_users}
+    
+    # 统计信息
+    stats = {
+        'total': UserChangeRequest.query.count(),
+        'pending': UserChangeRequest.query.filter_by(status='pending').count(),
+        'approved': UserChangeRequest.query.filter_by(status='approved').count(),
+        'rejected': UserChangeRequest.query.filter_by(status='rejected').count(),
+    }
+    
+    return render_template('change_requests.html', 
+                         requests=requests_page,
+                         user_dict=user_dict,
+                         status_filter=status_filter,
+                         current_per_page=per_page,
+                         stats=stats)
+
+@app.route('/process_change_request/<int:request_id>/<action>', methods=['GET', 'POST'])
+@login_required
+@first_login_required
+@admin_required
+def process_change_request(request_id, action):
+    """处理变更请求"""
+    if action not in ['approve', 'reject']:
+        flash('无效的操作', 'error')
+        return redirect(url_for('change_requests'))
+    
+    change_request = UserChangeRequest.query.get_or_404(request_id)
+    
+    if change_request.status != 'pending':
+        flash('该请求已被处理', 'warning')
+        return redirect(url_for('change_requests'))
+    
+    # 从POST或GET获取管理员备注
+    admin_comment = ''
+    if request.method == 'POST':
+        admin_comment = request.form.get('admin_comment', '').strip()
+    else:
+        admin_comment = request.args.get('comment', '').strip()
+    
+    if action == 'approve':
+        # 批准变更
+        user = User.query.get(change_request.user_id)
+        if not user:
+            flash('用户不存在', 'error')
+            return redirect(url_for('change_requests'))
+        
+        try:
+            # 应用变更
+            if change_request.new_username:
+                # 再次检查用户名是否已存在
+                existing_user = User.query.filter_by(username=change_request.new_username, is_deleted=False).first()
+                if existing_user and existing_user.id != user.id:
+                    flash('用户名已被其他用户使用，无法批准', 'error')
+                    return redirect(url_for('change_requests'))
+                user.username = change_request.new_username
+            
+            if change_request.new_name is not None:
+                user.name = change_request.new_name
+            
+            if change_request.new_email is not None:
+                user.email = change_request.new_email
+            
+            # 更新请求状态
+            change_request.status = 'approved'
+            change_request.processed_at = get_beijing_datetime()
+            change_request.processed_by = current_user.id
+            change_request.admin_comment = admin_comment
+            
+            # 创建成功消息
+            changes = []
+            if change_request.new_username and change_request.new_username != change_request.old_username:
+                changes.append(f"用户名: {change_request.old_username} → {change_request.new_username}")
+            if change_request.new_name != change_request.old_name:
+                old_name = change_request.old_name or "未设置"
+                new_name = change_request.new_name or "未设置"
+                changes.append(f"姓名: {old_name} → {new_name}")
+            if change_request.new_email != change_request.old_email:
+                old_email = change_request.old_email or "未设置"
+                new_email = change_request.new_email or "未设置"
+                changes.append(f"邮箱: {old_email} → {new_email}")
+            
+            message_content = f"您的信息变更申请已被批准并生效。\n\n变更内容：\n" + "\n".join(changes)
+            if admin_comment:
+                message_content += f"\n\n管理员备注：{admin_comment}"
+            
+            create_message(
+                user_id=change_request.user_id,
+                message_type='change_request_approved',
+                title='信息变更申请已批准',
+                content=message_content,
+                related_id=change_request.id,
+                related_type='change_request'
+            )
+            
+            db.session.commit()
+            flash(f'已批准用户 {user.username} 的信息变更申请', 'success')
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'处理失败：{str(e)}', 'error')
+    
+    else:  # reject
+        change_request.status = 'rejected'
+        change_request.processed_at = get_beijing_datetime()
+        change_request.processed_by = current_user.id
+        change_request.admin_comment = admin_comment
+        
+        # 创建拒绝消息
+        changes = []
+        if change_request.new_username and change_request.new_username != change_request.old_username:
+            changes.append(f"用户名: {change_request.old_username} → {change_request.new_username}")
+        if change_request.new_name != change_request.old_name:
+            old_name = change_request.old_name or "未设置"
+            new_name = change_request.new_name or "未设置"
+            changes.append(f"姓名: {old_name} → {new_name}")
+        if change_request.new_email != change_request.old_email:
+            old_email = change_request.old_email or "未设置"
+            new_email = change_request.new_email or "未设置"
+            changes.append(f"邮箱: {old_email} → {new_email}")
+        
+        message_content = f"您的信息变更申请已被拒绝。\n\n申请内容：\n" + "\n".join(changes)
+        if admin_comment:
+            message_content += f"\n\n拒绝原因：{admin_comment}"
+        
+        create_message(
+            user_id=change_request.user_id,
+            message_type='change_request_rejected',
+            title='信息变更申请已拒绝',
+            content=message_content,
+            related_id=change_request.id,
+            related_type='change_request'
+        )
+        
+        db.session.commit()
+        flash('已拒绝该变更申请', 'info')
+    
+    return redirect(url_for('change_requests'))
+
 @app.route('/create_user', methods=['GET', 'POST'])
 @login_required
 @admin_required
@@ -799,6 +1066,22 @@ def generate_print():
                 detail_info=detail_info
             )
             db.session.add(print_log)
+            db.session.flush()  # 获取print_log.id
+            
+            # 创建打印成功消息
+            message_content = f'凭证打印成功！\n\n学员信息：\n学员编码：{student_data.get("sStudentCode", "")}\n学员姓名：{student_data.get("sStudentName", "")}\n\n凭证信息：\n凭证类型：{biz_name}'
+            if detail_info:
+                message_content += f'\n详细信息：{detail_info}'
+            
+            create_message(
+                user_id=current_user.id,
+                message_type='print_success',
+                title=f'{biz_name}打印成功',
+                content=message_content,
+                related_id=print_log.id,
+                related_type='print_log'
+            )
+            
             db.session.commit()
             
             # 清理临时文件
@@ -1060,6 +1343,244 @@ def change_password():
         return redirect(url_for('dashboard'))
     
     return render_template('change_password.html')
+
+@app.route('/edit_profile', methods=['GET', 'POST'])
+@login_required
+@first_login_required
+def edit_profile():
+    """个人资料编辑"""
+    if request.method == 'POST':
+        new_username = request.form.get('username', '').strip()
+        new_name = request.form.get('name', '').strip()
+        new_email = request.form.get('email', '').strip()
+        reason = request.form.get('reason', '').strip()
+        
+        # 检查是否有变更
+        changes = {}
+        if new_username != current_user.username:
+            # 检查用户名是否已存在
+            existing_user = User.query.filter_by(username=new_username, is_deleted=False).first()
+            if existing_user and existing_user.id != current_user.id:
+                flash('用户名已存在，请选择其他用户名', 'error')
+                return render_template('edit_profile.html')
+            changes['username'] = new_username
+            
+        if new_name != (current_user.name or ''):
+            changes['name'] = new_name
+            
+        if new_email != (current_user.email or ''):
+            changes['email'] = new_email
+        
+        if not changes:
+            flash('没有检测到任何变更', 'info')
+            return render_template('edit_profile.html')
+        
+        if not reason:
+            flash('请填写变更理由', 'error')
+            return render_template('edit_profile.html')
+        
+        # 管理员可以直接修改姓名和邮箱
+        if current_user.role == 'admin':
+            if 'name' in changes:
+                current_user.name = changes['name']
+            if 'email' in changes:
+                current_user.email = changes['email']
+            
+            # 如果管理员要修改用户名，仍需要审批
+            if 'username' in changes:
+                change_request = UserChangeRequest(
+                    user_id=current_user.id,
+                    request_type='profile',
+                    new_username=changes['username'],
+                    old_username=current_user.username,
+                    reason=reason,
+                    status='pending'
+                )
+                db.session.add(change_request)
+                db.session.flush()  # 获取change_request.id
+                
+                # 创建提交申请消息
+                create_message(
+                    user_id=current_user.id,
+                    message_type='change_request_submitted',
+                    title='信息变更申请已提交',
+                    content=f'您的用户名变更申请已提交，等待其他管理员审批。\n\n变更内容：\n用户名: {current_user.username} → {changes["username"]}\n\n申请理由：{reason}',
+                    related_id=change_request.id,
+                    related_type='change_request'
+                )
+                
+                flash('用户名变更申请已提交，等待其他管理员审批', 'info')
+            else:
+                flash('个人信息修改成功', 'success')
+            
+            db.session.commit()
+        else:
+            # 普通用户需要管理员审批
+            change_request = UserChangeRequest(
+                user_id=current_user.id,
+                request_type='profile',
+                new_username=changes.get('username'),
+                new_name=changes.get('name'),
+                new_email=changes.get('email'),
+                old_username=current_user.username,
+                old_name=current_user.name,
+                old_email=current_user.email,
+                reason=reason,
+                status='pending'
+            )
+            db.session.add(change_request)
+            db.session.flush()  # 获取change_request.id
+            
+            # 创建提交申请消息
+            change_items = []
+            if 'username' in changes:
+                change_items.append(f"用户名: {current_user.username} → {changes['username']}")
+            if 'name' in changes:
+                old_name = current_user.name or "未设置"
+                change_items.append(f"姓名: {old_name} → {changes['name']}")
+            if 'email' in changes:
+                old_email = current_user.email or "未设置"
+                change_items.append(f"邮箱: {old_email} → {changes['email']}")
+            
+            message_content = f'您的信息变更申请已提交，等待管理员审批。\n\n变更内容：\n' + '\n'.join(change_items) + f'\n\n申请理由：{reason}'
+            
+            create_message(
+                user_id=current_user.id,
+                message_type='change_request_submitted',
+                title='信息变更申请已提交',
+                content=message_content,
+                related_id=change_request.id,
+                related_type='change_request'
+            )
+            
+            db.session.commit()
+            flash('个人信息变更申请已提交，等待管理员审批', 'info')
+        
+        return redirect(url_for('edit_profile'))
+    
+    # 获取用户的待处理申请
+    pending_requests = UserChangeRequest.query.filter_by(
+        user_id=current_user.id, 
+        status='pending'
+    ).order_by(UserChangeRequest.created_at.desc()).all()
+    
+    return render_template('edit_profile.html', pending_requests=pending_requests)
+
+@app.route('/messages')
+@login_required
+@first_login_required
+def messages():
+    """消息盒子页面"""
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 20, type=int)
+    
+    # 限制每页记录数量范围
+    if per_page not in [10, 20, 50]:
+        per_page = 20
+    
+    # 搜索和筛选参数
+    message_type = request.args.get('message_type', '').strip()
+    is_read = request.args.get('is_read', '').strip()
+    
+    # 构建查询
+    query = Message.query.filter_by(user_id=current_user.id)
+    
+    # 消息类型筛选
+    if message_type:
+        query = query.filter(Message.message_type == message_type)
+    
+    # 已读状态筛选
+    if is_read == 'true':
+        query = query.filter(Message.is_read == True)
+    elif is_read == 'false':
+        query = query.filter(Message.is_read == False)
+    
+    # 按创建时间降序排列
+    query = query.order_by(Message.created_at.desc())
+    
+    # 分页
+    messages_pagination = query.paginate(
+        page=page, per_page=per_page, error_out=False
+    )
+    
+    # 获取统计信息
+    total_messages = Message.query.filter_by(user_id=current_user.id).count()
+    unread_messages = Message.query.filter_by(user_id=current_user.id, is_read=False).count()
+    
+    stats = {
+        'total': total_messages,
+        'unread': unread_messages,
+        'read': total_messages - unread_messages
+    }
+    
+    return render_template('messages.html', 
+                         messages=messages_pagination.items,
+                         pagination=messages_pagination,
+                         stats=stats,
+                         message_type=message_type,
+                         is_read=is_read,
+                         per_page=per_page)
+
+@app.route('/api/mark_message_read/<int:message_id>', methods=['POST'])
+@login_required
+def mark_message_read(message_id):
+    """标记消息为已读"""
+    message = Message.query.get_or_404(message_id)
+    
+    # 检查权限
+    if message.user_id != current_user.id:
+        return jsonify({'error': '无权限操作此消息'}), 403
+    
+    if not message.is_read:
+        message.is_read = True
+        message.read_at = get_beijing_datetime()
+        db.session.commit()
+    
+    return jsonify({'success': True})
+
+@app.route('/api/mark_all_messages_read', methods=['POST'])
+@login_required
+def mark_all_messages_read():
+    """标记所有消息为已读"""
+    Message.query.filter_by(user_id=current_user.id, is_read=False).update({
+        'is_read': True,
+        'read_at': get_beijing_datetime()
+    })
+    db.session.commit()
+    
+    return jsonify({'success': True})
+
+@app.route('/api/delete_message/<int:message_id>', methods=['DELETE'])
+@login_required
+def delete_message(message_id):
+    """删除消息"""
+    message = Message.query.get_or_404(message_id)
+    
+    # 检查权限
+    if message.user_id != current_user.id:
+        return jsonify({'error': '无权限操作此消息'}), 403
+    
+    db.session.delete(message)
+    db.session.commit()
+    
+    return jsonify({'success': True})
+
+@app.route('/api/get_unread_count')
+@login_required
+def get_unread_count():
+    """获取未读消息数量"""
+    count = Message.query.filter_by(user_id=current_user.id, is_read=False).count()
+    return jsonify({'count': count})
+
+@app.route('/api/version')
+def get_version():
+    """获取系统版本信息"""
+    return jsonify({
+        'name': '南昌新东方凭证打印系统',
+        'version': '2.1.0',
+        'release_date': '2025-06-19',
+        'description': '支持多种凭证打印、用户管理、消息通知的综合管理系统'
+    })
 
 @app.route('/tech_support')
 @login_required
