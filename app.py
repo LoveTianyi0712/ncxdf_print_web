@@ -49,6 +49,7 @@ class User(UserMixin, db.Model):
     password_hash = db.Column(db.String(120), nullable=False)
     role = db.Column(db.String(20), nullable=False, default='user')  # 'admin' or 'user'
     is_enabled = db.Column(db.Boolean, default=True)
+    is_first_login = db.Column(db.Boolean, default=True)  # 是否是首次登录
     created_at = db.Column(db.DateTime, default=get_beijing_datetime)
     created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     
@@ -91,6 +92,16 @@ def admin_required(f):
     decorated_function.__name__ = f.__name__
     return decorated_function
 
+# 首次登录检查装饰器
+def first_login_required(f):
+    def decorated_function(*args, **kwargs):
+        if current_user.is_authenticated and current_user.is_first_login:
+            flash('请先修改您的密码后再使用系统功能', 'warning')
+            return redirect(url_for('first_login_change_password'))
+        return f(*args, **kwargs)
+    decorated_function.__name__ = f.__name__
+    return decorated_function
+
 # 路由
 @app.route('/')
 def index():
@@ -111,6 +122,12 @@ def login():
                 return render_template('login.html')
             
             login_user(user)
+            
+            # 检查是否是首次登录
+            if user.is_first_login:
+                flash('这是您的首次登录，请立即修改您的密码以确保账户安全！', 'warning')
+                return redirect(url_for('first_login_change_password'))
+            
             flash(f'欢迎回来，{user.username}！', 'success')
             return redirect(url_for('dashboard'))
         else:
@@ -127,6 +144,7 @@ def logout():
 
 @app.route('/dashboard')
 @login_required
+@first_login_required
 def dashboard():
     # 获取用户的打印记录统计
     user_print_count = PrintLog.query.filter_by(user_id=current_user.id).count()
@@ -145,6 +163,7 @@ def dashboard():
 
 @app.route('/users')
 @login_required
+@first_login_required
 @admin_required
 def users():
     users = User.query.all()
@@ -223,6 +242,7 @@ def toggle_user(user_id):
 
 @app.route('/print')
 @login_required
+@first_login_required
 def print_page():
     return render_template('print.html', template_mapping=TEMPLATE_MAPPING)
 
@@ -432,8 +452,50 @@ def print_logs():
     
     return render_template('print_logs.html', logs=logs)
 
+@app.route('/first_login_change_password', methods=['GET', 'POST'])
+@login_required
+def first_login_change_password():
+    # 如果不是首次登录，重定向到普通密码修改页面
+    if not current_user.is_first_login:
+        return redirect(url_for('change_password'))
+    
+    if request.method == 'POST':
+        current_password = request.form['current_password']
+        new_password = request.form['new_password']
+        confirm_password = request.form['confirm_password']
+        
+        # 验证当前密码
+        if not check_password_hash(current_user.password_hash, current_password):
+            flash('当前密码错误', 'error') 
+            return render_template('first_login_change_password.html')
+        
+        # 验证新密码
+        if len(new_password) < 6:
+            flash('新密码长度至少6位', 'error')
+            return render_template('first_login_change_password.html')
+        
+        if new_password != confirm_password:
+            flash('两次输入的新密码不一致', 'error')
+            return render_template('first_login_change_password.html')
+        
+        # 检查新密码是否与旧密码相同
+        if check_password_hash(current_user.password_hash, new_password):
+            flash('新密码不能与当前密码相同', 'error')
+            return render_template('first_login_change_password.html')
+        
+        # 更新密码并标记非首次登录
+        current_user.password_hash = generate_password_hash(new_password)
+        current_user.is_first_login = False
+        db.session.commit()
+        
+        flash('密码修改成功，欢迎使用系统！', 'success')
+        return redirect(url_for('dashboard'))
+    
+    return render_template('first_login_change_password.html')
+
 @app.route('/change_password', methods=['GET', 'POST'])
 @login_required
+@first_login_required
 def change_password():
     if request.method == 'POST':
         current_password = request.form['current_password']
@@ -762,7 +824,8 @@ def create_admin_user():
         admin = User(
             username='admin',
             password_hash=generate_password_hash('admin123'),
-            role='admin'
+            role='admin',
+            is_first_login=False  # 管理员账户不需要强制修改密码
         )
         db.session.add(admin)
         db.session.commit()

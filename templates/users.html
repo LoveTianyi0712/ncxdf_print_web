@@ -21,6 +21,26 @@
         </h5>
     </div>
     <div class="card-body">
+        <!-- 激活状态说明 -->
+        <div class="alert alert-info">
+            <h6 class="alert-heading">
+                <i class="fas fa-info-circle me-2"></i>激活状态说明
+            </h6>
+            <div class="row">
+                <div class="col-md-6">
+                    <small>
+                        <span class="badge bg-warning me-2"><i class="fas fa-exclamation-triangle me-1"></i>待激活</span>
+                        用户尚未完成首次登录密码修改
+                    </small>
+                </div>
+                <div class="col-md-6">
+                    <small>
+                        <span class="badge bg-success me-2"><i class="fas fa-check-circle me-1"></i>已激活</span>
+                        用户已完成首次登录密码修改，可正常使用系统
+                    </small>
+                </div>
+            </div>
+        </div>
         <div class="table-responsive">
             <table class="table table-hover">
                 <thead>
@@ -29,6 +49,7 @@
                         <th>用户名</th>
                         <th>角色</th>
                         <th>状态</th>
+                        <th>激活状态</th>
                         <th>创建时间</th>
                         <th>创建者</th>
                         <th>操作</th>
@@ -59,6 +80,21 @@
                             {% else %}
                             <span class="badge bg-danger">禁用</span>
                             {% endif %}
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                {% if user.is_first_login %}
+                                    <span class="badge bg-warning me-2">
+                                        <i class="fas fa-exclamation-triangle me-1"></i>待激活
+                                    </span>
+                                    <small class="text-muted">首次登录</small>
+                                {% else %}
+                                    <span class="badge bg-success me-2">
+                                        <i class="fas fa-check-circle me-1"></i>已激活
+                                    </span>
+                                    <small class="text-muted">已修改密码</small>
+                                {% endif %}
+                            </div>
                         </td>
                         <td>
                             <small>{{ user.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</small>
@@ -108,7 +144,7 @@
 
 <!-- 统计信息 -->
 <div class="row mt-4">
-    <div class="col-md-3">
+    <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
         <div class="card text-center">
             <div class="card-body">
                 <h5 class="card-title text-primary">{{ users|length }}</h5>
@@ -116,15 +152,31 @@
             </div>
         </div>
     </div>
-    <div class="col-md-3">
+    <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
         <div class="card text-center">
             <div class="card-body">
                 <h5 class="card-title text-success">{{ users|selectattr('is_enabled')|list|length }}</h5>
-                <p class="card-text">活跃用户</p>
+                <p class="card-text">启用用户</p>
             </div>
         </div>
     </div>
-    <div class="col-md-3">
+    <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title text-success">{{ users|rejectattr('is_first_login')|list|length }}</h5>
+                <p class="card-text">已激活用户</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title text-warning">{{ users|selectattr('is_first_login')|list|length }}</h5>
+                <p class="card-text">待激活用户</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
         <div class="card text-center">
             <div class="card-body">
                 <h5 class="card-title text-warning">{{ users|selectattr('role', 'equalto', 'admin')|list|length }}</h5>
@@ -132,7 +184,7 @@
             </div>
         </div>
     </div>
-    <div class="col-md-3">
+    <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
         <div class="card text-center">
             <div class="card-body">
                 <h5 class="card-title text-info">{{ users|selectattr('role', 'equalto', 'user')|list|length }}</h5>
