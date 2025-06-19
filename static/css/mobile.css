@@ -1,0 +1,350 @@
+/* 移动端专用样式 */
+
+/* 基础响应式设置 */
+@media (max-width: 768px) {
+    /* 隐藏侧边栏，改为折叠菜单 */
+    .sidebar {
+        position: fixed;
+        top: 56px;
+        left: -250px;
+        width: 250px;
+        height: calc(100vh - 56px);
+        background-color: #f8f9fa;
+        z-index: 1000;
+        transition: left 0.3s ease;
+        box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+        overflow-y: auto;
+    }
+    
+    .sidebar.show {
+        left: 0;
+    }
+    
+    /* 主内容区域调整 */
+    .content {
+        padding: 15px;
+        margin-left: 0;
+        width: 100%;
+    }
+    
+    /* 导航栏调整 */
+    .navbar-brand {
+        font-size: 1rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 200px;
+    }
+    
+    /* 添加汉堡菜单按钮 */
+    .mobile-menu-toggle {
+        display: block;
+        background: none;
+        border: none;
+        color: white;
+        font-size: 1.2rem;
+        padding: 0.5rem;
+        margin-right: 1rem;
+    }
+    
+    /* 覆盖层 */
+    .mobile-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0,0,0,0.5);
+        z-index: 999;
+        display: none;
+    }
+    
+    .mobile-overlay.show {
+        display: block;
+    }
+    
+    /* 卡片优化 */
+    .card {
+        margin-bottom: 1rem;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    /* 按钮优化 */
+    .btn {
+        padding: 12px 20px;
+        font-size: 1rem;
+        border-radius: 8px;
+        min-height: 48px; /* 触摸友好的最小高度 */
+    }
+    
+    .btn-lg {
+        padding: 15px 25px;
+        font-size: 1.1rem;
+        min-height: 54px;
+    }
+    
+    /* 表单优化 */
+    .form-control {
+        padding: 12px 15px;
+        font-size: 1rem;
+        border-radius: 8px;
+        min-height: 48px;
+    }
+    
+    .form-select {
+        padding: 12px 15px;
+        font-size: 1rem;
+        min-height: 48px;
+    }
+    
+    /* 输入组优化 */
+    .input-group .btn {
+        padding: 12px 20px;
+        min-height: 48px;
+    }
+    
+    /* 打印预览优化 */
+    .print-preview {
+        max-width: 100%;
+        overflow-x: auto;
+        border-radius: 10px;
+    }
+    
+    .print-preview img {
+        max-width: 100%;
+        height: auto;
+        border-radius: 8px;
+    }
+    
+    /* 统计卡片调整 */
+    .stats-card {
+        margin-bottom: 1rem;
+    }
+    
+    .stats-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .stats-card h2 {
+        font-size: 1.8rem;
+    }
+    
+    /* 表格优化 */
+    .table-responsive {
+        border-radius: 8px;
+    }
+    
+    .table td, .table th {
+        padding: 1rem 0.75rem;
+        vertical-align: middle;
+    }
+    
+    /* 下拉菜单优化 */
+    .dropdown-menu {
+        font-size: 1rem;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    
+    .dropdown-item {
+        padding: 0.75rem 1rem;
+    }
+    
+    /* 警告框优化 */
+    .alert {
+        border-radius: 8px;
+        padding: 1rem;
+    }
+    
+    /* 进度条优化 */
+    .spinner-border {
+        width: 3rem;
+        height: 3rem;
+    }
+}
+
+/* 平板端适配 (768px - 1024px) */
+@media (min-width: 768px) and (max-width: 1024px) {
+    .sidebar {
+        width: 200px;
+        padding: 15px 10px;
+    }
+    
+    .content {
+        padding: 20px 15px;
+    }
+    
+    .sidebar .nav-link {
+        padding: 12px 15px;
+        font-size: 0.95rem;
+    }
+    
+    .sidebar .nav-link i {
+        margin-right: 8px;
+        width: 18px;
+    }
+    
+    /* 卡片网格优化 */
+    .row .col-md-3 {
+        margin-bottom: 1rem;
+    }
+    
+    .btn-lg {
+        padding: 12px 20px;
+    }
+}
+
+/* 触摸设备优化 */
+@media (hover: none) and (pointer: coarse) {
+    /* 移除hover效果，改为更明显的按压效果 */
+    .btn:hover {
+        transform: none;
+    }
+    
+    .btn:active {
+        transform: scale(0.98);
+        transition: transform 0.1s;
+    }
+    
+    .nav-link:hover {
+        background-color: transparent;
+    }
+    
+    .nav-link:active {
+        background-color: #287042;
+        color: white;
+    }
+    
+    /* 增大点击区域 */
+    .nav-link {
+        padding: 15px;
+        margin-bottom: 5px;
+    }
+    
+    .dropdown-toggle::after {
+        margin-left: 1rem;
+    }
+}
+
+/* 极小屏幕设备 (小于576px) */
+@media (max-width: 576px) {
+    .container-fluid {
+        padding: 0;
+    }
+    
+    .content {
+        padding: 10px;
+    }
+    
+    .card {
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+    }
+    
+    .navbar-brand {
+        font-size: 0.9rem;
+        max-width: 150px;
+    }
+    
+    .user-avatar {
+        width: 28px;
+        height: 28px;
+        font-size: 0.8rem;
+    }
+    
+    .btn {
+        font-size: 0.9rem;
+        padding: 10px 15px;
+    }
+    
+    .form-control {
+        font-size: 0.9rem;
+    }
+    
+    /* 堆叠布局 */
+    .row > div {
+        margin-bottom: 1rem;
+    }
+    
+    /* 简化统计卡片 */
+    .stats-card .fa-2x {
+        font-size: 1.5rem;
+    }
+    
+    .stats-card h2 {
+        font-size: 1.5rem;
+    }
+    
+    /* 优化打印预览区域 */
+    .print-preview {
+        padding: 0.5rem;
+    }
+    
+    /* 简化表格 */
+    .table-responsive table {
+        font-size: 0.85rem;
+    }
+    
+    .table td, .table th {
+        padding: 0.5rem;
+    }
+}
+
+/* 暗色模式支持 */
+@media (prefers-color-scheme: dark) {
+    .sidebar {
+        background-color: #2d3748;
+        color: #e2e8f0;
+    }
+    
+    .sidebar .nav-link {
+        color: #e2e8f0;
+    }
+    
+    .sidebar .nav-link:hover,
+    .sidebar .nav-link.active {
+        background-color: #287042;
+        color: white;
+    }
+    
+    .card {
+        background-color: #2d3748;
+        border-color: #4a5568;
+        color: #e2e8f0;
+    }
+    
+    .form-control {
+        background-color: #2d3748;
+        border-color: #4a5568;
+        color: #e2e8f0;
+    }
+    
+    .form-control:focus {
+        background-color: #2d3748;
+        border-color: #287042;
+        color: #e2e8f0;
+    }
+}
+
+/* 横屏模式优化 */
+@media (orientation: landscape) and (max-height: 500px) {
+    .sidebar {
+        height: calc(100vh - 56px);
+        overflow-y: auto;
+    }
+    
+    .content {
+        height: calc(100vh - 56px);
+        overflow-y: auto;
+    }
+    
+    .stats-card {
+        margin-bottom: 0.5rem;
+    }
+    
+    .card {
+        margin-bottom: 0.5rem;
+    }
+} 

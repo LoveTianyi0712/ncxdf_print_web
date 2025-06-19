@@ -1,0 +1,635 @@
+{% extends "base.html" %}
+
+{% block title %}打印凭证 - 南昌新东方凭证打印系统{% endblock %}
+
+{% block content %}
+<!-- 移动端页面标题 -->
+<div class="d-flex justify-content-between align-items-center pt-2 pb-2 mb-3 border-bottom">
+    <h4 class="mb-0">打印凭证</h4>
+    <div class="d-none d-md-block">
+        <small class="text-muted">请输入学员编码查询</small>
+    </div>
+</div>
+
+<!-- 移动端布局 -->
+<div class="mobile-print-container">
+    <!-- 学员查询卡片 -->
+    <div class="card mb-3">
+        <div class="card-header bg-primary text-white">
+            <h6 class="card-title mb-0">
+                <i class="fas fa-search me-2"></i>学员查询
+            </h6>
+        </div>
+        <div class="card-body">
+            <form id="searchForm">
+                <div class="input-group">
+                    <input type="text" class="form-control form-control-lg" id="studentCode" 
+                           placeholder="输入学员编码" required autocomplete="off">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+                <div class="form-text mt-2">
+                    <small>示例：NC6080119755 或 NC6080119756</small>
+                </div>
+            </form>
+            
+            <!-- 学员信息显示 -->
+            <div id="studentInfo" class="mt-3" style="display: none;">
+                <div class="alert alert-success border-0 rounded-3">
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="fas fa-user-check text-success me-2"></i>
+                        <h6 class="mb-0">学员信息</h6>
+                    </div>
+                    <div class="row">
+                        <div class="col-6">
+                            <small class="text-muted">姓名</small>
+                            <div class="fw-bold" id="studentName"></div>
+                        </div>
+                        <div class="col-6">
+                            <small class="text-muted">性别</small>
+                            <div id="studentGender"></div>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <small class="text-muted">学员编码</small>
+                        <div class="font-monospace" id="studentCodeDisplay"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 错误信息显示 -->
+            <div id="errorMessage" class="mt-3" style="display: none;">
+                <div class="alert alert-danger border-0 rounded-3">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-exclamation-circle text-danger me-2"></i>
+                        <span id="errorText"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 可打印凭证列表 -->
+    <div class="card mb-3" id="reportsCard" style="display: none;">
+        <div class="card-header bg-info text-white">
+            <h6 class="card-title mb-0">
+                <i class="fas fa-list me-2"></i>可打印凭证
+            </h6>
+        </div>
+        <div class="card-body p-2">
+            <div id="reportsList">
+                <!-- 动态生成的凭证列表 -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- 打印预览 -->
+    <div class="card" id="previewCard" style="display: none;">
+        <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+            <h6 class="card-title mb-0">
+                <i class="fas fa-eye me-2"></i>打印预览
+            </h6>
+            <div class="btn-group" role="group">
+                <button id="generateBtn" class="btn btn-light btn-sm" disabled>
+                    <i class="fas fa-print me-1"></i>生成
+                </button>
+                <button id="downloadBtn" class="btn btn-light btn-sm" style="display: none;">
+                    <i class="fas fa-download me-1"></i>下载
+                </button>
+            </div>
+        </div>
+        <div class="card-body p-2">
+            <div id="printPreview" class="text-center">
+                <div class="py-4">
+                    <i class="fas fa-file-alt fa-3x text-muted mb-2"></i>
+                    <p class="text-muted mb-0">请选择要打印的凭证</p>
+                </div>
+            </div>
+            
+            <!-- 加载状态 -->
+            <div id="loadingSpinner" class="text-center py-4" style="display: none;">
+                <div class="spinner-border text-primary mb-2" role="status">
+                    <span class="visually-hidden">生成中...</span>
+                </div>
+                <p class="text-muted mb-0">正在生成打印预览...</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 移动端快速操作栏 -->
+    <div class="mobile-action-bar d-md-none" style="display: none;" id="mobileActionBar">
+        <div class="container-fluid">
+            <div class="row g-2">
+                <div class="col-4">
+                    <button class="btn btn-outline-primary w-100 btn-sm" onclick="scrollToTop()">
+                        <i class="fas fa-arrow-up"></i>
+                        <small class="d-block">返回顶部</small>
+                    </button>
+                </div>
+                <div class="col-4">
+                    <button id="mobileGenerateBtn" class="btn btn-success w-100 btn-sm" disabled>
+                        <i class="fas fa-print"></i>
+                        <small class="d-block">生成打印</small>
+                    </button>
+                </div>
+                <div class="col-4">
+                    <button id="mobileDownloadBtn" class="btn btn-secondary w-100 btn-sm" style="display: none;">
+                        <i class="fas fa-download"></i>
+                        <small class="d-block">下载图片</small>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 桌面端布局（保持原有布局） -->
+<div class="row d-none d-md-flex">
+    <!-- 左侧：学员查询 -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-search me-2"></i>学员查询
+                </h5>
+            </div>
+            <div class="card-body">
+                <form id="desktopSearchForm">
+                    <div class="mb-3">
+                        <label for="desktopStudentCode" class="form-label">学员编码</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="desktopStudentCode" placeholder="输入学员编码" required>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                        <div class="form-text">
+                            示例：NC6080119755 或 NC6080119756
+                        </div>
+                    </div>
+                </form>
+                
+                <!-- 桌面端学员信息显示 -->
+                <div id="desktopStudentInfo" class="mt-3" style="display: none;">
+                    <div class="alert alert-success">
+                        <h6 class="alert-heading">学员信息</h6>
+                        <p class="mb-2"><strong>姓名：</strong><span id="desktopStudentName"></span></p>
+                        <p class="mb-2"><strong>性别：</strong><span id="desktopStudentGender"></span></p>
+                        <p class="mb-0"><strong>编码：</strong><span id="desktopStudentCodeDisplay"></span></p>
+                    </div>
+                </div>
+                
+                <!-- 桌面端错误信息显示 -->
+                <div id="desktopErrorMessage" class="mt-3" style="display: none;">
+                    <div class="alert alert-danger">
+                        <span id="desktopErrorText"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 桌面端可打印凭证列表 -->
+        <div class="card mt-3" id="desktopReportsCard" style="display: none;">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-list me-2"></i>可打印凭证
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="desktopReportsList">
+                    <!-- 动态生成的凭证列表 -->
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 右侧：打印预览 -->
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-eye me-2"></i>打印预览
+                </h5>
+                <div>
+                    <button id="desktopGenerateBtn" class="btn btn-success" disabled>
+                        <i class="fas fa-print me-1"></i>生成打印
+                    </button>
+                    <button id="desktopDownloadBtn" class="btn btn-secondary" style="display: none;">
+                        <i class="fas fa-download me-1"></i>下载图片
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="desktopPrintPreview" class="text-center">
+                    <div class="py-5">
+                        <i class="fas fa-file-alt fa-4x text-muted mb-3"></i>
+                        <p class="text-muted">请先查询学员信息并选择要打印的凭证</p>
+                    </div>
+                </div>
+                
+                <!-- 桌面端加载状态 -->
+                <div id="desktopLoadingSpinner" class="text-center py-5" style="display: none;">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">生成中...</span>
+                    </div>
+                    <p class="mt-2 text-muted">正在生成打印预览，请稍候...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// 检测设备类型并使用相应的元素
+const isMobile = window.innerWidth <= 768;
+let currentStudentData = null;
+let selectedReport = null;
+
+// 统一的元素选择器
+const elements = {
+    // 查询表单
+    searchForm: isMobile ? '#searchForm' : '#desktopSearchForm',
+    studentCode: isMobile ? '#studentCode' : '#desktopStudentCode',
+    
+    // 学员信息显示
+    studentInfo: isMobile ? '#studentInfo' : '#desktopStudentInfo',
+    studentName: isMobile ? '#studentName' : '#desktopStudentName',
+    studentGender: isMobile ? '#studentGender' : '#desktopStudentGender',
+    studentCodeDisplay: isMobile ? '#studentCodeDisplay' : '#desktopStudentCodeDisplay',
+    
+    // 错误信息
+    errorMessage: isMobile ? '#errorMessage' : '#desktopErrorMessage',
+    errorText: isMobile ? '#errorText' : '#desktopErrorText',
+    
+    // 凭证列表
+    reportsCard: isMobile ? '#reportsCard' : '#desktopReportsCard',
+    reportsList: isMobile ? '#reportsList' : '#desktopReportsList',
+    
+    // 打印预览
+    printPreview: isMobile ? '#printPreview' : '#desktopPrintPreview',
+    loadingSpinner: isMobile ? '#loadingSpinner' : '#desktopLoadingSpinner',
+    generateBtn: isMobile ? '#generateBtn' : '#desktopGenerateBtn',
+    downloadBtn: isMobile ? '#downloadBtn' : '#desktopDownloadBtn'
+};
+
+// 查询学员信息
+document.querySelector(elements.searchForm).addEventListener('submit', function(e) {
+    e.preventDefault();
+    const studentCode = document.querySelector(elements.studentCode).value.trim();
+    
+    if (!studentCode) {
+        showError('请输入学员编码');
+        return;
+    }
+    
+    fetch(`/search_student?student_code=${encodeURIComponent(studentCode)}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                showError(data.error);
+                hideStudentInfo();
+            } else {
+                showStudentInfo(data, studentCode);
+                showReports(data.reports);
+                
+                // 移动端显示预览卡片
+                if (isMobile) {
+                    document.getElementById('previewCard').style.display = 'block';
+                    document.getElementById('mobileActionBar').style.display = 'block';
+                }
+            }
+        })
+        .catch(error => {
+            showError('查询失败，请重试');
+            console.error('Error:', error);
+        });
+});
+
+// 显示学员信息
+function showStudentInfo(data, studentCode) {
+    document.querySelector(elements.studentName).textContent = data.student_name;
+    document.querySelector(elements.studentGender).textContent = data.gender;
+    document.querySelector(elements.studentCodeDisplay).textContent = studentCode;
+    document.querySelector(elements.studentInfo).style.display = 'block';
+    document.querySelector(elements.errorMessage).style.display = 'none';
+    
+    currentStudentData = data;
+}
+
+// 隐藏学员信息
+function hideStudentInfo() {
+    document.querySelector(elements.studentInfo).style.display = 'none';
+    document.querySelector(elements.reportsCard).style.display = 'none';
+    if (isMobile) {
+        document.getElementById('previewCard').style.display = 'none';
+        document.getElementById('mobileActionBar').style.display = 'none';
+    }
+    resetPreview();
+}
+
+// 显示错误信息
+function showError(message) {
+    document.querySelector(elements.errorText).textContent = message;
+    document.querySelector(elements.errorMessage).style.display = 'block';
+    document.querySelector(elements.studentInfo).style.display = 'none';
+    document.querySelector(elements.reportsCard).style.display = 'none';
+    if (isMobile) {
+        document.getElementById('previewCard').style.display = 'none';
+        document.getElementById('mobileActionBar').style.display = 'none';
+    }
+    resetPreview();
+}
+
+// 显示可打印凭证列表
+function showReports(reports) {
+    const reportsList = document.querySelector(elements.reportsList);
+    reportsList.innerHTML = '';
+    
+    reports.forEach(report => {
+        const reportItem = document.createElement('div');
+        reportItem.className = isMobile ? 'mb-2' : 'mb-2';
+        
+        // 移动端简化显示
+        let buttonContent = isMobile ? 
+        `
+            <div class="d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-file-alt me-2 text-primary"></i>
+                    <div>
+                        <div class="fw-bold">${report.biz_name}</div>
+                        ${report.description ? `<small class="text-muted">${report.description}</small>` : ''}
+                    </div>
+                </div>
+                <i class="fas fa-chevron-right text-muted"></i>
+            </div>
+        ` :
+        `
+            <div class="d-flex align-items-center">
+                <i class="fas fa-file-alt me-2"></i>
+                <div class="flex-grow-1">
+                    <div class="fw-bold">${report.biz_name}</div>
+                    ${report.description ? `<small class="text-muted">${report.description}</small>` : ''}
+                </div>
+            </div>
+        `;
+        
+        reportItem.innerHTML = `
+            <button class="btn btn-outline-primary w-100 ${isMobile ? 'text-start py-3' : 'text-start'} report-btn" 
+                    data-biz-type="${report.biz_type}" 
+                    data-report='${JSON.stringify(report)}'>
+                ${buttonContent}
+            </button>
+        `;
+        reportsList.appendChild(reportItem);
+    });
+    
+    // 添加点击事件
+    document.querySelectorAll('.report-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            // 更新按钮状态
+            document.querySelectorAll('.report-btn').forEach(b => {
+                b.classList.remove('btn-primary');
+                b.classList.add('btn-outline-primary');
+            });
+            
+            this.classList.remove('btn-outline-primary');
+            this.classList.add('btn-primary');
+            
+            // 保存选中的报告
+            selectedReport = JSON.parse(this.dataset.report);
+            
+            // 启用生成按钮
+            document.querySelector(elements.generateBtn).disabled = false;
+            if (isMobile) {
+                document.getElementById('mobileGenerateBtn').disabled = false;
+            }
+            
+            console.log('选中凭证:', selectedReport);
+        });
+    });
+    
+    document.querySelector(elements.reportsCard).style.display = 'block';
+}
+
+// 重置预览
+function resetPreview() {
+    const previewElement = document.querySelector(elements.printPreview);
+    previewElement.innerHTML = isMobile ? 
+        `<div class="py-4">
+            <i class="fas fa-file-alt fa-3x text-muted mb-2"></i>
+            <p class="text-muted mb-0">请选择要打印的凭证</p>
+        </div>` :
+        `<div class="py-5">
+            <i class="fas fa-file-alt fa-4x text-muted mb-3"></i>
+            <p class="text-muted">请先查询学员信息并选择要打印的凭证</p>
+        </div>`;
+    
+    document.querySelector(elements.generateBtn).disabled = true;
+    document.querySelector(elements.downloadBtn).style.display = 'none';
+    
+    if (isMobile) {
+        document.getElementById('mobileGenerateBtn').disabled = true;
+        document.getElementById('mobileDownloadBtn').style.display = 'none';
+    }
+    
+    selectedReport = null;
+}
+
+// 生成打印预览
+function generatePrint() {
+    if (!selectedReport || !currentStudentData) {
+        alert('请先选择要打印的凭证');
+        return;
+    }
+    
+    // 显示加载状态
+    document.querySelector(elements.loadingSpinner).style.display = 'block';
+    document.querySelector(elements.printPreview).style.display = 'none';
+    
+    // 构建请求数据
+    const requestData = {
+        student_code: document.querySelector(elements.studentCode).value.trim(),
+        biz_type: selectedReport.biz_type,
+        student_data: currentStudentData
+    };
+    
+    fetch('/generate_print_preview', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        document.querySelector(elements.loadingSpinner).style.display = 'none';
+        document.querySelector(elements.printPreview).style.display = 'block';
+        
+        if (data.success) {
+            // 使用移动端优化的预览显示
+            if (isMobile && window.mobileUtils) {
+                window.mobileUtils.optimizePrintPreviewForMobile(data.image_url);
+            } else {
+                document.querySelector(elements.printPreview).innerHTML = 
+                    `<img src="${data.image_url}" alt="打印预览" class="img-fluid">`;
+            }
+            
+            // 显示下载按钮
+            document.querySelector(elements.downloadBtn).style.display = 'inline-block';
+            if (isMobile) {
+                document.getElementById('mobileDownloadBtn').style.display = 'block';
+            }
+            
+            // 绑定下载事件
+            const downloadHandler = () => {
+                const link = document.createElement('a');
+                link.href = data.image_url;
+                link.download = `${selectedReport.biz_name}_${new Date().getTime()}.png`;
+                link.click();
+            };
+            
+            document.querySelector(elements.downloadBtn).onclick = downloadHandler;
+            if (isMobile) {
+                document.getElementById('mobileDownloadBtn').onclick = downloadHandler;
+            }
+        } else {
+            alert('生成失败：' + (data.error || '未知错误'));
+            resetPreview();
+        }
+    })
+    .catch(error => {
+        document.querySelector(elements.loadingSpinner).style.display = 'none';
+        document.querySelector(elements.printPreview).style.display = 'block';
+        alert('生成失败，请重试');
+        console.error('Error:', error);
+        resetPreview();
+    });
+}
+
+// 绑定生成按钮事件
+document.querySelector(elements.generateBtn).addEventListener('click', generatePrint);
+if (isMobile) {
+    document.getElementById('mobileGenerateBtn').addEventListener('click', generatePrint);
+}
+
+// 返回顶部功能
+function scrollToTop() {
+    window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+    });
+}
+
+// 移动端输入框获得焦点时滚动到视图
+if (isMobile) {
+    document.querySelector(elements.studentCode).addEventListener('focus', function() {
+        setTimeout(() => {
+            this.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 300);
+    });
+}
+
+// 显示移动端操作栏当滚动到一定位置时
+if (isMobile) {
+    let actionBarTimeout;
+    window.addEventListener('scroll', function() {
+        const actionBar = document.getElementById('mobileActionBar');
+        if (actionBar && actionBar.style.display !== 'none') {
+            actionBar.style.opacity = '1';
+            actionBar.style.transform = 'translateY(0)';
+            
+            clearTimeout(actionBarTimeout);
+            actionBarTimeout = setTimeout(() => {
+                if (window.scrollY > 200) {
+                    actionBar.style.opacity = '0.8';
+                    actionBar.style.transform = 'translateY(50%)';
+                }
+            }, 2000);
+        }
+    });
+}
+</script>
+
+<style>
+/* 移动端专用样式 */
+.mobile-print-container {
+    max-width: 100%;
+    margin: 0 auto;
+}
+
+.mobile-action-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: white;
+    border-top: 1px solid #dee2e6;
+    padding: 10px;
+    z-index: 1000;
+    transition: all 0.3s ease;
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+}
+
+@media (max-width: 768px) {
+    body {
+        padding-bottom: 80px; /* 为固定底栏留空间 */
+    }
+    
+    .card {
+        border-radius: 15px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    .card-header {
+        border-radius: 15px 15px 0 0 !important;
+    }
+    
+    .btn-lg {
+        padding: 15px 20px;
+        font-size: 1.1rem;
+    }
+    
+    .report-btn {
+        border-radius: 12px;
+        transition: all 0.2s ease;
+    }
+    
+    .report-btn:active {
+        transform: scale(0.98);
+    }
+    
+    .mobile-print-preview {
+        text-align: center;
+    }
+    
+    .print-image-container {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 10px;
+        margin-bottom: 15px;
+    }
+    
+    .print-actions button {
+        border-radius: 10px;
+        font-weight: 500;
+    }
+}
+
+/* 触摸优化 */
+@media (hover: none) and (pointer: coarse) {
+    .report-btn:hover {
+        background-color: inherit;
+        border-color: inherit;
+    }
+    
+    .report-btn:active {
+        background-color: #287042;
+        border-color: #287042;
+        color: white;
+    }
+}
+</style>
+{% endblock %} 

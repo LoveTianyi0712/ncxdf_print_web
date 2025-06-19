@@ -688,8 +688,11 @@ class ProofPrintSimulator:
         mrt_parser = MrtParser(template_path)
         print(f"模板文件已找到并解析: {template_path}")
 
+        # 检测是否需要移动端优化
+        mobile_optimized = data.get('mobile_optimized', False)
+        
         # 生成基于图像的打印预览，使用模板信息
-        image = self._create_print_preview_from_template(data, mrt_parser, currency_symbol)
+        image = self._create_print_preview_from_template(data, mrt_parser, currency_symbol, mobile_optimized)
 
         # 保存图像到文件
         timestamp = get_beijing_timestamp()
@@ -709,10 +712,24 @@ class ProofPrintSimulator:
 
         return output_path
 
-    def _create_print_preview_from_template(self, data, mrt_parser, currency_symbol):
+    def _create_print_preview_from_template(self, data, mrt_parser, currency_symbol, mobile_optimized=False):
         """根据MRT模板创建打印预览图像"""
+        # 获取原始尺寸
+        original_width, original_height = mrt_parser.page_settings['width'], mrt_parser.page_settings['height']
+        
+        # 移动端优化：调整图像尺寸以适应小屏幕
+        if mobile_optimized:
+            # 移动端使用较小的尺寸，但保持宽高比
+            max_mobile_width = 600  # 移动端最大宽度
+            aspect_ratio = original_height / original_width
+            width = min(original_width, max_mobile_width)
+            height = int(width * aspect_ratio)
+            scale_factor = width / original_width
+        else:
+            width, height = original_width, original_height
+            scale_factor = 1.0
+        
         # 创建一个白色背景的图像
-        width, height = mrt_parser.page_settings['width'], mrt_parser.page_settings['height']
         image = Image.new('RGB', (width, height), color='white')
         draw = ImageDraw.Draw(image)
         
@@ -741,7 +758,9 @@ class ProofPrintSimulator:
 
         # Stimulsoft MRT文件使用厘米作为单位，提高分辨率到200 DPI
         # 1厘米 = 200/2.54 = 78.74像素 (200 DPI)
-        PIXELS_PER_CM = 78.74  # 进一步提高分辨率，让图像更清晰
+        # 移动端优化：根据scale_factor调整像素密度
+        base_pixels_per_cm = 78.74
+        PIXELS_PER_CM = base_pixels_per_cm * scale_factor  # 根据缩放因子调整像素密度
 
         # 添加调试信息
         print(f"解析到 {len(mrt_parser.components)} 个组件")

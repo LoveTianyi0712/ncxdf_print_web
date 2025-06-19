@@ -23,11 +23,11 @@ class Config:
 
 class DevelopmentConfig(Config):
     """开发环境配置"""
-    DEBUG = True
+    DEBUG = False
 
 class ProductionConfig(Config):
     """生产环境配置"""
-    DEBUG = False
+    DEBUG = True
 
 # 配置字典
 config = {
