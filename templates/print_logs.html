@@ -99,13 +99,68 @@
             <table class="table table-hover">
             <thead>
                 <tr>
-                    <th>ID</th>
+                    <th class="sortable" data-sort="id" style="cursor: pointer;">
+                        ID
+                        {% if search_params.get('sort_by') == 'id' %}
+                            {% if search_params.get('sort_order') == 'asc' %}
+                                <i class="fas fa-sort-up"></i>
+                            {% else %}
+                                <i class="fas fa-sort-down"></i>
+                            {% endif %}
+                        {% else %}
+                            <i class="fas fa-sort text-muted"></i>
+                        {% endif %}
+                    </th>
                     {% if current_user.role == 'admin' %}
-                    <th>操作用户</th>
+                    <th class="sortable" data-sort="user_id" style="cursor: pointer;">
+                        操作用户
+                        {% if search_params.get('sort_by') == 'user_id' %}
+                            {% if search_params.get('sort_order') == 'asc' %}
+                                <i class="fas fa-sort-up"></i>
+                            {% else %}
+                                <i class="fas fa-sort-down"></i>
+                            {% endif %}
+                        {% else %}
+                            <i class="fas fa-sort text-muted"></i>
+                        {% endif %}
+                    </th>
                     {% endif %}
-                    <th>学员信息</th>
-                    <th>凭证类型</th>
-                    <th>打印时间</th>
+                    <th class="sortable" data-sort="student_name" style="cursor: pointer;">
+                        学员信息
+                        {% if search_params.get('sort_by') == 'student_name' %}
+                            {% if search_params.get('sort_order') == 'asc' %}
+                                <i class="fas fa-sort-up"></i>
+                            {% else %}
+                                <i class="fas fa-sort-down"></i>
+                            {% endif %}
+                        {% else %}
+                            <i class="fas fa-sort text-muted"></i>
+                        {% endif %}
+                    </th>
+                    <th class="sortable" data-sort="biz_name" style="cursor: pointer;">
+                        凭证类型
+                        {% if search_params.get('sort_by') == 'biz_name' %}
+                            {% if search_params.get('sort_order') == 'asc' %}
+                                <i class="fas fa-sort-up"></i>
+                            {% else %}
+                                <i class="fas fa-sort-down"></i>
+                            {% endif %}
+                        {% else %}
+                            <i class="fas fa-sort text-muted"></i>
+                        {% endif %}
+                    </th>
+                    <th class="sortable" data-sort="print_time" style="cursor: pointer;">
+                        打印时间
+                        {% if search_params.get('sort_by') == 'print_time' %}
+                            {% if search_params.get('sort_order') == 'asc' %}
+                                <i class="fas fa-sort-up"></i>
+                            {% else %}
+                                <i class="fas fa-sort-down"></i>
+                            {% endif %}
+                        {% else %}
+                            <i class="fas fa-sort text-muted"></i>
+                        {% endif %}
+                    </th>
                     <th>操作</th>
                 </tr>
             </thead>
@@ -456,10 +511,40 @@ function showJumpMessage(message, type) {
     }
 }
 
+// 排序功能
+function sortTable(field) {
+    // 获取当前排序状态
+    const currentSort = '{{ search_params.get("sort_by", "") }}';
+    const currentOrder = '{{ search_params.get("sort_order", "") }}';
+    
+    // 决定新的排序方向
+    let newOrder = 'desc';
+    if (currentSort === field && currentOrder === 'desc') {
+        newOrder = 'asc';
+    }
+    
+    // 构建新的URL
+    const url = new URL(window.location);
+    url.searchParams.set('sort_by', field);
+    url.searchParams.set('sort_order', newOrder);
+    url.searchParams.set('page', '1'); // 重置到第一页
+    
+    // 重定向到新URL
+    window.location.href = url.toString();
+}
+
 // 初始化页面组件
 document.addEventListener('DOMContentLoaded', function() {
     // 初始化页面跳转功能
     initPageJump();
+    
+    // 绑定排序事件
+    document.querySelectorAll('.sortable').forEach(function(header) {
+        header.addEventListener('click', function() {
+            const sortField = this.getAttribute('data-sort');
+            sortTable(sortField);
+        });
+    });
 });
 
 // 初始化页面跳转功能

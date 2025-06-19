@@ -395,6 +395,10 @@ def users():
     search_date_end = request.args.get('search_date_end', '').strip()
     search_creator = request.args.get('search_creator', '').strip()
     
+    # 排序参数
+    sort_by = request.args.get('sort_by', 'created_at')  # 默认按创建时间排序
+    sort_order = request.args.get('sort_order', 'desc')  # 默认降序
+    
     # 构建查询 - 只显示未删除的用户
     query = User.query.filter_by(is_deleted=False)
     
@@ -445,9 +449,24 @@ def users():
             query = query.filter(User.id == -1)
     
     # 排序和分页
-    users = query.order_by(User.created_at.desc()).paginate(
-        page=page, per_page=per_page, error_out=False
-    )
+    # 构建排序
+    valid_sort_fields = {
+        'username': User.username,
+        'role': User.role,
+        'is_enabled': User.is_enabled,
+        'is_first_login': User.is_first_login,
+        'created_at': User.created_at,
+        'id': User.id
+    }
+    
+    sort_field = valid_sort_fields.get(sort_by, User.created_at)
+    
+    if sort_order == 'asc':
+        query = query.order_by(sort_field.asc())
+    else:
+        query = query.order_by(sort_field.desc())
+    
+    users = query.paginate(page=page, per_page=per_page, error_out=False)
     
     # 获取所有用户用于创建者显示（只获取未删除的）
     all_users = User.query.filter_by(is_deleted=False).all()
@@ -469,7 +488,9 @@ def users():
     if search_creator:
         search_params['search_creator'] = search_creator
     
-    # 添加per_page参数
+    # 添加排序和分页参数
+    search_params['sort_by'] = sort_by
+    search_params['sort_order'] = sort_order
     search_params['per_page'] = per_page
     
     # 构建分页URL参数字符串
@@ -805,6 +826,10 @@ def print_logs():
     search_date_start = request.args.get('search_date_start', '').strip()  # 开始日期
     search_date_end = request.args.get('search_date_end', '').strip()  # 结束日期
     
+    # 排序参数
+    sort_by = request.args.get('sort_by', 'print_time')  # 默认按打印时间排序
+    sort_order = request.args.get('sort_order', 'desc')  # 默认降序
+    
     # 构建查询
     query = PrintLog.query.filter_by(is_deleted=False)  # 只显示未删除的记录
     
@@ -849,9 +874,25 @@ def print_logs():
             pass
     
     # 排序和分页
-    logs = query.order_by(PrintLog.print_time.desc()).paginate(
-        page=page, per_page=per_page, error_out=False
-    )
+    # 构建排序
+    valid_sort_fields = {
+        'print_time': PrintLog.print_time,
+        'student_code': PrintLog.student_code,
+        'student_name': PrintLog.student_name,
+        'biz_type': PrintLog.biz_type,
+        'biz_name': PrintLog.biz_name,
+        'user_id': PrintLog.user_id,
+        'id': PrintLog.id
+    }
+    
+    sort_field = valid_sort_fields.get(sort_by, PrintLog.print_time)
+    
+    if sort_order == 'asc':
+        query = query.order_by(sort_field.asc())
+    else:
+        query = query.order_by(sort_field.desc())
+    
+    logs = query.paginate(page=page, per_page=per_page, error_out=False)
     
     # 获取凭证类型列表用于下拉框
     biz_types = db.session.query(PrintLog.biz_type, PrintLog.biz_name).filter_by(is_deleted=False).distinct().all()
@@ -867,7 +908,9 @@ def print_logs():
     if search_date_end:
         search_params['search_date_end'] = search_date_end
     
-    # 添加per_page参数
+    # 添加排序和分页参数
+    search_params['sort_by'] = sort_by
+    search_params['sort_order'] = sort_order
     search_params['per_page'] = per_page
     
     # 构建分页URL参数字符串

@@ -170,12 +170,78 @@
             <table class="table table-hover">
                 <thead>
                     <tr>
-                        <th>ID</th>
-                        <th>用户名</th>
-                        <th>角色</th>
-                        <th>状态</th>
-                        <th>激活状态</th>
-                        <th>创建时间</th>
+                        <th class="sortable" data-sort="id" style="cursor: pointer;">
+                            ID
+                            {% if search_params.get('sort_by') == 'id' %}
+                                {% if search_params.get('sort_order') == 'asc' %}
+                                    <i class="fas fa-sort-up"></i>
+                                {% else %}
+                                    <i class="fas fa-sort-down"></i>
+                                {% endif %}
+                            {% else %}
+                                <i class="fas fa-sort text-muted"></i>
+                            {% endif %}
+                        </th>
+                        <th class="sortable" data-sort="username" style="cursor: pointer;">
+                            用户名
+                            {% if search_params.get('sort_by') == 'username' %}
+                                {% if search_params.get('sort_order') == 'asc' %}
+                                    <i class="fas fa-sort-up"></i>
+                                {% else %}
+                                    <i class="fas fa-sort-down"></i>
+                                {% endif %}
+                            {% else %}
+                                <i class="fas fa-sort text-muted"></i>
+                            {% endif %}
+                        </th>
+                        <th class="sortable" data-sort="role" style="cursor: pointer;">
+                            角色
+                            {% if search_params.get('sort_by') == 'role' %}
+                                {% if search_params.get('sort_order') == 'asc' %}
+                                    <i class="fas fa-sort-up"></i>
+                                {% else %}
+                                    <i class="fas fa-sort-down"></i>
+                                {% endif %}
+                            {% else %}
+                                <i class="fas fa-sort text-muted"></i>
+                            {% endif %}
+                        </th>
+                        <th class="sortable" data-sort="is_enabled" style="cursor: pointer;">
+                            状态
+                            {% if search_params.get('sort_by') == 'is_enabled' %}
+                                {% if search_params.get('sort_order') == 'asc' %}
+                                    <i class="fas fa-sort-up"></i>
+                                {% else %}
+                                    <i class="fas fa-sort-down"></i>
+                                {% endif %}
+                            {% else %}
+                                <i class="fas fa-sort text-muted"></i>
+                            {% endif %}
+                        </th>
+                        <th class="sortable" data-sort="is_first_login" style="cursor: pointer;">
+                            激活状态
+                            {% if search_params.get('sort_by') == 'is_first_login' %}
+                                {% if search_params.get('sort_order') == 'asc' %}
+                                    <i class="fas fa-sort-up"></i>
+                                {% else %}
+                                    <i class="fas fa-sort-down"></i>
+                                {% endif %}
+                            {% else %}
+                                <i class="fas fa-sort text-muted"></i>
+                            {% endif %}
+                        </th>
+                        <th class="sortable" data-sort="created_at" style="cursor: pointer;">
+                            创建时间
+                            {% if search_params.get('sort_by') == 'created_at' %}
+                                {% if search_params.get('sort_order') == 'asc' %}
+                                    <i class="fas fa-sort-up"></i>
+                                {% else %}
+                                    <i class="fas fa-sort-down"></i>
+                                {% endif %}
+                            {% else %}
+                                <i class="fas fa-sort text-muted"></i>
+                            {% endif %}
+                        </th>
                         <th>创建者</th>
                         <th>操作</th>
                     </tr>
@@ -520,10 +586,40 @@ function showJumpMessage(message, type) {
     }
 }
 
+// 排序功能
+function sortTable(field) {
+    // 获取当前排序状态
+    const currentSort = '{{ search_params.get("sort_by", "") }}';
+    const currentOrder = '{{ search_params.get("sort_order", "") }}';
+    
+    // 决定新的排序方向
+    let newOrder = 'desc';
+    if (currentSort === field && currentOrder === 'desc') {
+        newOrder = 'asc';
+    }
+    
+    // 构建新的URL
+    const url = new URL(window.location);
+    url.searchParams.set('sort_by', field);
+    url.searchParams.set('sort_order', newOrder);
+    url.searchParams.set('page', '1'); // 重置到第一页
+    
+    // 重定向到新URL
+    window.location.href = url.toString();
+}
+
 // 初始化页面组件
 document.addEventListener('DOMContentLoaded', function() {
     // 初始化页面跳转功能
     initPageJump();
+    
+    // 绑定排序事件
+    document.querySelectorAll('.sortable').forEach(function(header) {
+        header.addEventListener('click', function() {
+            const sortField = this.getAttribute('data-sort');
+            sortTable(sortField);
+        });
+    });
 });
 
 // 初始化页面跳转功能
