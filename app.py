@@ -3,7 +3,7 @@
 
 """
 南昌新东方凭证打印系统
-Version: 2.2.0
+Version: 2.2.1
 Release Date: 2025-06-19
 
 更新日志:
@@ -1741,6 +1741,17 @@ def first_login_change_password():
         current_password = sanitize_password_input(request.form.get('current_password', ''))
         new_password = sanitize_password_input(request.form.get('new_password', ''))
         confirm_password = sanitize_password_input(request.form.get('confirm_password', ''))
+        captcha_input = request.form.get('captcha', '').upper()
+        
+        # 验证验证码
+        if 'captcha_code' not in session or captcha_input != session.get('captcha_code'):
+            flash('验证码错误', 'error')
+            # 清除旧的验证码
+            session.pop('captcha_code', None)
+            return render_template('first_login_change_password.html')
+        
+        # 清除验证码（一次性使用）
+        session.pop('captcha_code', None)
         
         # 验证当前密码
         if not current_password:
@@ -1792,6 +1803,17 @@ def change_password():
         current_password = sanitize_password_input(request.form.get('current_password', ''))
         new_password = sanitize_password_input(request.form.get('new_password', ''))
         confirm_password = sanitize_password_input(request.form.get('confirm_password', ''))
+        captcha_input = request.form.get('captcha', '').upper()
+        
+        # 验证验证码
+        if 'captcha_code' not in session or captcha_input != session.get('captcha_code'):
+            flash('验证码错误', 'error')
+            # 清除旧的验证码
+            session.pop('captcha_code', None)
+            return render_template('change_password.html')
+        
+        # 清除验证码（一次性使用）
+        session.pop('captcha_code', None)
         
         # 验证当前密码
         if not current_password:
@@ -2101,7 +2123,7 @@ def get_version():
     """获取系统版本信息"""
     return jsonify({
         'name': '南昌新东方凭证打印系统',
-        'version': '2.2.0',
+        'version': '2.2.1',
         'release_date': '2025-06-19',
         'description': '支持多种凭证打印、用户管理、Excel批量导入、消息通知的综合管理系统'
     })
