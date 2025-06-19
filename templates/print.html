@@ -22,7 +22,7 @@
                         <label for="studentCode" class="form-label">学员编码</label>
                         <div class="input-group">
                             <input type="text" class="form-control" id="studentCode" placeholder="输入学员编码" required>
-                            <button type="submit" class="btn btn-primary">
+                            <button type="submit" class="btn btn-primary" id="searchBtn">
                                 <i class="fas fa-search"></i>
                             </button>
                         </div>
@@ -31,6 +31,21 @@
                         </div>
                     </div>
                 </form>
+                
+                <!-- 搜索加载状态 -->
+                <div id="searchLoading" class="mt-3" style="display: none;">
+                    <div class="alert alert-info border-0">
+                        <div class="d-flex align-items-center">
+                            <div class="spinner-border spinner-border-sm text-info me-3" role="status">
+                                <span class="visually-hidden">搜索中...</span>
+                            </div>
+                            <div>
+                                <strong>查询中...</strong><br>
+                                <small class="text-muted">正在查询学员信息和凭证记录</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 
                 <!-- 学员信息显示 -->
                 <div id="studentInfo" class="mt-3" style="display: none;">
@@ -118,6 +133,15 @@ document.getElementById('searchForm').addEventListener('submit', function(e) {
         return;
     }
     
+    // 显示加载状态
+    showSearchLoading();
+    
+    // 禁用搜索按钮
+    const submitBtn = this.querySelector('button[type="submit"]');
+    const originalHTML = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    
     fetch(`/search_student?student_code=${encodeURIComponent(studentCode)}`)
         .then(response => response.json())
         .then(data => {
@@ -137,8 +161,35 @@ document.getElementById('searchForm').addEventListener('submit', function(e) {
         .catch(error => {
             showError('查询失败，请重试');
             console.error('Error:', error);
+        })
+        .finally(() => {
+            // 隐藏加载状态并恢复按钮
+            hideSearchLoading();
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalHTML;
         });
 });
+
+// 显示搜索加载状态
+function showSearchLoading() {
+    document.getElementById('searchLoading').style.display = 'block';
+    document.getElementById('studentInfo').style.display = 'none';
+    document.getElementById('errorMessage').style.display = 'none';
+    document.getElementById('reportsCard').style.display = 'none';
+    
+    // 禁用输入框
+    document.getElementById('studentCode').disabled = true;
+    
+    resetPreview();
+}
+
+// 隐藏搜索加载状态
+function hideSearchLoading() {
+    document.getElementById('searchLoading').style.display = 'none';
+    
+    // 恢复输入框
+    document.getElementById('studentCode').disabled = false;
+}
 
 // 显示学员信息
 function showStudentInfo(data, studentCode) {

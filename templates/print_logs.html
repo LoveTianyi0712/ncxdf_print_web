@@ -74,68 +74,89 @@
     </div>
     <div class="card-body">
         {% if logs.items %}
+        <!-- 每页记录数量控制 -->
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <div class="d-flex align-items-center">
+                    <label for="perPageSelect" class="form-label me-2 mb-0">每页显示：</label>
+                    <select class="form-select form-select-sm" id="perPageSelect" style="width: auto;" onchange="changePerPage(this.value)">
+                        <option value="10" {% if current_per_page == 10 %}selected{% endif %}>10条</option>
+                        <option value="20" {% if current_per_page == 20 %}selected{% endif %}>20条</option>
+                        <option value="50" {% if current_per_page == 50 %}selected{% endif %}>50条</option>
+                        <option value="100" {% if current_per_page == 100 %}selected{% endif %}>100条</option>
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-6 text-end">
+                <small class="text-muted">
+                    共 {{ logs.total }} 条记录，第 {{ logs.page }} / {{ logs.pages }} 页
+                </small>
+            </div>
+        </div>
+        
+        <!-- 表格容器 -->
         <div class="table-responsive">
             <table class="table table-hover">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        {% if current_user.role == 'admin' %}
-                        <th>操作用户</th>
-                        {% endif %}
-                        <th>学员信息</th>
-                        <th>凭证类型</th>
-                        <th>打印时间</th>
-                        <th>操作</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for log in logs.items %}
-                    <tr>
-                        <td>{{ log.id }}</td>
-                        {% if current_user.role == 'admin' %}
-                        <td>
-                            <div class="d-flex align-items-center">
-                                <div class="user-avatar me-2" style="width: 24px; height: 24px; font-size: 12px;">
-                                    {{ log.user.username[0].upper() }}
-                                </div>
-                                {{ log.user.username }}
-                                {% if log.user.role == 'admin' %}
-                                <span class="badge bg-warning ms-2">管理员</span>
-                                {% endif %}
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    {% if current_user.role == 'admin' %}
+                    <th>操作用户</th>
+                    {% endif %}
+                    <th>学员信息</th>
+                    <th>凭证类型</th>
+                    <th>打印时间</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs.items %}
+                <tr>
+                    <td>{{ log.id }}</td>
+                    {% if current_user.role == 'admin' %}
+                    <td>
+                        <div class="d-flex align-items-center">
+                            <div class="user-avatar me-2" style="width: 24px; height: 24px; font-size: 12px;">
+                                {{ log.user.username[0].upper() }}
                             </div>
-                        </td>
-                        {% endif %}
-                        <td>
-                            <div>
-                                <strong>{{ log.student_name }}</strong><br>
-                                <small class="text-muted">{{ log.student_code }}</small>
-                            </div>
-                        </td>
-                        <td>
-                            <div>
-                                <span class="badge bg-primary">{{ log.biz_name }}</span>
-                                {% if log.detail_info %}
-                                <br><small class="text-muted mt-1">{{ log.detail_info }}</small>
-                                {% endif %}
-                            </div>
-                        </td>
-                        <td>
-                            <small>{{ log.print_time.strftime('%Y-%m-%d %H:%M:%S') }}</small>
-                        </td>
-                        <td>
-                            {% if current_user.role == 'admin' %}
-                            <button class="btn btn-outline-danger btn-sm" 
-                                    onclick="deleteLog({{ log.id }}, '{{ log.student_name }}')" 
-                                    title="删除记录">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                            {% else %}
-                            <span class="text-muted">-</span>
+                            {{ log.user.username }}
+                            {% if log.user.role == 'admin' %}
+                            <span class="badge bg-warning ms-2">管理员</span>
                             {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
+                        </div>
+                    </td>
+                    {% endif %}
+                    <td>
+                        <div>
+                            <strong>{{ log.student_name }}</strong><br>
+                            <small class="text-muted">{{ log.student_code }}</small>
+                        </div>
+                    </td>
+                    <td>
+                        <div>
+                            <span class="badge bg-primary">{{ log.biz_name }}</span>
+                            {% if log.detail_info %}
+                            <br><small class="text-muted mt-1">{{ log.detail_info }}</small>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td>
+                        <small>{{ log.print_time.strftime('%Y-%m-%d %H:%M:%S') }}</small>
+                    </td>
+                    <td>
+                        {% if current_user.role == 'admin' %}
+                        <button class="btn btn-outline-danger btn-sm" 
+                                onclick="deleteLog({{ log.id }}, '{{ log.student_name }}')" 
+                                title="删除记录">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                        {% else %}
+                        <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
             </table>
         </div>
         
@@ -177,19 +198,33 @@
                 </li>
                 {% endif %}
             </ul>
+            
+            <!-- 快速跳转 -->
+            <div class="d-flex justify-content-center align-items-center mt-2">
+                <div class="page-jump-container">
+                    <span class="text-muted me-2">跳转至</span>
+                    <div class="input-group input-group-sm" style="width: 120px; display: inline-flex;">
+                        <input type="number" 
+                               class="form-control" 
+                               id="pageJumpInput" 
+                               placeholder="页码" 
+                               min="1" 
+                               max="{{ logs.pages }}"
+                               title="输入1-{{ logs.pages }}之间的页码">
+                        <button class="btn btn-outline-secondary" 
+                                type="button" 
+                                onclick="jumpToPage()"
+                                title="跳转到指定页面">
+                            <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+                    <span class="text-muted ms-2">页</span>
+                </div>
+            </div>
         </nav>
         {% endif %}
         
-        <!-- 统计信息 -->
-        <div class="row mt-3">
-            <div class="col-md-12">
-                <small class="text-muted">
-                    显示第 {{ (logs.page - 1) * logs.per_page + 1 }} - {{ logs.page * logs.per_page if logs.page * logs.per_page < logs.total else logs.total }} 条，
-                    共 {{ logs.total }} 条记录，
-                    第 {{ logs.page }} / {{ logs.pages }} 页
-                </small>
-            </div>
-        </div>
+
         
         {% else %}
         <div class="text-center py-5">
@@ -241,6 +276,71 @@
 </div>
 {% endblock %}
 
+
+
+@media (max-width: 768px) {
+    .floating-control {
+        top: 80px;
+        right: 10px;
+        width: 120px;
+    }
+}
+
+/* 确保页面底部有固定空间给技术支持 */
+.content {
+    min-height: calc(100vh - 200px);
+    padding-bottom: 80px; /* 为技术支持和版权信息留出空间 */
+}
+
+
+
+/* 页面跳转样式 */
+.page-jump-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.page-jump-container .input-group {
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    border-radius: 0.375rem;
+    overflow: hidden;
+}
+
+.page-jump-container input[type="number"] {
+    text-align: center;
+    font-weight: 500;
+}
+
+.page-jump-container input[type="number"]:focus {
+    border-color: #287042;
+    box-shadow: 0 0 0 0.2rem rgba(40, 112, 66, 0.25);
+}
+
+.page-jump-container .btn {
+    border-color: #dee2e6;
+}
+
+.page-jump-container .btn:hover {
+    background-color: #287042;
+    border-color: #287042;
+    color: white;
+}
+
+/* 响应式设计 */
+@media (max-width: 576px) {
+    .page-jump-container {
+        font-size: 0.875rem;
+    }
+    
+    .page-jump-container .input-group {
+        width: 100px !important;
+    }
+}
+</style>
+
 {% block scripts %}
 <script>
 // 删除确认
@@ -255,6 +355,157 @@ function deleteLog(logId, studentName) {
     const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
     modal.show();
 }
+
+// 改变每页显示数量
+function changePerPage(perPage) {
+    // 构建新的URL参数
+    const url = new URL(window.location);
+    url.searchParams.set('per_page', perPage);
+    url.searchParams.set('page', '1'); // 重置到第一页
+    
+    // 重定向到新URL
+    window.location.href = url.toString();
+}
+
+// 快速跳转到指定页面
+function jumpToPage() {
+    const input = document.getElementById('pageJumpInput');
+    const pageValue = input.value.trim();
+    
+    // 验证输入是否为空
+    if (!pageValue) {
+        showJumpMessage('请输入页码', 'warning');
+        input.focus();
+        return;
+    }
+    
+    // 验证是否为数字
+    const pageNum = parseInt(pageValue, 10);
+    if (isNaN(pageNum) || pageValue.includes('.') || pageValue.includes('e') || pageValue.includes('E')) {
+        showJumpMessage('请输入有效的页码数字', 'error');
+        input.focus();
+        input.select();
+        return;
+    }
+    
+    // 获取最大页码数
+    const maxPages = parseInt(input.getAttribute('max'), 10);
+    const minPages = parseInt(input.getAttribute('min'), 10);
+    
+    // 验证页码范围
+    if (pageNum < minPages) {
+        showJumpMessage(`页码不能小于 ${minPages}`, 'error');
+        input.focus();
+        input.select();
+        return;
+    }
+    
+    if (pageNum > maxPages) {
+        showJumpMessage(`页码不能大于 ${maxPages}`, 'error');
+        input.focus();
+        input.select();
+        return;
+    }
+    
+    // 检查是否跳转到当前页
+    const currentPage = {{ logs.page }};
+    if (pageNum === currentPage) {
+        showJumpMessage('已经在当前页面了', 'info');
+        input.value = '';
+        return;
+    }
+    
+    // 构建跳转URL
+    const url = new URL(window.location);
+    url.searchParams.set('page', pageNum);
+    
+    // 执行跳转
+    window.location.href = url.toString();
+}
+
+// 显示跳转提示消息
+function showJumpMessage(message, type) {
+    // 创建或更新提示元素
+    let messageElement = document.getElementById('pageJumpMessage');
+    if (!messageElement) {
+        messageElement = document.createElement('div');
+        messageElement.id = 'pageJumpMessage';
+        messageElement.className = 'alert alert-dismissible fade show mt-2 mb-0';
+        messageElement.style.fontSize = '0.875rem';
+        messageElement.style.padding = '0.5rem 0.75rem';
+        
+        // 插入到跳转容器后面
+        const jumpContainer = document.querySelector('.page-jump-container').parentElement;
+        jumpContainer.appendChild(messageElement);
+    }
+    
+    // 设置消息类型样式
+    messageElement.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show mt-2 mb-0`;
+    messageElement.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="alert"></button>
+    `;
+    
+    // 自动隐藏消息（除了错误消息）
+    if (type !== 'error') {
+        setTimeout(() => {
+            if (messageElement.parentElement) {
+                messageElement.remove();
+            }
+        }, 3000);
+    }
+}
+
+// 初始化页面组件
+document.addEventListener('DOMContentLoaded', function() {
+    // 初始化页面跳转功能
+    initPageJump();
+});
+
+// 初始化页面跳转功能
+function initPageJump() {
+    const jumpInput = document.getElementById('pageJumpInput');
+    if (jumpInput) {
+        // 支持回车键快速跳转
+        jumpInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                jumpToPage();
+            }
+        });
+        
+        // 防止输入非数字字符（除了删除、方向键等）
+        jumpInput.addEventListener('keydown', function(e) {
+            // 允许的键：数字、退格、删除、方向键、Tab、Enter
+            const allowedKeys = [
+                'Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 
+                'ArrowUp', 'ArrowDown', 'Tab', 'Enter'
+            ];
+            
+            const isNumber = (e.key >= '0' && e.key <= '9');
+            const isAllowedKey = allowedKeys.includes(e.key);
+            const isCtrlKey = e.ctrlKey || e.metaKey; // 允许Ctrl+A, Ctrl+C等
+            
+            if (!isNumber && !isAllowedKey && !isCtrlKey) {
+                e.preventDefault();
+                showJumpMessage('只能输入数字', 'warning');
+            }
+        });
+        
+        // 防止粘贴非数字内容
+        jumpInput.addEventListener('paste', function(e) {
+            setTimeout(() => {
+                const value = e.target.value;
+                if (!/^\d*$/.test(value)) {
+                    e.target.value = value.replace(/\D/g, '');
+                    showJumpMessage('已过滤非数字字符', 'warning');
+                }
+            }, 10);
+        });
+    }
+}
+
+
+
 
 
 </script>

@@ -23,17 +23,117 @@
         }
         .sidebar {
             background-color: #f8f9fa;
-            min-height: calc(100vh - 56px);
-            padding: 20px 15px;
+            min-height: calc(100vh - 56px); /* 减去顶部导航栏高度，延伸到版权信息 */
+            height: calc(100vh - 56px); /* 设置固定高度，延伸到版权信息 */
+            padding: 30px 15px; /* 增加顶部padding，让内容下移 */
+            padding-bottom: 5px; /* 减少底部padding，让技术支持更贴近版权信息 */
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 16.66667%; /* Bootstrap col-md-2 width */
+            overflow-y: auto;
+            z-index: 1020;
+        }
+        
+        /* 确保固定导航栏在最上层 */
+        .navbar.fixed-top {
+            z-index: 1030;
+        }
+        
+        /* 确保固定版权信息在合适的层级 */
+        footer.fixed-bottom {
+            z-index: 1025;
+            background-color: #f8f9fa !important; /* 确保背景色覆盖侧边栏 */
+            bottom: 0 !important; /* 恢复贴底部 */
+            height: 60px !important; /* 设置固定高度 */
+            padding: 0 !important; /* 移除所有padding，使用flexbox居中 */
+        }
+        
+        /* 调整技术支持链接的位置，让它更贴近底部 */
+        .sidebar .mt-auto {
+            padding-bottom: 0; /* 完全移除技术支持容器的底部间距 */
+            margin-bottom: -10px; /* 使用负边距让技术支持更贴近底部 */
+        }
+        
+        .sidebar .mt-auto .nav-link {
+            margin-bottom: 0; /* 移除技术支持链接的底部边距 */
+        }
+        
+        /* 为整个页面添加顶部和底部间距，避免被固定导航栏和版权信息遮挡 */
+        body {
+            padding-top: 56px; /* 导航栏高度 */
+            padding-bottom: 60px; /* 版权信息高度 */
         }
         
         .sidebar .nav {
             display: flex;
             flex-direction: column;
-            height: calc(100vh - 96px);
+            height: calc(100vh - 111px); /* 减去顶部导航栏高度和侧边栏上下padding (56px + 30px + 25px) */
+        }
+        
+        /* 为主内容区添加左边距，避免被固定侧边栏遮挡 */
+        .main-content {
+            margin-left: 16.66667%; /* 与侧边栏宽度相同 */
+            min-height: calc(100vh - 106px); /* 确保内容区域至少占满可视区域 */
+            background-color: #ffffff; /* 确保背景色一致 */
+            position: relative;
+        }
+        
+        /* 让主内容区域更好地填充空间 */
+        .main-content::after {
+            content: '';
+            display: block;
+            height: 20px; /* 添加一些底部空间，让内容不会紧贴版权信息 */
+        }
+        
+        /* 响应式处理 - 小屏幕下取消固定定位 */
+        @media (max-width: 767.98px) {
+            body {
+                padding-top: 56px !important; /* 保持顶部导航栏的间距 */
+                padding-bottom: 60px !important; /* 保持底部版权信息的间距 */
+            }
+            
+            .navbar {
+                position: fixed !important;
+                top: 0 !important;
+                left: 0 !important;
+                right: 0 !important;
+                z-index: 1030 !important;
+            }
+            
+            footer {
+                position: fixed !important;
+                bottom: 0 !important;
+                left: 0 !important;
+                right: 0 !important;
+                z-index: 1025 !important;
+                height: 60px !important;
+                padding: 0 !important;
+            }
+            
+            .sidebar {
+                position: static !important;
+                width: 100% !important;
+                min-height: auto !important;
+                height: auto !important;
+                top: auto !important;
+                left: auto !important;
+                z-index: auto !important;
+                margin-top: 0 !important;
+                padding: 20px 15px !important; /* 恢复正常的padding */
+            }
+            
+            .sidebar .nav {
+                height: auto !important;
+            }
+            
+            .main-content {
+                margin-left: 0 !important;
+            }
         }
         .content {
             padding: 20px;
+            padding-bottom: 0; /* 减少底部padding，让内容更贴近底部 */
         }
         .print-preview {
             max-width: 100%;
@@ -205,7 +305,7 @@
 </head>
 <body>
     <!-- 导航栏 -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top">
         <div class="container-fluid">
             <a class="navbar-brand" href="{{ url_for('dashboard') }}">
                 <i class="fas fa-print me-2"></i>南昌新东方凭证打印系统
@@ -274,7 +374,7 @@
                     {% endif %}
                     
                     <!-- 技术支持链接 - 放在底部不显眼位置 -->
-                    <div class="mt-auto pt-4">
+                    <div class="mt-auto pt-2">
                         <hr class="border-secondary">
                         <a class="nav-link {{ 'active' if request.endpoint == 'tech_support' }}" 
                            href="{{ url_for('tech_support') }}" 
@@ -286,7 +386,7 @@
             </div>
             
             <!-- 主内容区 -->
-            <div class="col-md-10 content">
+            <div class="col-md-10 main-content content">
             {% else %}
             <div class="col-12 content">
             {% endif %}
@@ -309,8 +409,8 @@
     </div>
     
     <!-- 版权信息 -->
-    <footer class="bg-light text-center text-muted py-3 mt-4">
-        <div class="container-fluid">
+    <footer class="bg-light text-center text-muted fixed-bottom d-flex align-items-center justify-content-center">
+        <div class="container-fluid d-flex align-items-center justify-content-center">
             <small>©2025 南昌新东方 版权所有</small>
         </div>
     </footer>

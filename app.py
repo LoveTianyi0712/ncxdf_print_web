@@ -650,7 +650,11 @@ def api_certificate_types():
 @login_required
 def print_logs():
     page = request.args.get('page', 1, type=int)
-    per_page = 20
+    per_page = request.args.get('per_page', 20, type=int)
+    
+    # 限制每页记录数量范围
+    if per_page not in [10, 20, 50, 100]:
+        per_page = 20
     
     # 搜索参数
     search_student = request.args.get('search_student', '').strip()  # 学员编码或姓名
@@ -720,6 +724,9 @@ def print_logs():
     if search_date_end:
         search_params['search_date_end'] = search_date_end
     
+    # 添加per_page参数
+    search_params['per_page'] = per_page
+    
     # 构建分页URL参数字符串
     search_query_string = ''
     if search_params:
@@ -734,7 +741,8 @@ def print_logs():
                          logs=logs, 
                          biz_types=biz_types,
                          search_params=search_params,
-                         search_query_string=search_query_string)
+                         search_query_string=search_query_string,
+                         current_per_page=per_page)
 
 @app.route('/delete_print_log/<int:log_id>')
 @login_required
