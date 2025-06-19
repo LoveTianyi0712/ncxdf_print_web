@@ -14,6 +14,55 @@
     </div>
 </div>
 
+<!-- 搜索筛选表单 -->
+<div class="card mb-3">
+    <div class="card-header">
+        <h5 class="card-title mb-0">
+            <i class="fas fa-search me-2"></i>搜索筛选
+        </h5>
+    </div>
+    <div class="card-body">
+        <form method="GET" action="{{ url_for('print_logs') }}" class="row g-3">
+            <div class="col-md-3">
+                <label for="search_student" class="form-label">学员信息</label>
+                <input type="text" class="form-control" id="search_student" name="search_student" 
+                       placeholder="学员编码或姓名" value="{{ search_params.get('search_student', '') }}">
+            </div>
+            <div class="col-md-3">
+                <label for="search_biz_type" class="form-label">凭证类型</label>
+                <select class="form-select" id="search_biz_type" name="search_biz_type">
+                    <option value="">全部类型</option>
+                    {% for biz_type, biz_name in biz_types %}
+                    <option value="{{ biz_type }}" {% if search_params.get('search_biz_type') == biz_type|string %}selected{% endif %}>
+                        {{ biz_name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="search_date_start" class="form-label">开始日期</label>
+                <input type="date" class="form-control" id="search_date_start" name="search_date_start" 
+                       value="{{ search_params.get('search_date_start', '') }}">
+            </div>
+            <div class="col-md-2">
+                <label for="search_date_end" class="form-label">结束日期</label>
+                <input type="date" class="form-control" id="search_date_end" name="search_date_end" 
+                       value="{{ search_params.get('search_date_end', '') }}">
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <div class="btn-group w-100">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search me-1"></i>搜索
+                    </button>
+                    <a href="{{ url_for('print_logs') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-times me-1"></i>清空
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
 <div class="card">
     <div class="card-header">
         <h5 class="card-title mb-0">
@@ -74,9 +123,15 @@
                             <small>{{ log.print_time.strftime('%Y-%m-%d %H:%M:%S') }}</small>
                         </td>
                         <td>
-                            <button class="btn btn-outline-info btn-sm" data-log-id="{{ log.id }}" data-print-data="{{ log.print_data|replace('\"', '&quot;') }}" onclick="showDetails(this)">
-                                <i class="fas fa-eye"></i> 详情
+                            {% if current_user.role == 'admin' %}
+                            <button class="btn btn-outline-danger btn-sm" 
+                                    onclick="deleteLog({{ log.id }}, '{{ log.student_name }}')" 
+                                    title="删除记录">
+                                <i class="fas fa-trash"></i>
                             </button>
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}
@@ -90,7 +145,7 @@
             <ul class="pagination justify-content-center">
                 {% if logs.has_prev %}
                 <li class="page-item">
-                    <a class="page-link" href="{{ url_for('print_logs', page=logs.prev_num) }}">
+                    <a class="page-link" href="{{ url_for('print_logs', page=logs.prev_num) }}{{ search_query_string }}">
                         <i class="fas fa-chevron-left"></i>
                     </a>
                 </li>
@@ -100,7 +155,7 @@
                     {% if page_num %}
                         {% if page_num != logs.page %}
                         <li class="page-item">
-                            <a class="page-link" href="{{ url_for('print_logs', page=page_num) }}">{{ page_num }}</a>
+                            <a class="page-link" href="{{ url_for('print_logs', page=page_num) }}{{ search_query_string }}">{{ page_num }}</a>
                         </li>
                         {% else %}
                         <li class="page-item active">
@@ -116,7 +171,7 @@
                 
                 {% if logs.has_next %}
                 <li class="page-item">
-                    <a class="page-link" href="{{ url_for('print_logs', page=logs.next_num) }}">
+                    <a class="page-link" href="{{ url_for('print_logs', page=logs.next_num) }}{{ search_query_string }}">
                         <i class="fas fa-chevron-right"></i>
                     </a>
                 </li>
@@ -140,32 +195,46 @@
         <div class="text-center py-5">
             <i class="fas fa-clipboard-list fa-4x text-muted mb-3"></i>
             <h5 class="text-muted">暂无打印记录</h5>
-            <p class="text-muted">开始使用系统打印凭证后，操作记录将显示在这里</p>
+            <p class="text-muted">
+                {% if search_params %}
+                没有找到符合条件的记录，请尝试调整搜索条件
+                {% else %}
+                开始使用系统打印凭证后，操作记录将显示在这里
+                {% endif %}
+            </p>
+            {% if not search_params %}
             <a href="{{ url_for('print_page') }}" class="btn btn-primary">
                 <i class="fas fa-print me-1"></i>开始打印
             </a>
+            {% else %}
+            <a href="{{ url_for('print_logs') }}" class="btn btn-secondary">
+                <i class="fas fa-list me-1"></i>查看所有记录
+            </a>
+            {% endif %}
         </div>
         {% endif %}
     </div>
 </div>
 
-<!-- 详情模态框 -->
-<div class="modal fade" id="detailModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
+<!-- 删除确认模态框 -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">
-                    <i class="fas fa-info-circle me-2"></i>打印详情
+                    <i class="fas fa-exclamation-triangle me-2 text-warning"></i>确认删除
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <div id="detailContent">
-                    <!-- 详情内容将通过JavaScript填充 -->
-                </div>
+                <p>确定要删除 <strong id="deleteStudentName"></strong> 的打印记录吗？</p>
+                <p class="text-muted small">此操作不可恢复。</p>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <a href="#" id="confirmDelete" class="btn btn-danger">
+                    <i class="fas fa-trash me-1"></i>确认删除
+                </a>
             </div>
         </div>
     </div>
@@ -174,84 +243,19 @@
 
 {% block scripts %}
 <script>
-// 显示详情
-function showDetails(button) {
-    try {
-        const logId = button.dataset.logId;
-        const printData = button.dataset.printData;
-        const data = JSON.parse(printData);
-        let content = '<div class="row">';
-        
-        // 基本信息
-        content += '<div class="col-md-6">';
-        content += '<h6 class="text-primary">基本信息</h6>';
-        content += '<table class="table table-sm">';
-        content += `<tr><td><strong>记录ID:</strong></td><td>${logId}</td></tr>`;
-        content += `<tr><td><strong>学员编码:</strong></td><td>${data.sStudentCode || '-'}</td></tr>`;
-        content += `<tr><td><strong>学员姓名:</strong></td><td>${data.sStudentName || '-'}</td></tr>`;
-        content += `<tr><td><strong>性别:</strong></td><td>${data.sGender || '-'}</td></tr>`;
-        content += `<tr><td><strong>学校:</strong></td><td>${data.sSchoolName || '-'}</td></tr>`;
-        content += '</table>';
-        content += '</div>';
-        
-        // 业务信息
-        content += '<div class="col-md-6">';
-        content += '<h6 class="text-info">业务信息</h6>';
-        content += '<table class="table table-sm">';
-        content += `<tr><td><strong>凭证标题:</strong></td><td>${data.Title || '-'}</td></tr>`;
-        content += `<tr><td><strong>业务类型:</strong></td><td>${data.sBizType || '-'}</td></tr>`;
-        content += `<tr><td><strong>业务ID:</strong></td><td>${data.nBizId || '-'}</td></tr>`;
-        content += `<tr><td><strong>操作员:</strong></td><td>${data.sOperator || '-'}</td></tr>`;
-        content += `<tr><td><strong>区域:</strong></td><td>${data.sRegZoneName || '-'}</td></tr>`;
-        content += '</table>';
-        content += '</div>';
-        
-        content += '</div>';
-        
-        // 金额信息
-        if (data.sPay || data.dSumBalance || data.sPayType) {
-            content += '<div class="row mt-3">';
-            content += '<div class="col-md-12">';
-            content += '<h6 class="text-success">金额信息</h6>';
-            content += '<table class="table table-sm">';
-            if (data.sPay) content += `<tr><td><strong>金额详情:</strong></td><td>${data.sPay}</td></tr>`;
-            if (data.dSumBalance) content += `<tr><td><strong>余额:</strong></td><td>${data.dSumBalance}</td></tr>`;
-            if (data.sPayType) content += `<tr><td><strong>支付方式:</strong></td><td>${data.sPayType}</td></tr>`;
-            content += '</table>';
-            content += '</div>';
-            content += '</div>';
-        }
-        
-        // 时间信息
-        content += '<div class="row mt-3">';
-        content += '<div class="col-md-12">';
-        content += '<h6 class="text-warning">时间信息</h6>';
-        content += '<table class="table table-sm">';
-        content += `<tr><td><strong>创建时间:</strong></td><td>${data.dtCreate || '-'}</td></tr>`;
-        content += `<tr><td><strong>业务时间:</strong></td><td>${data.dtCreateDate || '-'}</td></tr>`;
-        content += '</table>';
-        content += '</div>';
-        content += '</div>';
-        
-        document.getElementById('detailContent').innerHTML = content;
-        
-        // 显示模态框
-        const modal = new bootstrap.Modal(document.getElementById('detailModal'));
-        modal.show();
-        
-    } catch (error) {
-        console.error('解析数据失败:', error);
-        document.getElementById('detailContent').innerHTML = `
-            <div class="alert alert-danger">
-                <h6>数据解析失败</h6>
-                <p>无法解析打印数据，原始数据如下：</p>
-                <pre class="small">${printData}</pre>
-            </div>
-        `;
-        
-        const modal = new bootstrap.Modal(document.getElementById('detailModal'));
-        modal.show();
-    }
+// 删除确认
+function deleteLog(logId, studentName) {
+    // 设置学员姓名
+    document.getElementById('deleteStudentName').textContent = studentName;
+    
+    // 设置删除链接
+    document.getElementById('confirmDelete').href = `{{ url_for('delete_print_log', log_id=0) }}`.replace('0', logId);
+    
+    // 显示确认对话框
+    const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    modal.show();
 }
+
+
 </script>
 {% endblock %} 

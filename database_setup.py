@@ -9,7 +9,20 @@ MySQL数据库的创建和初始化
 import os
 import sys
 import pymysql
-from config import Config
+from config import Config, config
+from flask import Flask
+from flask_sqlalchemy import SQLAlchemy
+
+# 安装PyMySQL作为MySQLdb的替代
+pymysql.install_as_MySQLdb()
+
+app = Flask(__name__)
+
+# 从环境变量获取配置模式，默认为development
+config_name = os.environ.get('FLASK_ENV', 'development')
+app.config.from_object(config[config_name])
+
+db = SQLAlchemy(app)
 
 def create_mysql_database():
     """创建MySQL数据库"""
@@ -120,6 +133,25 @@ def create_default_cookies_config():
         print(f"⚠️ 创建默认Cookies配置失败: {str(e)}")
         # 不抛出异常，因为这不是必需的
 
+def migrate_database():
+    """执行数据库迁移"""
+    with app.app_context():
+        try:
+            from sqlalchemy import text
+            # 检查is_deleted字段是否已存在
+            result = db.session.execute(text("SHOW COLUMNS FROM print_log LIKE 'is_deleted'"))
+            if result.fetchone() is None:
+                # 字段不存在，添加字段
+                print("正在为PrintLog表添加is_deleted字段...")
+                db.session.execute(text("ALTER TABLE print_log ADD COLUMN is_deleted BOOLEAN DEFAULT FALSE NOT NULL"))
+                db.session.commit()
+                print("is_deleted字段添加成功！")
+            else:
+                print("is_deleted字段已存在，跳过迁移。")
+        except Exception as e:
+            print(f"数据库迁移失败: {str(e)}")
+            db.session.rollback()
+
 def main():
     """主函数"""
     print("=" * 50)
@@ -142,4 +174,5 @@ def main():
         sys.exit(1)
 
 if __name__ == "__main__":
+    migrate_database()
     main() 

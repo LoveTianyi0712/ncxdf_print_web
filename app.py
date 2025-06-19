@@ -70,6 +70,8 @@ class PrintLog(db.Model):
     print_data = db.Column(db.Text, nullable=False)
     # 新增字段用于列表展示
     detail_info = db.Column(db.String(200), nullable=True)  # 详细信息，如"类型：充值，金额：¥1000.00"
+    # 软删除字段
+    is_deleted = db.Column(db.Boolean, default=False, nullable=False)  # 软删除标记
 
 class CookiesConfig(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -650,18 +652,108 @@ def print_logs():
     page = request.args.get('page', 1, type=int)
     per_page = 20
     
-    if current_user.role == 'admin':
-        # 管理员可以查看所有日志
-        logs = PrintLog.query.order_by(PrintLog.print_time.desc()).paginate(
-            page=page, per_page=per_page, error_out=False
-        )
-    else:
-        # 普通用户只能查看自己的日志
-        logs = PrintLog.query.filter_by(user_id=current_user.id).order_by(
-            PrintLog.print_time.desc()
-        ).paginate(page=page, per_page=per_page, error_out=False)
+    # 搜索参数
+    search_student = request.args.get('search_student', '').strip()  # 学员编码或姓名
+    search_biz_type = request.args.get('search_biz_type', '', type=str)  # 凭证类型
+    search_date_start = request.args.get('search_date_start', '').strip()  # 开始日期
+    search_date_end = request.args.get('search_date_end', '').strip()  # 结束日期
     
-    return render_template('print_logs.html', logs=logs)
+    # 构建查询
+    query = PrintLog.query.filter_by(is_deleted=False)  # 只显示未删除的记录
+    
+    # 权限控制
+    if current_user.role != 'admin':
+        # 普通用户只能查看自己的日志
+        query = query.filter_by(user_id=current_user.id)
+    
+    # 学员信息筛选
+    if search_student:
+        query = query.filter(
+            db.or_(
+                PrintLog.student_code.like(f'%{search_student}%'),
+                PrintLog.student_name.like(f'%{search_student}%')
+            )
+        )
+    
+    # 凭证类型筛选
+    if search_biz_type:
+        try:
+            biz_type_int = int(search_biz_type)
+            query = query.filter(PrintLog.biz_type == biz_type_int)
+        except ValueError:
+            # 如果不是数字，按凭证名称搜索
+            query = query.filter(PrintLog.biz_name.like(f'%{search_biz_type}%'))
+    
+    # 时间范围筛选
+    if search_date_start:
+        try:
+            start_date = datetime.strptime(search_date_start, '%Y-%m-%d')
+            query = query.filter(PrintLog.print_time >= start_date)
+        except ValueError:
+            pass
+    
+    if search_date_end:
+        try:
+            end_date = datetime.strptime(search_date_end, '%Y-%m-%d')
+            # 结束日期包含当天，所以加1天
+            end_date = end_date + timedelta(days=1)
+            query = query.filter(PrintLog.print_time < end_date)
+        except ValueError:
+            pass
+    
+    # 排序和分页
+    logs = query.order_by(PrintLog.print_time.desc()).paginate(
+        page=page, per_page=per_page, error_out=False
+    )
+    
+    # 获取凭证类型列表用于下拉框
+    biz_types = db.session.query(PrintLog.biz_type, PrintLog.biz_name).filter_by(is_deleted=False).distinct().all()
+    
+    # 构建搜索参数字典，用于分页链接保持搜索状态
+    search_params = {}
+    if search_student:
+        search_params['search_student'] = search_student
+    if search_biz_type:
+        search_params['search_biz_type'] = search_biz_type
+    if search_date_start:
+        search_params['search_date_start'] = search_date_start
+    if search_date_end:
+        search_params['search_date_end'] = search_date_end
+    
+    # 构建分页URL参数字符串
+    search_query_string = ''
+    if search_params:
+        query_parts = []
+        for key, value in search_params.items():
+            if value:  # 只包含非空值
+                query_parts.append(f'{key}={value}')
+        if query_parts:
+            search_query_string = '&' + '&'.join(query_parts)
+    
+    return render_template('print_logs.html', 
+                         logs=logs, 
+                         biz_types=biz_types,
+                         search_params=search_params,
+                         search_query_string=search_query_string)
+
+@app.route('/delete_print_log/<int:log_id>')
+@login_required
+@admin_required
+def delete_print_log(log_id):
+    """软删除打印记录 - 仅管理员可操作"""
+    log = PrintLog.query.get_or_404(log_id)
+    
+    # 检查记录是否已被删除
+    if log.is_deleted:
+        flash('记录已被删除', 'warning')
+        return redirect(url_for('print_logs'))
+    
+    # 执行软删除
+    log.is_deleted = True
+    db.session.commit()
+    
+    flash(f'已删除 {log.student_name} 的打印记录', 'success')
+    return redirect(url_for('print_logs'))
 
 @app.route('/first_login_change_password', methods=['GET', 'POST'])
 @login_required
