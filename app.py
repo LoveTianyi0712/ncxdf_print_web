@@ -5,7 +5,7 @@ from flask import Flask, render_template, request, redirect, url_for, flash, jso
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 import os
 import secrets
@@ -85,6 +85,52 @@ class CookiesConfig(db.Model):
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
+
+# Cookies超时检查
+@app.before_request
+def check_cookie_timeout():
+    """检查cookies是否超时，超时则强制退出"""
+    # 排除不需要登录的路由
+    excluded_endpoints = ['login', 'captcha', 'static']
+    
+    if request.endpoint in excluded_endpoints:
+        return
+    
+    # 如果用户已登录，检查cookies超时
+    if current_user.is_authenticated:
+        login_time_cookie = request.cookies.get('login_time')
+        
+        if login_time_cookie:
+            try:
+                # 解析登录时间
+                login_time = datetime.fromtimestamp(float(login_time_cookie))
+                now = datetime.now()
+                
+                # 检查是否超过12小时
+                if now - login_time > timedelta(hours=12):
+                    # 超时，强制退出
+                    logout_user()
+                    session.clear()
+                    response = make_response(redirect(url_for('login')))
+                    # 删除登录时间cookie
+                    response.set_cookie('login_time', '', expires=0)
+                    flash('登录已超时（12小时），请重新登录', 'warning')
+                    return response
+            except (ValueError, TypeError):
+                # cookie值无效，强制退出
+                logout_user()
+                session.clear()
+                response = make_response(redirect(url_for('login')))
+                response.set_cookie('login_time', '', expires=0)
+                flash('登录状态异常，请重新登录', 'warning')
+                return response
+        else:
+            # 没有登录时间cookie，设置一个
+            response = make_response()
+            response.set_cookie('login_time', 
+                              str(datetime.now().timestamp()), 
+                              max_age=12*60*60)  # 12小时
+            return response
 
 # 验证码生成函数
 def generate_captcha_code():
@@ -218,10 +264,19 @@ def login():
             # 检查是否是首次登录
             if user.is_first_login:
                 flash('这是您的首次登录，请立即修改您的密码以确保账户安全！', 'warning')
-                return redirect(url_for('first_login_change_password'))
+                response = make_response(redirect(url_for('first_login_change_password')))
+            else:
+                flash(f'欢迎回来，{user.username}！', 'success')
+                response = make_response(redirect(url_for('dashboard')))
             
-            flash(f'欢迎回来，{user.username}！', 'success')
-            return redirect(url_for('dashboard'))
+            # 设置登录时间cookie，有效期12小时
+            response.set_cookie('login_time', 
+                              str(datetime.now().timestamp()), 
+                              max_age=12*60*60,  # 12小时（秒）
+                              httponly=True,     # 防止JavaScript访问
+                              secure=False)      # 开发环境设为False，生产环境应设为True
+            
+            return response
         else:
             flash('用户名或密码错误', 'error')
     
@@ -231,8 +286,14 @@ def login():
 @login_required
 def logout():
     logout_user()
+    session.clear()  # 清除所有session数据
     flash('已成功退出登录', 'info')
-    return redirect(url_for('login'))
+    
+    # 创建响应并删除登录时间cookie
+    response = make_response(redirect(url_for('login')))
+    response.set_cookie('login_time', '', expires=0)
+    
+    return response
 
 @app.route('/dashboard')
 @login_required
@@ -622,6 +683,8 @@ def change_password():
 def tech_support():
     """技术支持页面"""
     return render_template('tech_support.html')
+
+
 
 @app.route('/cookies_config')
 @login_required
