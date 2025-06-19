@@ -51,6 +51,7 @@
                                 <th>密码</th>
                                 <th>姓名</th>
                                 <th>邮箱</th>
+                                <th>角色</th>
                                 <th>操作</th>
                             </tr>
                         </thead>
@@ -71,11 +72,22 @@
                                     <span class="text-muted">{{ user.email or '未设置' }}</span>
                                 </td>
                                 <td>
+                                    {% if user.role == 'admin' %}
+                                        <span class="badge bg-warning text-dark">
+                                            <i class="fas fa-crown me-1"></i>管理员
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-primary">
+                                            <i class="fas fa-user me-1"></i>普通用户
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td>
                                     <button class="btn btn-outline-primary btn-sm" onclick="copyUser('{{ user.username }}', '{{ user.password }}')">
                                         <i class="fas fa-copy"></i>
                                     </button>
                                 </td>
-                            </tr>
+            </tr>
                             {% endfor %}
                         </tbody>
                     </table>

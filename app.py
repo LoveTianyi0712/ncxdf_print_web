@@ -3,10 +3,18 @@
 
 """
 南昌新东方凭证打印系统
-Version: 2.1.0
+Version: 2.2.0
 Release Date: 2025-06-19
 
 更新日志:
+v2.2.0 (2025-06-19)
+- 新增Excel批量导入用户功能，支持用户名、密码、姓名、邮箱、角色等完整信息导入
+- 提供详细的Excel模板下载，包含数据模板和填写说明两个工作表
+- 优化用户创建界面，Excel导入功能置于页面顶部突出推荐使用
+- 增强数据验证机制，支持用户名唯一性检查、邮箱格式验证、角色权限验证
+- 使用openpyxl库替代pandas，简化依赖并提升Excel处理性能
+- 用户创建成功页面增加角色显示列，提供更完整的用户信息展示
+
 v2.1.0 (2025-06-19)
 - 新增消息盒子系统，支持打印成功、变更申请等各种消息通知
 - 增强管理员审批功能，支持备注信息
@@ -28,14 +36,18 @@ v1.0.0 (2025-06-01)
 - Cookies配置管理
 """
 
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session, make_response
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session, make_response, send_file
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 from datetime import datetime, timedelta
 import json
 import os
 import secrets
+import openpyxl
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from io import BytesIO
 from utils import (
     ProofPrintSimulator, 
     TEMPLATE_MAPPING,
@@ -885,6 +897,284 @@ def create_user():
     
     return render_template('create_user.html')
 
+@app.route('/download_user_template')
+@login_required
+@admin_required
+def download_user_template():
+    """下载用户批量导入Excel模板"""
+    try:
+        # 创建工作簿
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "用户批量导入模板"
+        
+        # 设置表头
+        headers = ['用户名*', '密码', '姓名', '邮箱', '角色', '备注']
+        for col, header in enumerate(headers, 1):
+            cell = ws.cell(row=1, column=col, value=header)
+            # 设置表头样式
+            cell.font = Font(bold=True, color='FFFFFF')
+            cell.fill = PatternFill(start_color='366092', end_color='366092', fill_type='solid')
+            cell.alignment = Alignment(horizontal='center', vertical='center')
+            cell.border = Border(
+                left=Side(style='thin'),
+                right=Side(style='thin'),
+                top=Side(style='thin'),
+                bottom=Side(style='thin')
+            )
+        
+        # 添加示例数据
+        sample_data = [
+            ['user001', '123456', '张三', 'zhangsan@example.com', 'user', '示例用户1'],
+            ['user002', '123456', '李四', 'lisi@example.com', 'user', '示例用户2'],
+            ['user003', '123456', '王五', 'wangwu@example.com', 'admin', '示例管理员'],
+            ['teacher001', '123456', '张老师', 'teacher@example.com', 'user', '教师账号'],
+            ['student001', '123456', '小明', 'student@example.com', 'user', '学生账号']
+        ]
+        
+        for row, data in enumerate(sample_data, 2):
+            for col, value in enumerate(data, 1):
+                cell = ws.cell(row=row, column=col, value=value)
+                cell.border = Border(
+                    left=Side(style='thin'),
+                    right=Side(style='thin'),
+                    top=Side(style='thin'),
+                    bottom=Side(style='thin')
+                )
+                # 为角色列添加颜色区分
+                if col == 5:  # 角色列
+                    if value == 'admin':
+                        cell.fill = PatternFill(start_color='FFF2CC', end_color='FFF2CC', fill_type='solid')
+                    else:
+                        cell.fill = PatternFill(start_color='E8F5E8', end_color='E8F5E8', fill_type='solid')
+        
+        # 设置列宽
+        column_widths = [15, 12, 12, 25, 8, 20]
+        for col, width in enumerate(column_widths, 1):
+            ws.column_dimensions[openpyxl.utils.get_column_letter(col)].width = width
+        
+        # 添加说明工作表
+        ws_info = wb.create_sheet("填写说明")
+        
+        # 说明内容
+        instructions = [
+            ['字段名称', '是否必填', '说明', '示例'],
+            ['用户名', '是', '用户登录名，必须唯一，不能重复', 'user001, teacher001'],
+            ['密码', '否', '用户密码，如果不填写则使用默认密码：123456', '123456, mypassword'],
+            ['姓名', '否', '用户真实姓名，支持中文', '张三, 李老师'],
+            ['邮箱', '否', '用户邮箱地址', 'user@example.com'],
+            ['角色', '否', '用户角色，只能填写 user 或 admin，默认为 user', 'user, admin'],
+            ['备注', '否', '备注信息，仅用于说明，不会导入到系统中', '任意文本'],
+            ['', '', '', ''],
+            ['重要说明：', '', '', ''],
+            ['1. 带*号的字段为必填项', '', '', ''],
+            ['2. 用户名不能重复，如果系统中已存在相同用户名，该行将被跳过', '', '', ''],
+            ['3. 密码如果不填写，系统将使用默认密码：123456', '', '', ''],
+            ['4. 角色只能填写 user（普通用户）或 admin（管理员）', '', '', ''],
+            ['5. 管理员角色拥有完整的系统管理权限，请谨慎分配', '', '', ''],
+            ['6. 示例数据可以删除，填写您的实际数据', '', '', ''],
+            ['7. 支持批量导入，一次最多导入1000个用户', '', '', ''],
+            ['8. 请保持Excel格式不变，不要修改表头', '', '', '']
+        ]
+        
+        for row, data in enumerate(instructions, 1):
+            for col, value in enumerate(data, 1):
+                cell = ws_info.cell(row=row, column=col, value=value)
+                if row == 1:  # 表头
+                    cell.font = Font(bold=True, color='FFFFFF')
+                    cell.fill = PatternFill(start_color='366092', end_color='366092', fill_type='solid')
+                    cell.alignment = Alignment(horizontal='center', vertical='center')
+                elif row >= 9 and col == 1:  # 重要说明
+                    cell.font = Font(bold=True, color='D32F2F')
+                cell.border = Border(
+                    left=Side(style='thin'),
+                    right=Side(style='thin'),
+                    top=Side(style='thin'),
+                    bottom=Side(style='thin')
+                )
+        
+        # 设置说明工作表列宽
+        info_column_widths = [15, 10, 50, 25]
+        for col, width in enumerate(info_column_widths, 1):
+            ws_info.column_dimensions[openpyxl.utils.get_column_letter(col)].width = width
+        
+        # 保存到内存
+        output = BytesIO()
+        wb.save(output)
+        output.seek(0)
+        
+        # 生成文件名
+        filename = f'用户批量导入模板_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
+        
+        return send_file(
+            output,
+            as_attachment=True,
+            download_name=filename,
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        
+    except Exception as e:
+        flash(f'生成模板失败：{str(e)}', 'error')
+        return redirect(url_for('create_user'))
+
+@app.route('/import_users_excel', methods=['POST'])
+@login_required
+@admin_required
+def import_users_excel():
+    """Excel批量导入用户"""
+    if 'excel_file' not in request.files:
+        flash('请选择要上传的Excel文件', 'error')
+        return redirect(url_for('create_user'))
+    
+    file = request.files['excel_file']
+    if file.filename == '':
+        flash('请选择要上传的Excel文件', 'error')
+        return redirect(url_for('create_user'))
+    
+    if not file or not file.filename.lower().endswith(('.xlsx', '.xls')):
+        flash('请上传有效的Excel文件（.xlsx或.xls格式）', 'error')
+        return redirect(url_for('create_user'))
+    
+    try:
+        # 读取Excel文件
+        wb = openpyxl.load_workbook(file)
+        ws = wb.active
+        
+        # 获取表头
+        headers = []
+        for cell in ws[1]:
+            if cell.value:
+                headers.append(str(cell.value).strip())
+            else:
+                headers.append('')
+        
+        # 检查必要的列
+        required_columns = ['用户名*']
+        missing_columns = [col for col in required_columns if col not in headers]
+        if missing_columns:
+            flash(f'Excel文件缺少必要的列：{", ".join(missing_columns)}', 'error')
+            return redirect(url_for('create_user'))
+        
+        # 获取列索引
+        col_indices = {}
+        for i, header in enumerate(headers):
+            if header in ['用户名*', '密码', '姓名', '邮箱', '角色']:
+                col_indices[header] = i
+        
+        # 读取数据行
+        data_rows = []
+        for row in ws.iter_rows(min_row=2, values_only=True):
+            if row and any(cell is not None for cell in row):  # 跳过空行
+                data_rows.append(row)
+        
+        if len(data_rows) == 0:
+            flash('Excel文件中没有有效的用户数据', 'error')
+            return redirect(url_for('create_user'))
+        
+        if len(data_rows) > 1000:
+            flash('一次最多只能导入1000个用户，请分批导入', 'error')
+            return redirect(url_for('create_user'))
+        
+        created_users = []
+        errors = []
+        
+        for index, row in enumerate(data_rows):
+            try:
+                # 获取各列数据
+                username_col = col_indices.get('用户名*', 0)
+                password_col = col_indices.get('密码', -1)
+                name_col = col_indices.get('姓名', -1)
+                email_col = col_indices.get('邮箱', -1)
+                role_col = col_indices.get('角色', -1)
+                
+                username = str(row[username_col]).strip() if row[username_col] else ''
+                password = str(row[password_col]).strip() if password_col >= 0 and len(row) > password_col and row[password_col] else '123456'
+                name = str(row[name_col]).strip() if name_col >= 0 and len(row) > name_col and row[name_col] else None
+                email = str(row[email_col]).strip() if email_col >= 0 and len(row) > email_col and row[email_col] else None
+                role = str(row[role_col]).strip().lower() if role_col >= 0 and len(row) > role_col and row[role_col] else 'user'
+                
+                # 清理数据
+                if password == '' or password == 'nan':
+                    password = '123456'
+                if name == '' or name == 'nan':
+                    name = None
+                if email == '' or email == 'nan':
+                    email = None
+                if role == '' or role == 'nan':
+                    role = 'user'
+                
+                # 验证用户名
+                if not username:
+                    errors.append(f'第{index+2}行：用户名不能为空')
+                    continue
+                
+                # 验证用户名唯一性
+                if User.query.filter_by(username=username, is_deleted=False).first():
+                    errors.append(f'第{index+2}行：用户名 {username} 已存在')
+                    continue
+                
+                # 验证角色
+                if role not in ['user', 'admin']:
+                    errors.append(f'第{index+2}行：角色 {role} 无效，只能是 user 或 admin')
+                    continue
+                
+                # 验证邮箱格式（如果提供）
+                if email:
+                    import re
+                    email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+                    if not re.match(email_pattern, email):
+                        errors.append(f'第{index+2}行：邮箱格式无效 {email}')
+                        continue
+                
+                # 创建用户
+                user = User(
+                    username=username,
+                    password_hash=generate_password_hash(password),
+                    name=name,
+                    email=email,
+                    role=role,
+                    created_by=current_user.id
+                )
+                db.session.add(user)
+                created_users.append({
+                    'username': username,
+                    'password': password,
+                    'name': name,
+                    'email': email,
+                    'role': role
+                })
+                
+            except Exception as e:
+                errors.append(f'第{index+2}行：处理失败 - {str(e)}')
+                continue
+        
+        # 提交数据库事务
+        if created_users:
+            try:
+                db.session.commit()
+                flash(f'成功导入 {len(created_users)} 个用户', 'success')
+            except Exception as e:
+                db.session.rollback()
+                flash(f'导入失败：{str(e)}', 'error')
+                return redirect(url_for('create_user'))
+        
+        # 显示错误信息
+        if errors:
+            for error in errors[:10]:  # 最多显示10个错误
+                flash(error, 'warning')
+            if len(errors) > 10:
+                flash(f'还有 {len(errors)-10} 个错误未显示', 'warning')
+        
+        if created_users:
+            return render_template('user_created.html', users=created_users)
+        else:
+            flash('没有成功导入任何用户', 'error')
+            return redirect(url_for('create_user'))
+            
+    except Exception as e:
+        flash(f'读取Excel文件失败：{str(e)}', 'error')
+        return redirect(url_for('create_user'))
+
 @app.route('/toggle_user/<int:user_id>')
 @login_required
 @admin_required
@@ -1577,9 +1867,9 @@ def get_version():
     """获取系统版本信息"""
     return jsonify({
         'name': '南昌新东方凭证打印系统',
-        'version': '2.1.0',
+        'version': '2.2.0',
         'release_date': '2025-06-19',
-        'description': '支持多种凭证打印、用户管理、消息通知的综合管理系统'
+        'description': '支持多种凭证打印、用户管理、Excel批量导入、消息通知的综合管理系统'
     })
 
 @app.route('/tech_support')

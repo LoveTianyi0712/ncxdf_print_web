@@ -16,10 +16,58 @@
 
 <div class="row">
     <div class="col-md-8">
+        <!-- Excel批量导入卡片 -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-file-excel me-2 text-success"></i>Excel批量导入
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-primary">
+                            <i class="fas fa-download me-1"></i>第一步：下载模板
+                        </h6>
+                        <p class="text-muted mb-3">下载Excel模板文件，按照要求填写用户信息</p>
+                        <a href="{{ url_for('download_user_template') }}" class="btn btn-success">
+                            <i class="fas fa-download me-1"></i>下载Excel模板
+                        </a>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-primary">
+                            <i class="fas fa-upload me-1"></i>第二步：上传文件
+                        </h6>
+                        <p class="text-muted mb-3">填写完成后，上传Excel文件进行批量导入</p>
+                        <form action="{{ url_for('import_users_excel') }}" method="POST" enctype="multipart/form-data" class="d-flex gap-2">
+                            <input type="file" class="form-control" name="excel_file" accept=".xlsx,.xls" required>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-upload me-1"></i>导入
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                
+                <div class="alert alert-info mt-3">
+                    <h6 class="alert-heading">
+                        <i class="fas fa-info-circle me-1"></i>Excel导入说明
+                    </h6>
+                    <ul class="mb-0">
+                        <li>支持 .xlsx 和 .xls 格式文件</li>
+                        <li>模板包含详细的填写说明和示例数据</li>
+                        <li>一次最多可导入1000个用户</li>
+                        <li>重复用户名会自动跳过</li>
+                        <li>支持姓名、邮箱等完整信息导入</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 手动创建卡片 -->
         <div class="card">
             <div class="card-header">
                 <h5 class="card-title mb-0">
-                    <i class="fas fa-user-plus me-2"></i>新建用户账号
+                    <i class="fas fa-user-plus me-2"></i>手动创建用户
                 </h5>
             </div>
             <div class="card-body">
@@ -104,7 +152,17 @@
                 </h5>
             </div>
             <div class="card-body">
-                <h6 class="text-primary">批量创建</h6>
+                <h6 class="text-success">
+                    <i class="fas fa-file-excel me-1"></i>Excel批量导入（推荐）
+                </h6>
+                <ul class="list-unstyled mb-3">
+                    <li><i class="fas fa-check text-success me-2"></i>支持大批量用户导入</li>
+                    <li><i class="fas fa-check text-success me-2"></i>包含姓名、邮箱等完整信息</li>
+                    <li><i class="fas fa-check text-success me-2"></i>模板带详细说明和示例</li>
+                    <li><i class="fas fa-check text-success me-2"></i>自动验证数据格式</li>
+                </ul>
+                
+                <h6 class="text-primary">手动批量创建</h6>
                 <ul class="list-unstyled mb-3">
                     <li><i class="fas fa-check text-success me-2"></i>支持一次创建多个用户</li>
                     <li><i class="fas fa-check text-success me-2"></i>用户名和密码按行对应</li>
