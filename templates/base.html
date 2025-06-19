@@ -179,34 +179,49 @@
             width: 20px;
         }
         
-        /* 自定义绿色主题 */
+        /* 自定义绿色主题 - 强制覆盖Bootstrap默认蓝色 */
         .bg-primary {
             background-color: #287042 !important;
         }
         
         .btn-primary {
-            background-color: #287042;
-            border-color: #287042;
+            background-color: #287042 !important;
+            border-color: #287042 !important;
         }
         
         .btn-primary:hover {
-            background-color: #1e5432;
-            border-color: #1e5432;
+            background-color: #1e5432 !important;
+            border-color: #1e5432 !important;
         }
         
         .btn-primary:focus,
         .btn-primary.focus {
-            box-shadow: 0 0 0 0.2rem rgba(40, 112, 66, 0.5);
+            background-color: #287042 !important;
+            border-color: #287042 !important;
+            box-shadow: 0 0 0 0.2rem rgba(40, 112, 66, 0.5) !important;
+        }
+        
+        .btn-primary:active {
+            background-color: #1e5432 !important;
+            border-color: #1e5432 !important;
         }
         
         .btn-outline-primary {
-            color: #287042;
-            border-color: #287042;
+            color: #287042 !important;
+            border-color: #287042 !important;
         }
         
         .btn-outline-primary:hover {
-            background-color: #287042;
-            border-color: #287042;
+            background-color: #287042 !important;
+            border-color: #287042 !important;
+            color: #ffffff !important;
+        }
+        
+        .btn-outline-primary:focus {
+            background-color: #287042 !important;
+            border-color: #287042 !important;
+            color: #ffffff !important;
+            box-shadow: 0 0 0 0.2rem rgba(40, 112, 66, 0.5) !important;
         }
         
         .text-primary {
@@ -218,9 +233,9 @@
         }
         
         .alert-primary {
-            color: #1e5432;
-            background-color: #d4edda;
-            border-color: #287042;
+            color: #1e5432 !important;
+            background-color: #d4edda !important;
+            border-color: #287042 !important;
         }
         
         .badge.bg-primary {
@@ -228,30 +243,45 @@
         }
         
         .form-check-input:checked {
-            background-color: #287042;
-            border-color: #287042;
+            background-color: #287042 !important;
+            border-color: #287042 !important;
         }
         
         .form-control:focus {
-            border-color: #287042;
-            box-shadow: 0 0 0 0.2rem rgba(40, 112, 66, 0.25);
+            border-color: #287042 !important;
+            box-shadow: 0 0 0 0.2rem rgba(40, 112, 66, 0.25) !important;
         }
         
         .page-link {
-            color: #287042;
+            color: #287042 !important;
         }
         
         .page-item.active .page-link {
-            background-color: #287042;
-            border-color: #287042;
+            background-color: #287042 !important;
+            border-color: #287042 !important;
         }
         
         .nav-pills .nav-link.active {
-            background-color: #287042;
+            background-color: #287042 !important;
         }
         
         .progress-bar {
-            background-color: #287042;
+            background-color: #287042 !important;
+        }
+        
+        /* 导航栏主题色 */
+        .navbar.bg-primary {
+            background-color: #287042 !important;
+        }
+        
+        /* 确保所有Bootstrap primary变体都使用绿色 */
+        .link-primary {
+            color: #287042 !important;
+        }
+        
+        .btn-check:checked + .btn-primary {
+            background-color: #287042 !important;
+            border-color: #287042 !important;
         }
         
         /* 可打印凭证列表滚动样式 */
