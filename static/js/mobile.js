@@ -355,6 +355,31 @@ function throttle(func, limit) {
     }
 }
 
+// 处理移动端版权信息和操作栏的位置关系
+function handleMobileFooterPosition() {
+    const isMobile = window.innerWidth <= 768;
+    if (!isMobile) return;
+    
+    const footer = document.querySelector('footer');
+    const actionBar = document.querySelector('.mobile-action-bar');
+    
+    if (footer && actionBar) {
+        // 检查操作栏是否显示
+        const actionBarVisible = actionBar.style.display !== 'none' && 
+                                 getComputedStyle(actionBar).display !== 'none';
+        
+        if (actionBarVisible) {
+            footer.style.bottom = '60px'; // 操作栏高度
+        } else {
+            footer.style.bottom = '0';
+        }
+    }
+}
+
+// 在窗口加载和大小变化时调用
+window.addEventListener('load', handleMobileFooterPosition);
+window.addEventListener('resize', handleMobileFooterPosition);
+
 // 导出函数供其他脚本使用
 window.mobileUtils = {
     toggleMobileMenu,
@@ -362,5 +387,6 @@ window.mobileUtils = {
     closeMobileMenu,
     optimizePrintPreviewForMobile,
     zoomPrintPreview,
-    setViewportHeight
+    setViewportHeight,
+    handleMobileFooterPosition
 }; 

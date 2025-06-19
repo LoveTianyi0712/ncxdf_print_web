@@ -2,6 +2,11 @@
 
 /* 基础响应式设置 */
 @media (max-width: 768px) {
+    /* 为移动端底部操作栏预留空间 */
+    body {
+        padding-bottom: 140px; /* 增加底部内边距，为版权信息和移动操作栏留空间 */
+    }
+    
     /* 隐藏侧边栏，改为折叠菜单 */
     .sidebar {
         position: fixed;
@@ -328,6 +333,41 @@
     }
 }
 
+/* 版权信息样式 */
+footer {
+    margin-top: auto;
+    font-size: 0.875rem;
+    border-top: 1px solid #e9ecef;
+}
+
+@media (max-width: 768px) {
+    footer {
+        position: fixed;
+        bottom: 60px; /* 在移动端操作栏上方 */
+        left: 0;
+        right: 0;
+        z-index: 100;
+        background-color: #f8f9fa !important;
+        margin-top: 0;
+        padding: 8px 0 !important;
+        font-size: 0.8rem;
+        box-shadow: 0 -1px 3px rgba(0,0,0,0.1);
+    }
+    
+    /* 当有移动端操作栏时调整位置 */
+    .mobile-action-bar + footer,
+    body:has(.mobile-action-bar[style*="display: block"]) footer {
+        bottom: 60px;
+    }
+}
+
+@media (max-width: 576px) {
+    footer {
+        font-size: 0.75rem;
+        padding: 6px 0 !important;
+    }
+}
+
 /* 横屏模式优化 */
 @media (orientation: landscape) and (max-height: 500px) {
     .sidebar {
@@ -346,5 +386,10 @@
     
     .card {
         margin-bottom: 0.5rem;
+    }
+    
+    footer {
+        position: relative;
+        bottom: auto;
     }
 } 

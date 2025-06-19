@@ -446,7 +446,7 @@ if __name__ == "__main__":
         
         # 学员信息
         'sStudentName': '张小明',
-        'sStudentCode': 'NC2024001',
+        'sStudentCode': 'NC12345678',
         'sGender': '男',
         'sCardCode': 'CARD001234',
         

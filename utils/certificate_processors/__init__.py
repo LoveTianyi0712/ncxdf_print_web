@@ -19,11 +19,18 @@ from .refund_fee_certificate import (
     generate_refund_fee_certificate
 )
 
+from .search_class_certificate import (
+    search_student,
+    search_student_classes
+)
+
 __all__ = [
     'StudentAccountCertificateProcessor',
     'generate_student_account_certificate',
     'EnrollmentCertificateProcessor',
     'generate_enrollment_certificate',
     'RefundFeeCertificateProcessor',
-    'generate_refund_fee_certificate'
+    'generate_refund_fee_certificate',
+    'search_student',
+    'search_student_classes'
 ] 

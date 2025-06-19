@@ -223,221 +223,54 @@ def search_student():
     if not student_code:
         return jsonify({'error': '请输入学员编码'}), 400
     
-    # 模拟数据 - 后续需要替换为实际的数据库查询
-    mock_data = {
-        # 新功能测试数据（使用原有编码）
-        'NC2024001': {
-            'student_name': '张小明',
-            'gender': '男',
-            'reports': [
-                {
-                    'biz_type': 1,  # 班级凭证（使用原有编码1）
-                    'biz_name': '班级凭证',
-                    'data': {
-                        # 基本信息
-                        'sSchoolName': '南昌学校',
-                        'sTelePhone': '400-175-9898',
-                        'sChannel': '直营',
-                        
-                        # 学员信息
-                        'sStudentName': '张小明',
-                        'sStudentCode': 'NC2024001',
-                        'sGender': '男',
-                        'sCardCode': 'CARD001234',
-                        
-                        # 班级信息
-                        'sClassName': '高中数学春季班',
-                        'sClassCode': 'MATH2024SP001',
-                        'sSeatNo': 'A015',
-                        'dtBeginDate': '2024-03-01',
-                        'dtEndDate': '2024-06-30',
-                        'nTryLesson': '2节',
-                        
-                        # 时间信息
-                        'sRegisterTime': '2024-02-15 10:30:00 报名成功，欢迎参加南昌学校高中数学春季班学习！',
-                        'sPrintAddress': '南昌市红谷滩新区学府大道1号南昌学校',
-                        'sPrintTime': get_beijing_time_str(),
-                        'dtCreate': get_beijing_time_str(),
-                        
-                        # 费用信息
-                        'dFee': 3800.00,           # 商品标准金额
-                        'dVoucherFee': 300.00,     # 商品优惠金额
-                        'dShouldFee': 3800.00,     # 商品应收金额
-                        'dRealFee': 3500.00,       # 商品实收金额
-                        
-                        # 操作信息
-                        'sOperator': current_user.username,
-                        
-                        # 图像数据（可选）
-                        'RWMImage': ''
-                    }
-                }
-            ]
-        },
-        'NC2024002': {
-            'student_name': '李小红',
-            'gender': '女',
-            'reports': [
-                {
-                    'biz_type': 6,  # 学员账户凭证 - 充值（使用原有编码6）
-                    'biz_name': '学员账户充值提现凭证',
-                    'data': {
-                        'nSchoolId': '001',
-                        'sSchoolName': '南昌学校',
-                        'sOperator': current_user.username,
-                        'sStudentCode': 'NC2024002',
-                        'sStudentName': '李小红',
-                        'sPay': '15000.00',
-                        'sPayType': '支付宝',
-                        'sProofName': '充值凭证',
-                        'sBizType': '充值',
-                        'dSumBalance': '25000.00',
-                        'dtCreateDate': get_beijing_time_str(),
-                        'sTelePhone': '400-175-9898',
-                        'Title': '充值凭证'
-                    }
-                },
-                {
-                    'biz_type': 6,  # 学员账户凭证 - 提现（使用原有编码6）
-                    'biz_name': '学员账户充值提现凭证',
-                    'data': {
-                        'nSchoolId': '001',
-                        'sSchoolName': '南昌学校',
-                        'sOperator': current_user.username,
-                        'sStudentCode': 'NC2024002',
-                        'sStudentName': '李小红',
-                        'sPay': '8000.00',
-                        'sPayType': '银行转账',
-                        'sProofName': '提现凭证',
-                        'sBizType': '提现',
-                        'dSumBalance': '17000.00',
-                        'dtCreateDate': get_beijing_time_str(),
-                        'sTelePhone': '400-175-9898',
-                        'Title': '提现凭证'
-                    }
-                }
-            ]
-        },
-        'NC2024003': {
-            'student_name': '王小强',
-            'gender': '男',
-            'reports': [
-                {
-                    'biz_type': 8,  
-                    'biz_name': '退费凭证',
-                    'data': {
-                        # 基本信息
-                        'sSchoolName': '南昌学校',
-                        'sTelePhone': '400-175-9898',
-                        'Title': '退费凭证',
-                        'sBizType': '退费',
-                        'sOperator': current_user.username,
-                        'dtCreate': get_beijing_time_str(),
-                        'dtCreateDate': get_beijing_time_str(),
-                        
-                        # 学员信息
-                        'sStudentName': '王小强',
-                        'sStudentCode': 'NC2024003',
-                        'sGender': '男',
-                        'sSeatNo': 'B012',
-                        'sRegZoneName': '南昌红谷滩校区',
-                        
-                        # 班级信息
-                        'sClassName': '初中英语暑期班',
-                        'sClassCode': 'ENG2024SU001',
-                        
-                        # 金额信息
-                        'dRefundFee': 2800.00,          # 退费金额
-                        'sPay': '2800.00',              # 退费金额（字符串格式）
-                        'sPayType': '银行转账',          # 退费方式
-                        'dSumBalance': '3200.00',       # 余额
-                    }
-                }
-            ]
-        },
+    # 尝试使用实际的班级凭证搜索功能
+    try:
+        from utils.certificate_processors.search_class_certificate import search_student
         
-        # 传统凭证测试数据（保持原有）
-        'NC6080119755': {
-            'student_name': '王淳懿',
-            'gender': '未知',
-            'reports': [
-                {
-                    'biz_type': 6,
-                    'biz_name': '学员账户充值提现凭证',
-                    'data': {
-                        "nSchoolId": 35,
-                        "sSchoolName": "南昌学校",
-                        "sTelePhone": "400-175-9898",
-                        "sOperator": current_user.username,
-                        "dtCreate": get_beijing_time_str(),
-                        "Title": "提现凭证",
-                        "PrintNumber": 1,
-                        "YNVIEWPrint": 1,
-                        "PrintDocument": "",
-                        "sStudentCode": student_code,
-                        "sStudentName": "王淳懿",
-                        "sGender": "未知",
-                        "sPay": "提现金额：¥1,499.00",
-                        "dSumBalance": "余额：¥0.00",
-                        "sPayType": "提现方式：现金支付¥1499.00",
-                        "dtCreateDate": "2025-06-04 09:04:30",
-                        "sProofName": "提现凭证",
-                        "sBizType": "提现",
-                        "nBizId": 126560050,
-                        "sRegZoneName": "客服行政"
-                    }
-                },
-            ]
-        },
-        'NC6080119756': {
-            'student_name': '张三',
-            'gender': '男',
-            'reports': [
-                {
-                    'biz_type': 6,
-                    'biz_name': '学员账户充值提现凭证',
-                    'data': {
-                        "nSchoolId": 35,
-                        "sSchoolName": "南昌学校",
-                        "sTelePhone": "400-175-9898",
-                        "sOperator": current_user.username,
-                        "dtCreate": get_beijing_time_str(),
-                        "Title": "提现凭证",
-                        "PrintNumber": 1,
-                        "YNVIEWPrint": 1,
-                        "PrintDocument": "",
-                        "sStudentCode": student_code,
-                        "sStudentName": "张三",
-                        "sGender": "男",
-                        "sPay": "报名费用：¥3999.00",
-                        "dSumBalance": "余额：¥0.00",
-                        "sPayType": "支付方式：支付宝¥3999.00",
-                        "dtCreateDate": "2025-06-04 10:30:20",
-                        "sProofName": "学员账户充值提现凭证",
-                        "sBizType": "提现",
-                        "nBizId": 126560002,
-                        "sRegZoneName": "客服行政"
-                    }
-                }
-            ]
-        }
-    }
-    
-    if student_code in mock_data:
-        student_info = mock_data[student_code]
+        # 从用户会话获取cookies，如果没有则使用None（函数内部会使用默认配置）
+        cookies = session.get('user_cookies', None)
         
-        # 为每个报告添加详细信息描述
-        for report in student_info.get('reports', []):
-            biz_type = report.get('biz_type')
-            data = report.get('data', {})
+        # 调用实际的搜索功能
+        search_result = search_student(cookies, current_user, student_code)
+        
+        if search_result == 0:
+            return jsonify({'error': '未找到该学员的信息'}), 404
+        elif search_result == 404:
+            # 如果API调用失败，回退到模拟数据
+            return _fallback_mock_search(student_code)
+        elif isinstance(search_result, list) and len(search_result) > 0:
+            # 成功获取到实际数据
+            # 提取学生基本信息
+            first_record = search_result[0]['data']
+            student_info = {
+                'student_name': first_record['sStudentName'],
+                'gender': first_record['sGender'],
+                'reports': search_result
+            }
             
-            # 生成详细信息描述
-            _, detail_info = _get_certificate_info(biz_type, data)
-            report['description'] = detail_info
-        
-        return jsonify(student_info)
-    else:
-        return jsonify({'error': '未找到该学员的信息'}), 404
+            # 为每个报告添加详细信息描述
+            for report in student_info.get('reports', []):
+                biz_type = report.get('biz_type')
+                data = report.get('data', {})
+                
+                # 生成详细信息描述
+                _, detail_info = _get_certificate_info(biz_type, data)
+                report['description'] = detail_info
+            
+            return jsonify(student_info)
+        else:
+            return jsonify({'error': '未找到该学员的班级信息'}), 404
+            
+    except Exception as e:
+        print(f"搜索学生信息时发生错误: {str(e)}")
+        # 发生错误时回退到模拟数据
+        return _fallback_mock_search(student_code)
+
+
+def _fallback_mock_search(student_code):
+    """回退到模拟数据搜索"""
+    # 不再提供测试数据，直接返回未找到
+    return jsonify({'error': '未找到该学员的信息'}), 404
 
 @app.route('/generate_print', methods=['POST'])
 @login_required
@@ -614,6 +447,41 @@ def change_password():
 def tech_support():
     """技术支持页面"""
     return render_template('tech_support.html')
+
+@app.route('/test_class_search')
+@login_required
+def test_class_search():
+    """测试班级凭证搜索功能"""
+    student_code = request.args.get('student_code', '').strip()
+    
+    if not student_code:
+        return jsonify({'error': '请提供学生编号', 'example': '/test_class_search?student_code=NC12345678'}), 400
+    
+    try:
+        from utils.certificate_processors.search_class_certificate import search_student
+        
+        # 使用None来让函数使用默认配置
+        cookies = None
+        
+        # 调用搜索功能
+        result = search_student(cookies, current_user, student_code)
+        
+        if result == 0:
+            return jsonify({'error': '未找到该学员', 'student_code': student_code})
+        elif result == 404:
+            return jsonify({'error': 'API调用失败，可能是网络问题或认证失效', 'student_code': student_code})
+        elif isinstance(result, list):
+            return jsonify({
+                'success': True,
+                'student_code': student_code,
+                'class_count': len(result),
+                'classes': result
+            })
+        else:
+            return jsonify({'error': '未知的返回结果', 'result': result})
+            
+    except Exception as e:
+        return jsonify({'error': f'测试失败: {str(e)}', 'student_code': student_code})
 
 def _get_certificate_info(biz_type, student_data):
     """根据业务类型和学员数据生成凭证名称和详细信息"""
