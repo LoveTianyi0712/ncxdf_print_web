@@ -51,6 +51,8 @@ class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     password_hash = db.Column(db.String(120), nullable=False)
+    name = db.Column(db.String(100), nullable=True, comment='用户真实姓名')  # 新增姓名字段
+    email = db.Column(db.String(120), nullable=True, comment='用户邮箱')  # 新增邮箱字段
     role = db.Column(db.String(20), nullable=False, default='user')  # 'admin' or 'user'
     is_enabled = db.Column(db.Boolean, default=True)
     is_first_login = db.Column(db.Boolean, default=True)  # 是否是首次登录
@@ -388,6 +390,8 @@ def users():
     
     # 搜索参数
     search_username = request.args.get('search_username', '').strip()
+    search_name = request.args.get('search_name', '').strip()  # 新增姓名搜索
+    search_email = request.args.get('search_email', '').strip()  # 新增邮箱搜索
     search_role = request.args.get('search_role', '').strip()
     search_status = request.args.get('search_status', '').strip()
     search_activation = request.args.get('search_activation', '').strip()
@@ -405,6 +409,14 @@ def users():
     # 用户名筛选
     if search_username:
         query = query.filter(User.username.like(f'%{search_username}%'))
+    
+    # 姓名筛选
+    if search_name:
+        query = query.filter(User.name.like(f'%{search_name}%'))
+    
+    # 邮箱筛选
+    if search_email:
+        query = query.filter(User.email.like(f'%{search_email}%'))
     
     # 角色筛选
     if search_role:
@@ -452,6 +464,8 @@ def users():
     # 构建排序
     valid_sort_fields = {
         'username': User.username,
+        'name': User.name,
+        'email': User.email,
         'role': User.role,
         'is_enabled': User.is_enabled,
         'is_first_login': User.is_first_login,
@@ -475,6 +489,10 @@ def users():
     search_params = {}
     if search_username:
         search_params['search_username'] = search_username
+    if search_name:
+        search_params['search_name'] = search_name
+    if search_email:
+        search_params['search_email'] = search_email
     if search_role:
         search_params['search_role'] = search_role
     if search_status:
@@ -529,6 +547,8 @@ def create_user():
     if request.method == 'POST':
         usernames = request.form.get('usernames', '').strip()
         passwords = request.form.get('passwords', '').strip()
+        names = request.form.get('names', '').strip()  # 新增姓名参数
+        emails = request.form.get('emails', '').strip()  # 新增邮箱参数
         role = request.form.get('role', 'user')
         
         if not usernames:
@@ -538,9 +558,17 @@ def create_user():
         # 处理批量创建
         username_list = [u.strip() for u in usernames.split('\n') if u.strip()]
         password_list = []
+        name_list = []
+        email_list = []
         
         if passwords:
             password_list = [p.strip() for p in passwords.split('\n') if p.strip()]
+        
+        if names:
+            name_list = [n.strip() for n in names.split('\n') if n.strip()]
+        
+        if emails:
+            email_list = [e.strip() for e in emails.split('\n') if e.strip()]
         
         created_users = []
         errors = []
@@ -556,14 +584,25 @@ def create_user():
             else:
                 password = '123456'  # 默认密码
             
+            # 获取对应的姓名和邮箱
+            name = name_list[i] if i < len(name_list) else None
+            email = email_list[i] if i < len(email_list) else None
+            
             user = User(
                 username=username,
                 password_hash=generate_password_hash(password),
+                name=name,
+                email=email,
                 role=role,
                 created_by=current_user.id
             )
             db.session.add(user)
-            created_users.append({'username': username, 'password': password})
+            created_users.append({
+                'username': username, 
+                'password': password, 
+                'name': name, 
+                'email': email
+            })
         
         try:
             db.session.commit()

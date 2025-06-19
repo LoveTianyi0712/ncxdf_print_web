@@ -49,6 +49,8 @@
                                 <th>序号</th>
                                 <th>用户名</th>
                                 <th>密码</th>
+                                <th>姓名</th>
+                                <th>邮箱</th>
                                 <th>操作</th>
                             </tr>
                         </thead>
@@ -61,6 +63,12 @@
                                 </td>
                                 <td>
                                     <code>{{ user.password }}</code>
+                                </td>
+                                <td>
+                                    <span class="text-muted">{{ user.name or '未设置' }}</span>
+                                </td>
+                                <td>
+                                    <span class="text-muted">{{ user.email or '未设置' }}</span>
                                 </td>
                                 <td>
                                     <button class="btn btn-outline-primary btn-sm" onclick="copyUser('{{ user.username }}', '{{ user.password }}')">

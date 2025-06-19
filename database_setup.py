@@ -183,23 +183,43 @@ def create_admin_user():
         print("管理员用户创建成功: admin / admin123")
 
 def migrate_user_table():
-    """为User表添加is_deleted字段的迁移"""
+    """为User表添加is_deleted字段以及name和email字段的迁移"""
     with app.app_context():
         try:
-            # 检查is_deleted字段是否已存在
+            # 检查各个字段是否已存在
             from sqlalchemy import inspect, text
             inspector = inspect(db.engine)
             columns = [column['name'] for column in inspector.get_columns('user')]
             
+            # 添加is_deleted字段
             if 'is_deleted' not in columns:
                 print("正在为User表添加is_deleted字段...")
-                # 使用新的语法执行SQL
                 with db.engine.connect() as connection:
                     connection.execute(text('ALTER TABLE user ADD COLUMN is_deleted BOOLEAN DEFAULT 0 NOT NULL'))
                     connection.commit()
                 print("is_deleted字段添加成功！")
             else:
                 print("is_deleted字段已存在，跳过迁移")
+            
+            # 添加name字段
+            if 'name' not in columns:
+                print("正在为User表添加name字段...")
+                with db.engine.connect() as connection:
+                    connection.execute(text('ALTER TABLE user ADD COLUMN name VARCHAR(100) NULL COMMENT "用户真实姓名"'))
+                    connection.commit()
+                print("name字段添加成功！")
+            else:
+                print("name字段已存在，跳过迁移")
+            
+            # 添加email字段
+            if 'email' not in columns:
+                print("正在为User表添加email字段...")
+                with db.engine.connect() as connection:
+                    connection.execute(text('ALTER TABLE user ADD COLUMN email VARCHAR(120) NULL COMMENT "用户邮箱"'))
+                    connection.commit()
+                print("email字段添加成功！")
+            else:
+                print("email字段已存在，跳过迁移")
                 
         except Exception as e:
             print(f"迁移过程中出现错误: {str(e)}")

@@ -28,7 +28,7 @@
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="usernames" class="form-label">用户名 <span class="text-danger">*</span></label>
-                                <textarea class="form-control" id="usernames" name="usernames" rows="10" 
+                                <textarea class="form-control" id="usernames" name="usernames" rows="8" 
                                           placeholder="每行一个用户名，支持批量创建：&#10;user1&#10;user2&#10;user3" required></textarea>
                                 <div class="form-text">
                                     <i class="fas fa-info-circle me-1"></i>每行输入一个用户名，支持批量创建
@@ -39,10 +39,34 @@
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="passwords" class="form-label">密码 <span class="text-muted">(可选)</span></label>
-                                <textarea class="form-control" id="passwords" name="passwords" rows="10" 
+                                <textarea class="form-control" id="passwords" name="passwords" rows="8" 
                                           placeholder="每行一个密码，与用户名对应：&#10;password1&#10;password2&#10;password3"></textarea>
                                 <div class="form-text">
                                     <i class="fas fa-info-circle me-1"></i>每行一个密码，如果不填写则使用默认密码：123456
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="names" class="form-label">姓名 <span class="text-muted">(可选)</span></label>
+                                <textarea class="form-control" id="names" name="names" rows="6" 
+                                          placeholder="每行一个姓名，与用户名对应：&#10;张三&#10;李四&#10;王五"></textarea>
+                                <div class="form-text">
+                                    <i class="fas fa-info-circle me-1"></i>每行一个真实姓名，支持中文
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="emails" class="form-label">邮箱 <span class="text-muted">(可选)</span></label>
+                                <textarea class="form-control" id="emails" name="emails" rows="6" 
+                                          placeholder="每行一个邮箱，与用户名对应：&#10;user1@example.com&#10;user2@example.com&#10;user3@example.com"></textarea>
+                                <div class="form-text">
+                                    <i class="fas fa-info-circle me-1"></i>每行一个邮箱地址
                                 </div>
                             </div>
                         </div>
@@ -134,6 +158,8 @@
 function clearForm() {
     document.getElementById('usernames').value = '';
     document.getElementById('passwords').value = '';
+    document.getElementById('names').value = '';
+    document.getElementById('emails').value = '';
     document.getElementById('role').value = 'user';
 }
 
@@ -141,35 +167,51 @@ function clearForm() {
 function fillTemplate(type) {
     const usernamesField = document.getElementById('usernames');
     const passwordsField = document.getElementById('passwords');
+    const namesField = document.getElementById('names');
+    const emailsField = document.getElementById('emails');
     
     let usernames = '';
     let passwords = '';
+    let names = '';
+    let emails = '';
     
     switch(type) {
         case 'student':
             usernames = 'student001\nstudent002\nstudent003\nstudent004\nstudent005';
             passwords = '123456\n123456\n123456\n123456\n123456';
+            names = '张小明\n李小红\n王小华\n刘小刚\n陈小美';
+            emails = 'student001@example.com\nstudent002@example.com\nstudent003@example.com\nstudent004@example.com\nstudent005@example.com';
             break;
         case 'teacher':
             usernames = 'teacher001\nteacher002\nteacher003';
             passwords = '123456\n123456\n123456';
+            names = '张老师\n李老师\n王老师';
+            emails = 'teacher001@example.com\nteacher002@example.com\nteacher003@example.com';
             break;
         case 'staff':
             usernames = 'staff001\nstaff002\nstaff003';
             passwords = '123456\n123456\n123456';
+            names = '张员工\n李员工\n王员工';
+            emails = 'staff001@example.com\nstaff002@example.com\nstaff003@example.com';
             break;
     }
     
     usernamesField.value = usernames;
     passwordsField.value = passwords;
+    namesField.value = names;
+    emailsField.value = emails;
     
     // 添加视觉反馈
     usernamesField.style.backgroundColor = '#e3f2fd';
     passwordsField.style.backgroundColor = '#e3f2fd';
+    namesField.style.backgroundColor = '#e3f2fd';
+    emailsField.style.backgroundColor = '#e3f2fd';
     
     setTimeout(() => {
         usernamesField.style.backgroundColor = '';
         passwordsField.style.backgroundColor = '';
+        namesField.style.backgroundColor = '';
+        emailsField.style.backgroundColor = '';
     }, 1000);
 }
 

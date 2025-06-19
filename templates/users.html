@@ -82,6 +82,16 @@
                            placeholder="用户名" value="{{ search_params.get('search_username', '') }}">
                 </div>
                 <div class="col-md-2">
+                    <label for="search_name" class="form-label">姓名</label>
+                    <input type="text" class="form-control" id="search_name" name="search_name" 
+                           placeholder="真实姓名" value="{{ search_params.get('search_name', '') }}">
+                </div>
+                <div class="col-md-2">
+                    <label for="search_email" class="form-label">邮箱</label>
+                    <input type="text" class="form-control" id="search_email" name="search_email" 
+                           placeholder="邮箱地址" value="{{ search_params.get('search_email', '') }}">
+                </div>
+                <div class="col-md-2">
                     <label for="search_role" class="form-label">角色</label>
                     <select class="form-select" id="search_role" name="search_role">
                         <option value="">全部角色</option>
@@ -105,6 +115,8 @@
                         <option value="pending" {% if search_params.get('search_activation') == 'pending' %}selected{% endif %}>待激活</option>
                     </select>
                 </div>
+            </div>
+            <div class="row mt-3">
                 <div class="col-md-2">
                     <label for="search_date_start" class="form-label">开始日期</label>
                     <input type="date" class="form-control" id="search_date_start" name="search_date_start" 
@@ -115,8 +127,6 @@
                     <input type="date" class="form-control" id="search_date_end" name="search_date_end" 
                            value="{{ search_params.get('search_date_end', '') }}">
                 </div>
-            </div>
-            <div class="row mt-3">
                 <div class="col-md-2">
                     <label for="search_creator" class="form-label">创建者</label>
                     <input type="text" class="form-control" id="search_creator" name="search_creator" 
@@ -194,6 +204,30 @@
                                 <i class="fas fa-sort text-muted"></i>
                             {% endif %}
                         </th>
+                        <th class="sortable" data-sort="name" style="cursor: pointer;">
+                            姓名
+                            {% if search_params.get('sort_by') == 'name' %}
+                                {% if search_params.get('sort_order') == 'asc' %}
+                                    <i class="fas fa-sort-up"></i>
+                                {% else %}
+                                    <i class="fas fa-sort-down"></i>
+                                {% endif %}
+                            {% else %}
+                                <i class="fas fa-sort text-muted"></i>
+                            {% endif %}
+                        </th>
+                        <th class="sortable" data-sort="email" style="cursor: pointer;">
+                            邮箱
+                            {% if search_params.get('sort_by') == 'email' %}
+                                {% if search_params.get('sort_order') == 'asc' %}
+                                    <i class="fas fa-sort-up"></i>
+                                {% else %}
+                                    <i class="fas fa-sort-down"></i>
+                                {% endif %}
+                            {% else %}
+                                <i class="fas fa-sort text-muted"></i>
+                            {% endif %}
+                        </th>
                         <th class="sortable" data-sort="role" style="cursor: pointer;">
                             角色
                             {% if search_params.get('sort_by') == 'role' %}
@@ -257,6 +291,12 @@
                                 </div>
                                 {{ user.username }}
                             </div>
+                        </td>
+                        <td>
+                            <span class="text-muted">{{ user.name or '未设置' }}</span>
+                        </td>
+                        <td>
+                            <span class="text-muted">{{ user.email or '未设置' }}</span>
                         </td>
                         <td>
                             {% if user.role == 'admin' %}

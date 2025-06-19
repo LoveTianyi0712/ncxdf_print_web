@@ -440,10 +440,18 @@ def search_student(cookies, current_user, student_code):
         print(f"最终提取的学员姓名: '{student_name}', 性别: '{s_gender}'")
 
         # 构建学员基本信息
+        # 操作员逻辑：如果姓名为空、None或"未设置"，则使用用户名
+        operator_name = 'system'
+        if current_user:
+            if current_user.name and current_user.name.strip() and current_user.name.strip() != '未设置':
+                operator_name = current_user.name.strip()
+            else:
+                operator_name = current_user.username
+        
         student_info = {
             'student_name': student_name,
             'gender': s_gender,
-            'operator': current_user.username if current_user else 'system',
+            'operator': operator_name,
             'reports': []
         }
 
