@@ -69,6 +69,7 @@ import pymysql
 from PIL import Image, ImageDraw, ImageFont
 import random
 import string
+import re  # 新增正则表达式模块用于密码验证
 
 # 安装PyMySQL作为MySQLdb的替代
 pymysql.install_as_MySQLdb()
@@ -187,7 +188,149 @@ class Message(db.Model):
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-# 消息创建辅助函数
+# 密码安全验证函数
+def validate_password_security(password):
+    """
+    验证密码安全性和防止危险字符
+    返回: (is_valid, error_message)
+    """
+    if not password:
+        return False, "密码不能为空"
+    
+    # 长度检查
+    if len(password) < 6:
+        return False, "密码长度至少6位"
+    
+    if len(password) > 128:
+        return False, "密码长度不能超过128位"
+    
+    # 禁止的危险字符和SQL注入关键词
+    dangerous_chars = [
+        "'", '"', '\\', ';', '--', '/*', '*/', 'xp_', 'sp_',
+        '<script', '</script>', '<', '>', '&lt;', '&gt;',
+        'javascript:', 'vbscript:', 'onload=', 'onerror=',
+        'eval(', 'exec(', 'system(', 'cmd(', '|', '&', '`'
+    ]
+    
+    # SQL注入关键词检查（不区分大小写）
+    sql_keywords = [
+        'select', 'insert', 'update', 'delete', 'drop', 'create',
+        'alter', 'exec', 'execute', 'union', 'or 1=1', 'and 1=1',
+        'information_schema', 'sysobjects', 'syscolumns', 'master',
+        'xp_cmdshell', 'sp_executesql', 'openrowset', 'opendatasource'
+    ]
+    
+    password_lower = password.lower()
+    
+    # 检查危险字符
+    for char in dangerous_chars:
+        if char in password:
+            return False, f"密码不能包含危险字符: {char}"
+    
+    # 检查SQL关键词
+    for keyword in sql_keywords:
+        if keyword in password_lower:
+            return False, f"密码不能包含SQL关键词: {keyword}"
+    
+    # 检查是否包含HTML/JavaScript标签
+    html_pattern = r'<[^>]*>'
+    if re.search(html_pattern, password, re.IGNORECASE):
+        return False, "密码不能包含HTML标签"
+    
+    # 检查是否全是相同字符
+    if len(set(password)) == 1:
+        return False, "密码不能全是相同字符"
+    
+    # 检查是否是连续字符（如123456, abcdef）
+    consecutive_nums = '0123456789' * 2
+    consecutive_chars = 'abcdefghijklmnopqrstuvwxyz' * 2
+    if password.lower() in consecutive_nums or password.lower() in consecutive_chars:
+        return False, "密码不能是连续的数字或字母"
+    
+    # 检查常见弱密码
+    weak_passwords = [
+        '123456', '123456789', 'password', 'admin', 'root', 'user',
+        'guest', 'test', '111111', '000000', 'qwerty', 'abc123',
+        'admin123', 'root123', 'user123', '123123', '321321',
+        'password123', 'admin888', 'root888', '666666', '888888'
+    ]
+    
+    if password.lower() in weak_passwords:
+        return False, "密码过于简单，请使用更安全的密码"
+    
+    return True, "密码验证通过"
+
+def sanitize_password_input(password):
+    """
+    清理密码输入，移除首尾空白字符
+    """
+    if not password:
+        return ""
+    
+    # 只移除首尾空白，保留密码中间的空格（如果用户故意设置）
+    return password.strip()
+
+def check_password_strength(password):
+    """
+    检查密码强度
+    返回: (strength_level, strength_text, suggestions)
+    """
+    if not password:
+        return 0, "无", ["请输入密码"]
+    
+    score = 0
+    suggestions = []
+    
+    # 长度检查
+    if len(password) >= 8:
+        score += 2
+    elif len(password) >= 6:
+        score += 1
+    else:
+        suggestions.append("密码长度至少6位，建议8位以上")
+    
+    # 包含小写字母
+    if re.search(r'[a-z]', password):
+        score += 1
+    else:
+        suggestions.append("建议包含小写字母")
+    
+    # 包含大写字母
+    if re.search(r'[A-Z]', password):
+        score += 1
+    else:
+        suggestions.append("建议包含大写字母")
+    
+    # 包含数字
+    if re.search(r'[0-9]', password):
+        score += 1
+    else:
+        suggestions.append("建议包含数字")
+    
+    # 包含特殊字符（安全的特殊字符）
+    safe_special_chars = r'[!@#$%^&*()_+\-=\[\]{}|:,.<>?~]'
+    if re.search(safe_special_chars, password):
+        score += 2
+    else:
+        suggestions.append("建议包含特殊字符（如!@#$%等）")
+    
+    # 字符多样性
+    unique_chars = len(set(password))
+    if unique_chars >= len(password) * 0.7:
+        score += 1
+    
+    # 确定强度等级
+    if score >= 7:
+        return 5, "很强", suggestions
+    elif score >= 5:
+        return 4, "强", suggestions
+    elif score >= 3:
+        return 3, "中等", suggestions
+    elif score >= 1:
+        return 2, "弱", suggestions
+    else:
+        return 1, "很弱", suggestions
+
 def create_message(user_id, message_type, title, content, related_id=None, related_type=None):
     """创建用户消息"""
     try:
@@ -859,29 +1002,38 @@ def create_user():
             
             # 如果提供了密码列表，使用对应的密码，否则使用默认密码
             if i < len(password_list):
-                password = password_list[i]
+                password = sanitize_password_input(password_list[i])
             else:
                 password = '123456'  # 默认密码
+            
+            # 验证密码安全性
+            is_valid, error_msg = validate_password_security(password)
+            if not is_valid:
+                errors.append(f'用户 {username} 的密码不符合安全要求：{error_msg}')
+                continue
             
             # 获取对应的姓名和邮箱
             name = name_list[i] if i < len(name_list) else None
             email = email_list[i] if i < len(email_list) else None
             
-            user = User(
-                username=username,
-                password_hash=generate_password_hash(password),
-                name=name,
-                email=email,
-                role=role,
-                created_by=current_user.id
-            )
-            db.session.add(user)
-            created_users.append({
-                'username': username, 
-                'password': password, 
-                'name': name, 
-                'email': email
-            })
+            try:
+                user = User(
+                    username=username,
+                    password_hash=generate_password_hash(password),
+                    name=name,
+                    email=email,
+                    role=role,
+                    created_by=current_user.id
+                )
+                db.session.add(user)
+                created_users.append({
+                    'username': username, 
+                    'password': password, 
+                    'name': name, 
+                    'email': email
+                })
+            except Exception as e:
+                errors.append(f'创建用户 {username} 失败：{str(e)}')
         
         try:
             db.session.commit()
@@ -960,7 +1112,7 @@ def download_user_template():
         instructions = [
             ['字段名称', '是否必填', '说明', '示例'],
             ['用户名', '是', '用户登录名，必须唯一，不能重复', 'user001, teacher001'],
-            ['密码', '否', '用户密码，如果不填写则使用默认密码：123456', '123456, mypassword'],
+            ['密码', '否', '用户密码，如果不填写则使用默认密码：123456', 'Abc123456, MyPass@2024'],
             ['姓名', '否', '用户真实姓名，支持中文', '张三, 李老师'],
             ['邮箱', '否', '用户邮箱地址', 'user@example.com'],
             ['角色', '否', '用户角色，只能填写 user 或 admin，默认为 user', 'user, admin'],
@@ -974,7 +1126,15 @@ def download_user_template():
             ['5. 管理员角色拥有完整的系统管理权限，请谨慎分配', '', '', ''],
             ['6. 示例数据可以删除，填写您的实际数据', '', '', ''],
             ['7. 支持批量导入，一次最多导入1000个用户', '', '', ''],
-            ['8. 请保持Excel格式不变，不要修改表头', '', '', '']
+            ['8. 请保持Excel格式不变，不要修改表头', '', '', ''],
+            ['', '', '', ''],
+            ['密码安全要求：', '', '', ''],
+            ['• 长度至少6位，建议8位以上', '', '', ''],
+            ['• 不能包含危险字符：引号、分号、脚本标签等', '', '', ''],
+            ['• 不能包含SQL关键词：select、insert、delete等', '', '', ''],
+            ['• 不能是常见弱密码：123456、password、admin等', '', '', ''],
+            ['• 不能全是相同字符或连续字符', '', '', ''],
+            ['• 建议包含大小写字母、数字和特殊字符', '', '', '']
         ]
         
         for row, data in enumerate(instructions, 1):
@@ -1103,6 +1263,9 @@ def import_users_excel():
                 if role == '' or role == 'nan':
                     role = 'user'
                 
+                # 清理密码输入
+                password = sanitize_password_input(password)
+                
                 # 验证用户名
                 if not username:
                     errors.append(f'第{index+2}行：用户名不能为空')
@@ -1113,6 +1276,12 @@ def import_users_excel():
                     errors.append(f'第{index+2}行：用户名 {username} 已存在')
                     continue
                 
+                # 验证密码安全性
+                is_valid, error_msg = validate_password_security(password)
+                if not is_valid:
+                    errors.append(f'第{index+2}行：密码不符合安全要求 - {error_msg}')
+                    continue
+                
                 # 验证角色
                 if role not in ['user', 'admin']:
                     errors.append(f'第{index+2}行：角色 {role} 无效，只能是 user 或 admin')
@@ -1120,7 +1289,6 @@ def import_users_excel():
                 
                 # 验证邮箱格式（如果提供）
                 if email:
-                    import re
                     email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
                     if not re.match(email_pattern, email):
                         errors.append(f'第{index+2}行：邮箱格式无效 {email}')
@@ -1569,20 +1737,27 @@ def first_login_change_password():
         return redirect(url_for('change_password'))
     
     if request.method == 'POST':
-        current_password = request.form['current_password']
-        new_password = request.form['new_password']
-        confirm_password = request.form['confirm_password']
+        # 清理输入数据，防止注入
+        current_password = sanitize_password_input(request.form.get('current_password', ''))
+        new_password = sanitize_password_input(request.form.get('new_password', ''))
+        confirm_password = sanitize_password_input(request.form.get('confirm_password', ''))
         
         # 验证当前密码
+        if not current_password:
+            flash('请输入当前密码', 'error')
+            return render_template('first_login_change_password.html')
+            
         if not check_password_hash(current_user.password_hash, current_password):
             flash('当前密码错误', 'error') 
             return render_template('first_login_change_password.html')
         
-        # 验证新密码
-        if len(new_password) < 6:
-            flash('新密码长度至少6位', 'error')
+        # 验证新密码安全性
+        is_valid, error_msg = validate_password_security(new_password)
+        if not is_valid:
+            flash(f'新密码不符合安全要求：{error_msg}', 'error')
             return render_template('first_login_change_password.html')
         
+        # 验证密码确认
         if new_password != confirm_password:
             flash('两次输入的新密码不一致', 'error')
             return render_template('first_login_change_password.html')
@@ -1592,13 +1767,19 @@ def first_login_change_password():
             flash('新密码不能与当前密码相同', 'error')
             return render_template('first_login_change_password.html')
         
-        # 更新密码并标记非首次登录
-        current_user.password_hash = generate_password_hash(new_password)
-        current_user.is_first_login = False
-        db.session.commit()
-        
-        flash('密码修改成功，欢迎使用系统！', 'success')
-        return redirect(url_for('dashboard'))
+        try:
+            # 更新密码并标记非首次登录
+            current_user.password_hash = generate_password_hash(new_password)
+            current_user.is_first_login = False
+            db.session.commit()
+            
+            flash('密码修改成功，欢迎使用系统！', 'success')
+            return redirect(url_for('dashboard'))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'密码修改失败：{str(e)}', 'error')
+            return render_template('first_login_change_password.html')
     
     return render_template('first_login_change_password.html')
 
@@ -1607,30 +1788,48 @@ def first_login_change_password():
 @first_login_required
 def change_password():
     if request.method == 'POST':
-        current_password = request.form['current_password']
-        new_password = request.form['new_password']
-        confirm_password = request.form['confirm_password']
+        # 清理输入数据，防止注入
+        current_password = sanitize_password_input(request.form.get('current_password', ''))
+        new_password = sanitize_password_input(request.form.get('new_password', ''))
+        confirm_password = sanitize_password_input(request.form.get('confirm_password', ''))
         
         # 验证当前密码
+        if not current_password:
+            flash('请输入当前密码', 'error')
+            return render_template('change_password.html')
+            
         if not check_password_hash(current_user.password_hash, current_password):
             flash('当前密码错误', 'error') 
             return render_template('change_password.html')
         
-        # 验证新密码
-        if len(new_password) < 6:
-            flash('新密码长度至少6位', 'error')
+        # 验证新密码安全性
+        is_valid, error_msg = validate_password_security(new_password)
+        if not is_valid:
+            flash(f'新密码不符合安全要求：{error_msg}', 'error')
             return render_template('change_password.html')
         
+        # 验证密码确认
         if new_password != confirm_password:
             flash('两次输入的新密码不一致', 'error')
             return render_template('change_password.html')
         
-        # 更新密码
-        current_user.password_hash = generate_password_hash(new_password)
-        db.session.commit()
+        # 检查新密码是否与旧密码相同
+        if check_password_hash(current_user.password_hash, new_password):
+            flash('新密码不能与当前密码相同', 'error')
+            return render_template('change_password.html')
         
-        flash('密码修改成功', 'success')
-        return redirect(url_for('dashboard'))
+        try:
+            # 更新密码
+            current_user.password_hash = generate_password_hash(new_password)
+            db.session.commit()
+            
+            flash('密码修改成功', 'success')
+            return redirect(url_for('dashboard'))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'密码修改失败：{str(e)}', 'error')
+            return render_template('change_password.html')
     
     return render_template('change_password.html')
 
@@ -1858,9 +2057,44 @@ def delete_message(message_id):
 @app.route('/api/get_unread_count')
 @login_required
 def get_unread_count():
-    """获取未读消息数量"""
-    count = Message.query.filter_by(user_id=current_user.id, is_read=False).count()
-    return jsonify({'count': count})
+    unread_count = Message.query.filter_by(user_id=current_user.id, is_read=False).count()
+    return jsonify({'unread_count': unread_count})
+
+@app.route('/api/check_password_strength', methods=['POST'])
+@login_required
+def api_check_password_strength():
+    """检查密码强度的API接口"""
+    try:
+        data = request.get_json()
+        password = data.get('password', '')
+        
+        # 清理密码输入
+        password = sanitize_password_input(password)
+        
+        # 验证密码安全性
+        is_valid, error_msg = validate_password_security(password)
+        
+        # 检查密码强度
+        strength_level, strength_text, suggestions = check_password_strength(password)
+        
+        return jsonify({
+            'is_valid': is_valid,
+            'error_message': error_msg if not is_valid else None,
+            'strength_level': strength_level,
+            'strength_text': strength_text,
+            'suggestions': suggestions,
+            'score': strength_level * 20  # 转换为百分比
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'is_valid': False,
+            'error_message': f'检查失败：{str(e)}',
+            'strength_level': 0,
+            'strength_text': '无',
+            'suggestions': ['请输入有效密码'],
+            'score': 0
+        }), 500
 
 @app.route('/api/version')
 def get_version():
