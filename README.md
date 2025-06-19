@@ -197,6 +197,7 @@ python scripts/generate_test_certificates.py
 - **🔧 模板解析**：高效的MRT模板解析器
 - **📊 数据验证**：完整的字段验证和默认值处理
 - **🖼️ 图像渲染**：支持图像、线条、文本等所有组件类型
+- **🔍 统一搜索**：集成学员所有类型凭证的搜索功能
 
 ### 处理器架构
 ```
@@ -204,6 +205,7 @@ utils/certificate_processors/
 ├── student_account_certificate.py  # 学员账户凭证
 ├── enrollment_certificate.py       # 班级凭证
 ├── refund_fee_certificate.py       # 退费凭证
+├── search_student_certificate.py   # 统一学员凭证搜索
 └── print_simulator.py             # 通用模板解析器
 ```
 
@@ -304,6 +306,10 @@ result = generate_enrollment_certificate(data)
 # 退费凭证
 from utils.certificate_processors.refund_fee_certificate import generate_refund_fee_certificate
 result = generate_refund_fee_certificate(data)
+
+# 统一学员凭证搜索（包含班级凭证和充值提现记录）
+from utils.certificate_processors.search_student_certificate import search_student
+result = search_student(cookies, current_user, 'NC12345678')
 ```
 
 ### Q: 如何添加新的凭证类型？

@@ -223,9 +223,9 @@ def search_student():
     if not student_code:
         return jsonify({'error': '请输入学员编码'}), 400
     
-    # 尝试使用实际的班级凭证搜索功能
+    # 尝试使用实际的学员凭证搜索功能（包含班级凭证和充值提现记录）
     try:
-        from utils.certificate_processors.search_class_certificate import search_student
+        from utils.certificate_processors.search_student_certificate import search_student
         
         # 从用户会话获取cookies，如果没有则使用None（函数内部会使用默认配置）
         cookies = session.get('user_cookies', None)
@@ -238,15 +238,9 @@ def search_student():
         elif search_result == 404:
             # 如果API调用失败，回退到模拟数据
             return _fallback_mock_search(student_code)
-        elif isinstance(search_result, list) and len(search_result) > 0:
-            # 成功获取到实际数据
-            # 提取学生基本信息
-            first_record = search_result[0]['data']
-            student_info = {
-                'student_name': first_record['sStudentName'],
-                'gender': first_record['sGender'],
-                'reports': search_result
-            }
+        elif isinstance(search_result, dict) and 'reports' in search_result:
+            # 成功获取到实际数据（新格式）
+            student_info = search_result
             
             # 为每个报告添加详细信息描述
             for report in student_info.get('reports', []):
@@ -259,7 +253,7 @@ def search_student():
             
             return jsonify(student_info)
         else:
-            return jsonify({'error': '未找到该学员的班级信息'}), 404
+            return jsonify({'error': '未找到该学员的凭证信息'}), 404
             
     except Exception as e:
         print(f"搜索学生信息时发生错误: {str(e)}")
@@ -451,14 +445,14 @@ def tech_support():
 @app.route('/test_class_search')
 @login_required
 def test_class_search():
-    """测试班级凭证搜索功能"""
+    """测试学员凭证搜索功能（包含班级凭证和充值提现记录）"""
     student_code = request.args.get('student_code', '').strip()
     
     if not student_code:
         return jsonify({'error': '请提供学生编号', 'example': '/test_class_search?student_code=NC12345678'}), 400
     
     try:
-        from utils.certificate_processors.search_class_certificate import search_student
+        from utils.certificate_processors.search_student_certificate import search_student
         
         # 使用None来让函数使用默认配置
         cookies = None
@@ -470,12 +464,14 @@ def test_class_search():
             return jsonify({'error': '未找到该学员', 'student_code': student_code})
         elif result == 404:
             return jsonify({'error': 'API调用失败，可能是网络问题或认证失效', 'student_code': student_code})
-        elif isinstance(result, list):
+        elif isinstance(result, dict) and 'reports' in result:
             return jsonify({
                 'success': True,
                 'student_code': student_code,
-                'class_count': len(result),
-                'classes': result
+                'student_name': result.get('student_name', ''),
+                'gender': result.get('gender', ''),
+                'certificate_count': len(result['reports']),
+                'certificates': result['reports']
             })
         else:
             return jsonify({'error': '未知的返回结果', 'result': result})

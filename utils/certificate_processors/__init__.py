@@ -19,7 +19,7 @@ from .refund_fee_certificate import (
     generate_refund_fee_certificate
 )
 
-from .search_class_certificate import (
+from .search_student_certificate import (
     search_student,
     search_student_classes
 )

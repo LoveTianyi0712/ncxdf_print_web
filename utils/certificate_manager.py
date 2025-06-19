@@ -30,6 +30,11 @@ CERTIFICATE_MAPPING = {
         'template': '退费凭证.mrt', 
         'processor': 'refund_fee_certificate'
     },
+    5: {
+        'name': '班级凭证',
+        'template': '班级凭证.mrt',
+        'processor': 'enrollment_certificate'
+    },
 
 }
 
