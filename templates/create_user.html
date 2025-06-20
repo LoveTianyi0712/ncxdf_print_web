@@ -1,0 +1,285 @@
+{% extends "base.html" %}
+
+{% block title %}创建用户 - 南昌新东方凭证打印系统{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">创建用户</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <div class="btn-group me-2">
+            <a href="{{ url_for('users') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i>返回用户列表
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <!-- Excel批量导入卡片 -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-file-excel me-2 text-success"></i>Excel批量导入
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-primary">
+                            <i class="fas fa-download me-1"></i>第一步：下载模板
+                        </h6>
+                        <p class="text-muted mb-3">下载Excel模板文件，按照要求填写用户信息</p>
+                        <a href="{{ url_for('download_user_template') }}" class="btn btn-success">
+                            <i class="fas fa-download me-1"></i>下载Excel模板
+                        </a>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-primary">
+                            <i class="fas fa-upload me-1"></i>第二步：上传文件
+                        </h6>
+                        <p class="text-muted mb-3">填写完成后，上传Excel文件进行批量导入</p>
+                        <form action="{{ url_for('import_users_excel') }}" method="POST" enctype="multipart/form-data" class="d-flex gap-2">
+                            <input type="file" class="form-control" name="excel_file" accept=".xlsx,.xls" required>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-upload me-1"></i>导入
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                
+                <div class="alert alert-info mt-3">
+                    <h6 class="alert-heading">
+                        <i class="fas fa-info-circle me-1"></i>Excel导入说明
+                    </h6>
+                    <ul class="mb-0">
+                        <li>支持 .xlsx 和 .xls 格式文件</li>
+                        <li>模板包含详细的填写说明和示例数据</li>
+                        <li>一次最多可导入1000个用户</li>
+                        <li>重复用户名会自动跳过</li>
+                        <li>支持姓名、邮箱等完整信息导入</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 手动创建卡片 -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-user-plus me-2"></i>手动创建用户
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="usernames" class="form-label">用户名 <span class="text-danger">*</span></label>
+                                <textarea class="form-control" id="usernames" name="usernames" rows="8" 
+                                          placeholder="每行一个用户名，支持批量创建：&#10;user1&#10;user2&#10;user3" required></textarea>
+                                <div class="form-text">
+                                    <i class="fas fa-info-circle me-1"></i>每行输入一个用户名，支持批量创建
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="passwords" class="form-label">密码 <span class="text-muted">(可选)</span></label>
+                                <textarea class="form-control" id="passwords" name="passwords" rows="8" 
+                                          placeholder="每行一个密码，与用户名对应：&#10;password1&#10;password2&#10;password3"></textarea>
+                                <div class="form-text">
+                                    <i class="fas fa-info-circle me-1"></i>每行一个密码，如果不填写则使用默认密码：123456
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="names" class="form-label">姓名 <span class="text-muted">(可选)</span></label>
+                                <textarea class="form-control" id="names" name="names" rows="6" 
+                                          placeholder="每行一个姓名，与用户名对应：&#10;张三&#10;李四&#10;王五"></textarea>
+                                <div class="form-text">
+                                    <i class="fas fa-info-circle me-1"></i>每行一个真实姓名，支持中文
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="emails" class="form-label">邮箱 <span class="text-muted">(可选)</span></label>
+                                <textarea class="form-control" id="emails" name="emails" rows="6" 
+                                          placeholder="每行一个邮箱，与用户名对应：&#10;user1@example.com&#10;user2@example.com&#10;user3@example.com"></textarea>
+                                <div class="form-text">
+                                    <i class="fas fa-info-circle me-1"></i>每行一个邮箱地址
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="role" class="form-label">用户角色</label>
+                        <select class="form-select" id="role" name="role">
+                            <option value="user" selected>普通用户</option>
+                            <option value="admin">管理员</option>
+                        </select>
+                        <div class="form-text">
+                            <i class="fas fa-exclamation-triangle text-warning me-1"></i>管理员拥有完整的系统管理权限，请谨慎分配
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <button type="button" class="btn btn-outline-secondary me-md-2" onclick="clearForm()">
+                            <i class="fas fa-eraser me-1"></i>清空
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-user-plus me-1"></i>创建用户
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-info-circle me-2"></i>创建说明
+                </h5>
+            </div>
+            <div class="card-body">
+                <h6 class="text-success">
+                    <i class="fas fa-file-excel me-1"></i>Excel批量导入（推荐）
+                </h6>
+                <ul class="list-unstyled mb-3">
+                    <li><i class="fas fa-check text-success me-2"></i>支持大批量用户导入</li>
+                    <li><i class="fas fa-check text-success me-2"></i>包含姓名、邮箱等完整信息</li>
+                    <li><i class="fas fa-check text-success me-2"></i>模板带详细说明和示例</li>
+                    <li><i class="fas fa-check text-success me-2"></i>自动验证数据格式</li>
+                </ul>
+                
+                <h6 class="text-primary">手动批量创建</h6>
+                <ul class="list-unstyled mb-3">
+                    <li><i class="fas fa-check text-success me-2"></i>支持一次创建多个用户</li>
+                    <li><i class="fas fa-check text-success me-2"></i>用户名和密码按行对应</li>
+                    <li><i class="fas fa-check text-success me-2"></i>重复用户名将被跳过</li>
+                </ul>
+                
+                <h6 class="text-info">默认设置</h6>
+                <ul class="list-unstyled mb-3">
+                    <li><i class="fas fa-key text-warning me-2"></i>默认密码：123456</li>
+                    <li><i class="fas fa-check-circle text-success me-2"></i>默认状态：启用</li>
+                    <li><i class="fas fa-user text-primary me-2"></i>默认角色：普通用户</li>
+                </ul>
+                
+                <h6 class="text-warning">注意事项</h6>
+                <ul class="list-unstyled">
+                    <li><i class="fas fa-exclamation-triangle text-warning me-2"></i>请妥善保管账号信息</li>
+                    <li><i class="fas fa-shield-alt text-danger me-2"></i>管理员权限需谨慎分配</li>
+                    <li><i class="fas fa-users text-info me-2"></i>建议定期检查用户状态</li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- 快速模板 -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-magic me-2"></i>快速模板
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="fillTemplate('student')">
+                        <i class="fas fa-graduation-cap me-1"></i>学员账号模板
+                    </button>
+                    <button type="button" class="btn btn-outline-success btn-sm" onclick="fillTemplate('teacher')">
+                        <i class="fas fa-chalkboard-teacher me-1"></i>教师账号模板
+                    </button>
+                    <button type="button" class="btn btn-outline-info btn-sm" onclick="fillTemplate('staff')">
+                        <i class="fas fa-user-tie me-1"></i>员工账号模板
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// 清空表单
+function clearForm() {
+    document.getElementById('usernames').value = '';
+    document.getElementById('passwords').value = '';
+    document.getElementById('names').value = '';
+    document.getElementById('emails').value = '';
+    document.getElementById('role').value = 'user';
+}
+
+// 填充模板
+function fillTemplate(type) {
+    const usernamesField = document.getElementById('usernames');
+    const passwordsField = document.getElementById('passwords');
+    const namesField = document.getElementById('names');
+    const emailsField = document.getElementById('emails');
+    
+    let usernames = '';
+    let passwords = '';
+    let names = '';
+    let emails = '';
+    
+    switch(type) {
+        case 'student':
+            usernames = 'student001\nstudent002\nstudent003\nstudent004\nstudent005';
+            passwords = '123456\n123456\n123456\n123456\n123456';
+            names = '张小明\n李小红\n王小华\n刘小刚\n陈小美';
+            emails = 'student001@example.com\nstudent002@example.com\nstudent003@example.com\nstudent004@example.com\nstudent005@example.com';
+            break;
+        case 'teacher':
+            usernames = 'teacher001\nteacher002\nteacher003';
+            passwords = '123456\n123456\n123456';
+            names = '张老师\n李老师\n王老师';
+            emails = 'teacher001@example.com\nteacher002@example.com\nteacher003@example.com';
+            break;
+        case 'staff':
+            usernames = 'staff001\nstaff002\nstaff003';
+            passwords = '123456\n123456\n123456';
+            names = '张员工\n李员工\n王员工';
+            emails = 'staff001@example.com\nstaff002@example.com\nstaff003@example.com';
+            break;
+    }
+    
+    usernamesField.value = usernames;
+    passwordsField.value = passwords;
+    namesField.value = names;
+    emailsField.value = emails;
+    
+    // 添加视觉反馈
+    usernamesField.style.backgroundColor = '#e3f2fd';
+    passwordsField.style.backgroundColor = '#e3f2fd';
+    namesField.style.backgroundColor = '#e3f2fd';
+    emailsField.style.backgroundColor = '#e3f2fd';
+    
+    setTimeout(() => {
+        usernamesField.style.backgroundColor = '';
+        passwordsField.style.backgroundColor = '';
+        namesField.style.backgroundColor = '';
+        emailsField.style.backgroundColor = '';
+    }, 1000);
+}
+
+// 实时统计用户数量
+document.getElementById('usernames').addEventListener('input', function() {
+    const lines = this.value.split('\n').filter(line => line.trim() !== '');
+    const count = lines.length;
+    
+    // 可以在这里添加用户数量显示
+    console.log(`将创建 ${count} 个用户`);
+});
+</script>
+{% endblock %} 

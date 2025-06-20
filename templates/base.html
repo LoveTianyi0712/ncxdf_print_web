@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}南昌新东方凭证打印系统{% endblock %}</title>
+    <!-- 移动端优化meta标签 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="format-detection" content="telephone=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#287042">
+    
+    <link href="https://cdn.bootcdn.net/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.bootcdn.net/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- 移动端样式 -->
+    <link href="{{ url_for('static', filename='css/mobile.css') }}" rel="stylesheet">
+    <style>
+        .navbar-brand {
+            font-weight: bold;
+            color: white !important;
+        }
+        .sidebar {
+            background-color: #f8f9fa;
+            min-height: calc(100vh - 56px); /* 减去顶部导航栏高度，延伸到版权信息 */
+            height: calc(100vh - 56px); /* 设置固定高度，延伸到版权信息 */
+            padding: 30px 15px; /* 增加顶部padding，让内容下移 */
+            padding-bottom: 5px; /* 减少底部padding，让技术支持更贴近版权信息 */
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 16.66667%; /* Bootstrap col-md-2 width */
+            overflow-y: auto;
+            z-index: 1020;
+        }
+        
+        /* 确保固定导航栏在最上层 */
+        .navbar.fixed-top {
+            z-index: 1030;
+        }
+        
+        /* 确保固定版权信息在合适的层级 */
+        footer.fixed-bottom {
+            z-index: 1025;
+            background-color: #f8f9fa !important; /* 确保背景色覆盖侧边栏 */
+            bottom: 0 !important; /* 恢复贴底部 */
+            height: 60px !important; /* 设置固定高度 */
+            padding: 0 !important; /* 移除所有padding，使用flexbox居中 */
+        }
+        
+        /* 调整技术支持链接的位置，让它更贴近底部 */
+        .sidebar .mt-auto {
+            padding-bottom: 0; /* 完全移除技术支持容器的底部间距 */
+            margin-bottom: -10px; /* 使用负边距让技术支持更贴近底部 */
+        }
+        
+        .sidebar .mt-auto .nav-link {
+            margin-bottom: 0; /* 移除技术支持链接的底部边距 */
+        }
+        
+        /* 为整个页面添加顶部和底部间距，避免被固定导航栏和版权信息遮挡 */
+        body {
+            padding-top: 56px; /* 导航栏高度 */
+            padding-bottom: 60px; /* 版权信息高度 */
+        }
+        
+        .sidebar .nav {
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 111px); /* 减去顶部导航栏高度和侧边栏上下padding (56px + 30px + 25px) */
+        }
+        
+        /* 为主内容区添加左边距，避免被固定侧边栏遮挡 */
+        .main-content {
+            margin-left: 16.66667%; /* 与侧边栏宽度相同 */
+            min-height: calc(100vh - 106px); /* 确保内容区域至少占满可视区域 */
+            background-color: #ffffff; /* 确保背景色一致 */
+            position: relative;
+        }
+        
+        /* 让主内容区域更好地填充空间 */
+        .main-content::after {
+            content: '';
+            display: block;
+            height: 20px; /* 添加一些底部空间，让内容不会紧贴版权信息 */
+        }
+        
+        /* 响应式处理 - 小屏幕下取消固定定位 */
+        @media (max-width: 767.98px) {
+            body {
+                padding-top: 56px !important; /* 保持顶部导航栏的间距 */
+                padding-bottom: 60px !important; /* 保持底部版权信息的间距 */
+            }
+            
+            .navbar {
+                position: fixed !important;
+                top: 0 !important;
+                left: 0 !important;
+                right: 0 !important;
+                z-index: 1030 !important;
+            }
+            
+            footer {
+                position: fixed !important;
+                bottom: 0 !important;
+                left: 0 !important;
+                right: 0 !important;
+                z-index: 1025 !important;
+                height: 60px !important;
+                padding: 0 !important;
+            }
+            
+            .sidebar {
+                position: static !important;
+                width: 100% !important;
+                min-height: auto !important;
+                height: auto !important;
+                top: auto !important;
+                left: auto !important;
+                z-index: auto !important;
+                margin-top: 0 !important;
+                padding: 20px 15px !important; /* 恢复正常的padding */
+            }
+            
+            .sidebar .nav {
+                height: auto !important;
+            }
+            
+            .main-content {
+                margin-left: 0 !important;
+            }
+        }
+        .content {
+            padding: 20px;
+            padding-bottom: 0; /* 减少底部padding，让内容更贴近底部 */
+        }
+        .print-preview {
+            max-width: 100%;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .print-preview img {
+            max-width: 100%;
+            height: auto;
+        }
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background-color: #287042;
+            color: white;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        .stats-card {
+            border-left: 4px solid #287042;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        }
+        .sidebar .nav-link {
+            color: #495057;
+            padding: 10px 15px;
+            margin-bottom: 5px;
+            border-radius: 5px;
+            transition: all 0.3s;
+        }
+        .sidebar .nav-link:hover,
+        .sidebar .nav-link.active {
+            background-color: #287042;
+            color: white;
+        }
+        .sidebar .nav-link i {
+            margin-right: 10px;
+            width: 20px;
+        }
+        
+        /* 自定义绿色主题 - 强制覆盖Bootstrap默认蓝色 */
+        .bg-primary {
+            background-color: #287042 !important;
+        }
+        
+        .btn-primary {
+            background-color: #287042 !important;
+            border-color: #287042 !important;
+        }
+        
+        .btn-primary:hover {
+            background-color: #1e5432 !important;
+            border-color: #1e5432 !important;
+        }
+        
+        .btn-primary:focus,
+        .btn-primary.focus {
+            background-color: #287042 !important;
+            border-color: #287042 !important;
+            box-shadow: 0 0 0 0.2rem rgba(40, 112, 66, 0.5) !important;
+        }
+        
+        .btn-primary:active {
+            background-color: #1e5432 !important;
+            border-color: #1e5432 !important;
+        }
+        
+        .btn-outline-primary {
+            color: #287042 !important;
+            border-color: #287042 !important;
+        }
+        
+        .btn-outline-primary:hover {
+            background-color: #287042 !important;
+            border-color: #287042 !important;
+            color: #ffffff !important;
+        }
+        
+        .btn-outline-primary:focus {
+            background-color: #287042 !important;
+            border-color: #287042 !important;
+            color: #ffffff !important;
+            box-shadow: 0 0 0 0.2rem rgba(40, 112, 66, 0.5) !important;
+        }
+        
+        .text-primary {
+            color: #287042 !important;
+        }
+        
+        .border-primary {
+            border-color: #287042 !important;
+        }
+        
+        .alert-primary {
+            color: #1e5432 !important;
+            background-color: #d4edda !important;
+            border-color: #287042 !important;
+        }
+        
+        .badge.bg-primary {
+            background-color: #287042 !important;
+        }
+        
+        .form-check-input:checked {
+            background-color: #287042 !important;
+            border-color: #287042 !important;
+        }
+        
+        .form-control:focus {
+            border-color: #287042 !important;
+            box-shadow: 0 0 0 0.2rem rgba(40, 112, 66, 0.25) !important;
+        }
+        
+        .page-link {
+            color: #287042 !important;
+        }
+        
+        .page-item.active .page-link {
+            background-color: #287042 !important;
+            border-color: #287042 !important;
+        }
+        
+        .nav-pills .nav-link.active {
+            background-color: #287042 !important;
+        }
+        
+        .progress-bar {
+            background-color: #287042 !important;
+        }
+        
+        /* 导航栏主题色 */
+        .navbar.bg-primary {
+            background-color: #287042 !important;
+        }
+        
+        /* 确保所有Bootstrap primary变体都使用绿色 */
+        .link-primary {
+            color: #287042 !important;
+        }
+        
+        .btn-check:checked + .btn-primary {
+            background-color: #287042 !important;
+            border-color: #287042 !important;
+        }
+        
+        /* 可打印凭证列表滚动样式 */
+        .certificate-list {
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 15px;
+        }
+        
+        .certificate-list::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .certificate-list::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        
+        .certificate-list::-webkit-scrollbar-thumb {
+            background: #287042;
+            border-radius: 4px;
+        }
+        
+        .certificate-list::-webkit-scrollbar-thumb:hover {
+            background: #1e5432;
+        }
+        
+        /* Firefox 滚动条样式 */
+        .certificate-list {
+            scrollbar-width: thin;
+            scrollbar-color: #287042 #f1f1f1;
+        }
+        
+        /* 凭证列表项样式优化 */
+        .certificate-list .btn {
+            margin-bottom: 8px;
+            padding: 12px 15px;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+        
+        .certificate-list .btn:last-child {
+            margin-bottom: 0;
+        }
+        
+        .certificate-list .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(40, 112, 66, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{{ url_for('dashboard') }}">
+                <i class="fas fa-print me-2"></i>南昌新东方凭证打印系统
+            </a>
+            
+            {% if current_user.is_authenticated %}
+            <div class="navbar-nav ms-auto d-flex align-items-center">
+                <!-- 消息盒子 -->
+                <div class="nav-item me-3">
+                    <a class="nav-link position-relative" href="{{ url_for('messages') }}" id="messages-link">
+                        <i class="fas fa-inbox" style="font-size: 1.2rem;"></i>
+                        <span class="badge bg-danger position-absolute top-0 start-100 translate-middle rounded-pill" 
+                              id="unread-badge" style="display: none; font-size: 0.7rem;">0</span>
+                    </a>
+                </div>
+                
+                <!-- 用户菜单 -->
+                <div class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
+                        <div class="user-avatar me-2">{{ current_user.username[0].upper() }}</div>
+                        {{ current_user.username }}
+                        {% if current_user.role == 'admin' %}
+                        <span class="badge bg-warning ms-2">管理员</span>
+                        {% endif %}
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="{{ url_for('change_password') }}">
+                            <i class="fas fa-key me-2"></i>修改密码
+                        </a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('print_logs') }}">
+                            <i class="fas fa-history me-2"></i>打印记录
+                        </a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{{ url_for('logout') }}">
+                            <i class="fas fa-sign-out-alt me-2"></i>退出登录
+                        </a></li>
+                    </ul>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="row">
+            {% if current_user.is_authenticated %}
+            <!-- 侧边栏 -->
+            <div class="col-md-2 sidebar">
+                <nav class="nav flex-column">
+                    <a class="nav-link {{ 'active' if request.endpoint == 'dashboard' }}" href="{{ url_for('dashboard') }}">
+                        <i class="fas fa-tachometer-alt"></i>仪表板
+                    </a>
+                    <a class="nav-link {{ 'active' if request.endpoint == 'print_page' }}" href="{{ url_for('print_page') }}">
+                        <i class="fas fa-print"></i>打印凭证
+                    </a>
+                    <a class="nav-link {{ 'active' if request.endpoint == 'print_logs' }}" href="{{ url_for('print_logs') }}">
+                        <i class="fas fa-history"></i>打印记录
+                    </a>
+                    <a class="nav-link {{ 'active' if request.endpoint == 'change_password' }}" href="{{ url_for('change_password') }}">
+                        <i class="fas fa-key"></i>修改密码
+                    </a>
+                    <a class="nav-link {{ 'active' if request.endpoint == 'edit_profile' }}" href="{{ url_for('edit_profile') }}">
+                        <i class="fas fa-user-edit"></i>个人资料
+                    </a>
+                    {% if current_user.role == 'admin' %}
+                    <hr>
+                    <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
+                        <span>管理功能</span>
+                    </h6>
+                    <a class="nav-link {{ 'active' if request.endpoint == 'users' }}" href="{{ url_for('users') }}">
+                        <i class="fas fa-users"></i>用户管理
+                    </a>
+                    <a class="nav-link {{ 'active' if request.endpoint == 'change_requests' }}" href="{{ url_for('change_requests') }}">
+                        <i class="fas fa-user-check"></i>变更申请
+                    </a>
+                    <a class="nav-link {{ 'active' if request.endpoint == 'create_user' }}" href="{{ url_for('create_user') }}">
+                        <i class="fas fa-user-plus"></i>创建用户
+                    </a>
+                    <a class="nav-link {{ 'active' if request.endpoint == 'cookies_config' }}" href="{{ url_for('cookies_config') }}">
+                        <i class="fas fa-cookie-bite"></i>Cookies配置
+                    </a>
+                    {% endif %}
+                    
+                    <!-- 技术支持链接 - 放在底部不显眼位置 -->
+                    <div class="mt-auto pt-2">
+                        <hr class="border-secondary">
+                        <a class="nav-link {{ 'active' if request.endpoint == 'tech_support' }}" 
+                           href="{{ url_for('tech_support') }}" 
+                           style="font-size: 0.85rem; opacity: 0.7;">
+                            <i class="fas fa-life-ring"></i>技术支持
+                        </a>
+                    </div>
+                </nav>
+            </div>
+            
+            <!-- 主内容区 -->
+            <div class="col-md-10 main-content content">
+            {% else %}
+            <div class="col-12 content">
+            {% endif %}
+                <!-- 消息提示 -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                <!-- 页面内容 -->
+                {% block content %}{% endblock %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- 版权信息 -->
+    <footer class="bg-light text-center text-muted fixed-bottom d-flex align-items-center justify-content-center">
+        <div class="container-fluid d-flex align-items-center justify-content-center">
+            <small>©2025 南昌新东方 版权所有 | 凭证打印系统 v2.3.0</small>
+        </div>
+    </footer>
+
+    <script src="https://cdn.bootcdn.net/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- 移动端JavaScript -->
+    <script src="{{ url_for('static', filename='js/mobile.js') }}"></script>
+    
+    {% if current_user.is_authenticated %}
+    <script>
+    // 更新未读消息数量
+    function updateUnreadCount() {
+        fetch('/api/get_unread_count')
+        .then(response => response.json())
+        .then(data => {
+            const badge = document.getElementById('unread-badge');
+            if (badge) {
+                if (data.count > 0) {
+                    badge.textContent = data.count;
+                    badge.style.display = 'inline';
+                } else {
+                    badge.style.display = 'none';
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error updating unread count:', error);
+        });
+    }
+
+    // 页面加载完成后立即更新一次
+    document.addEventListener('DOMContentLoaded', function() {
+        updateUnreadCount();
+        
+        // 每30秒更新一次未读消息数量
+        setInterval(updateUnreadCount, 30000);
+    });
+    </script>
+    {% endif %}
+
+    
+    {% block scripts %}{% endblock %}
+</body>
+</html> 

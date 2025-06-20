@@ -1,0 +1,509 @@
+{% extends "base.html" %}
+
+{% block title %}Cookies配置管理{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-cookie-bite"></i>
+                        Cookies配置管理
+                    </h3>
+                    <div class="card-tools">
+                        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCookiesModal">
+                            <i class="fas fa-plus"></i> 添加新配置
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-8">
+                            {% if active_config %}
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle"></i>
+                                    当前活跃配置：<strong>{{ active_config.name }}</strong>
+                                    （更新时间：{{ active_config.updated_at.strftime('%Y-%m-%d %H:%M:%S') }}）
+                                </div>
+                            {% else %}
+                                <div class="alert alert-warning">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    当前没有活跃的Cookies配置，系统将使用默认配置
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4">
+                            <!-- 自动检测配置卡片 -->
+                            <div class="card border-primary">
+                                <div class="card-header bg-primary text-white">
+                                    <h6 class="card-title mb-0">
+                                        <i class="fas fa-robot"></i> 自动检测
+                                    </h6>
+                                </div>
+                                <div class="card-body p-2">
+                                    <div class="form-check form-switch mb-2">
+                                        <input class="form-check-input" type="checkbox" id="autoCheckEnabled">
+                                        <label class="form-check-label" for="autoCheckEnabled">
+                                            <small>启用自动检测</small>
+                                        </label>
+                                    </div>
+                                    <div class="mb-2" id="intervalSettings" style="display: none;">
+                                        <label for="checkInterval" class="form-label">
+                                            <small>检测间隔（分钟）</small>
+                                        </label>
+                                        <input type="number" class="form-control form-control-sm" id="checkInterval" 
+                                               min="5" max="1440" value="30">
+                                    </div>
+                                    <div class="d-grid gap-1">
+                                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="saveAutoCheckSettings()">
+                                            <i class="fas fa-save"></i> 保存设置
+                                        </button>
+                                        <button type="button" class="btn btn-outline-info btn-sm" onclick="manualCheck()">
+                                            <i class="fas fa-play"></i> 手动检测
+                                        </button>
+                                    </div>
+                                    <div id="autoCheckStatus" class="mt-2">
+                                        <small class="text-muted">正在加载状态...</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped">
+                            <thead>
+                                <tr>
+                                    <th>配置名称</th>
+                                    <th>状态</th>
+                                    <th>创建时间</th>
+                                    <th>更新时间</th>
+                                    <th>最后测试时间</th>
+                                    <th>测试状态</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for config in configs %}
+                                <tr {% if config.is_active %}class="table-success"{% endif %}>
+                                    <td>
+                                        <strong>{{ config.name }}</strong>
+                                        {% if config.is_active %}
+                                            <span class="badge badge-success ml-2">活跃</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if config.is_active %}
+                                            <span class="badge badge-success">活跃</span>
+                                        {% else %}
+                                            <span class="badge badge-secondary">未激活</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ config.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                                    <td>{{ config.updated_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                                    <td>
+                                        {% if config.last_test_time %}
+                                            {{ config.last_test_time.strftime('%Y-%m-%d %H:%M:%S') }}
+                                        {% else %}
+                                            <span class="text-muted">未测试</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if config.test_status == '成功' %}
+                                            <span class="badge badge-success">成功</span>
+                                        {% elif config.test_status == '失败' %}
+                                            <span class="badge badge-danger">失败</span>
+                                        {% else %}
+                                            <span class="badge badge-secondary">未测试</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <a href="{{ url_for('test_cookies', config_id=config.id) }}" 
+                                               class="btn btn-sm btn-info" title="测试配置">
+                                                <i class="fas fa-flask"></i>
+                                            </a>
+                                            {% if not config.is_active %}
+                                                <a href="{{ url_for('activate_cookies', config_id=config.id) }}" 
+                                                   class="btn btn-sm btn-success" title="激活配置">
+                                                    <i class="fas fa-check"></i>
+                                                </a>
+                                            {% endif %}
+                                                                        <button type="button" class="btn btn-sm btn-primary" 
+                                    data-bs-toggle="modal" data-bs-target="#viewCookiesModal{{ config.id }}" title="查看详情">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                                            <a href="{{ url_for('delete_cookies', config_id=config.id) }}" 
+                                               class="btn btn-sm btn-danger" title="删除配置"
+                                               onclick="return confirm('确定要删除这个配置吗？')">
+                                                <i class="fas fa-trash"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {% if not configs %}
+                        <div class="alert alert-info text-center">
+                            <i class="fas fa-info-circle"></i>
+                            暂无Cookies配置，请添加新配置
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 添加Cookies配置模态框 -->
+<div class="modal fade" id="addCookiesModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">添加新的Cookies配置</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal">
+                </button>
+            </div>
+            <form method="POST" action="{{ url_for('save_cookies') }}">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="config_name">配置名称</label>
+                        <input type="text" class="form-control" id="config_name" name="config_name" 
+                               value="ERP Cookies {{ configs|length + 1 }}" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="cookies_data">Cookies数据</label>
+                        <textarea class="form-control" id="cookies_data" name="cookies_data" 
+                                  rows="15" placeholder="请输入Cookies数据，支持以下格式：
+
+1. JSON格式：
+{
+  &quot;FE_USER_CODE&quot;: &quot;NC24048S6UzC&quot;,
+  &quot;FE_USER_NAME&quot;: &quot;%E5%BC%A0%E8%B0%A6235&quot;,
+  &quot;rem&quot;: &quot;on&quot;
+}
+
+2. 键值对格式（换行分隔）：
+FE_USER_CODE=NC24048S6UzC
+FE_USER_NAME=%E5%BC%A0%E8%B0%A6235
+rem=on
+
+3. 键值对格式（分号分隔）：
+FE_USER_CODE=NC24048S6UzC; FE_USER_NAME=%E5%BC%A0%E8%B0%A6235; rem=on" required></textarea>
+                        <small class="form-text text-muted">
+                            <strong>获取Cookies方法：</strong>
+                            <br>1. 在浏览器中登录ERP系统
+                            <br>2. 按F12打开开发者工具，切换到Network标签页
+                            <br>3. 刷新页面，找到任意一个API请求
+                            <br>4. 在Request Headers中找到Cookie字段，复制其值
+                            <br>5. 将Cookie值按上述格式粘贴到文本框中
+                        </small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">保存并激活</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 查看Cookies详情模态框 -->
+{% for config in configs %}
+<div class="modal fade" id="viewCookiesModal{{ config.id }}" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">查看配置详情：{{ config.name }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal">
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <strong>配置信息：</strong>
+                        <ul class="list-unstyled mt-2">
+                            <li><strong>名称：</strong>{{ config.name }}</li>
+                            <li><strong>状态：</strong>
+                                {% if config.is_active %}
+                                    <span class="badge badge-success">活跃</span>
+                                {% else %}
+                                    <span class="badge badge-secondary">未激活</span>
+                                {% endif %}
+                            </li>
+                            <li><strong>创建时间：</strong>{{ config.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</li>
+                            <li><strong>更新时间：</strong>{{ config.updated_at.strftime('%Y-%m-%d %H:%M:%S') }}</li>
+                            {% if config.last_test_time %}
+                                <li><strong>最后测试：</strong>{{ config.last_test_time.strftime('%Y-%m-%d %H:%M:%S') }}</li>
+                                <li><strong>测试状态：</strong>
+                                    {% if config.test_status == '成功' %}
+                                        <span class="badge badge-success">成功</span>
+                                    {% elif config.test_status == '失败' %}
+                                        <span class="badge badge-danger">失败</span>
+                                    {% else %}
+                                        <span class="badge badge-secondary">未测试</span>
+                                    {% endif %}
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Cookies数据：</strong>
+                        <pre class="mt-2 p-2 bg-light border rounded" style="max-height: 300px; overflow-y: auto; font-size: 12px;">{{ config.cookies_data }}</pre>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                <a href="{{ url_for('test_cookies', config_id=config.id) }}" class="btn btn-info">
+                    <i class="fas fa-flask"></i> 测试这个配置
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<style>
+.table-success {
+    background-color: rgba(40, 167, 69, 0.1) !important;
+}
+
+.card.border-primary {
+    border-width: 2px;
+}
+
+.pulse {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(0, 123, 255, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(0, 123, 255, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(0, 123, 255, 0);
+    }
+}
+
+/* 自定义Badge样式 - 确保状态标签颜色明显 */
+.badge {
+    font-size: 0.75em;
+    font-weight: 600;
+    padding: 0.35em 0.65em;
+    border-radius: 0.25rem;
+    text-transform: none;
+    color: #fff !important;
+}
+
+.badge-success {
+    background-color: #28a745 !important;
+    color: #fff !important;
+}
+
+.badge-danger {
+    background-color: #dc3545 !important;
+    color: #fff !important;
+}
+
+.badge-secondary {
+    background-color: #6c757d !important;
+    color: #fff !important;
+}
+
+.badge-warning {
+    background-color: #ffc107 !important;
+    color: #212529 !important;
+}
+
+.badge-info {
+    background-color: #17a2b8 !important;
+    color: #fff !important;
+}
+
+.badge-primary {
+    background-color: #007bff !important;
+    color: #fff !important;
+}
+
+/* 增强状态标签的可见性 */
+.badge.ml-2 {
+    margin-left: 0.5rem !important;
+}
+
+/* 表格中的状态标签稍微大一点 */
+td .badge {
+    font-size: 0.8em;
+    padding: 0.4em 0.8em;
+}
+</style>
+
+<script>
+// 页面加载完成后初始化
+document.addEventListener('DOMContentLoaded', function() {
+    loadAutoCheckSettings();
+    
+    // 监听自动检测开关变化
+    document.getElementById('autoCheckEnabled').addEventListener('change', function() {
+        const intervalSettings = document.getElementById('intervalSettings');
+        if (this.checked) {
+            intervalSettings.style.display = 'block';
+        } else {
+            intervalSettings.style.display = 'none';
+        }
+    });
+    
+    // 定期刷新状态
+    setInterval(loadAutoCheckSettings, 60000); // 每分钟刷新一次
+});
+
+// 加载自动检测配置
+function loadAutoCheckSettings() {
+    fetch('/cookies_auto_check_config')
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById('autoCheckEnabled').checked = data.is_enabled;
+        document.getElementById('checkInterval').value = data.check_interval;
+        
+        // 显示/隐藏间隔设置
+        const intervalSettings = document.getElementById('intervalSettings');
+        if (data.is_enabled) {
+            intervalSettings.style.display = 'block';
+        } else {
+            intervalSettings.style.display = 'none';
+        }
+        
+        // 更新状态显示
+        updateAutoCheckStatus(data);
+    })
+    .catch(error => {
+        console.error('加载自动检测配置失败:', error);
+        document.getElementById('autoCheckStatus').innerHTML = 
+            '<small class="text-danger">加载状态失败</small>';
+    });
+}
+
+// 更新自动检测状态显示
+function updateAutoCheckStatus(data) {
+    const statusDiv = document.getElementById('autoCheckStatus');
+    let statusHtml = '';
+    
+    if (data.is_enabled) {
+        statusHtml += '<small class="text-success"><i class="fas fa-check-circle"></i> 已启用</small><br>';
+        statusHtml += `<small class="text-muted">间隔: ${data.check_interval}分钟</small><br>`;
+        
+        if (data.last_check_time) {
+            statusHtml += `<small class="text-muted">上次检测: ${data.last_check_time}</small><br>`;
+        }
+        
+        if (data.consecutive_failures > 0) {
+            statusHtml += `<small class="text-warning">连续失败: ${data.consecutive_failures}次</small><br>`;
+        }
+        
+        if (data.failure_notification_sent) {
+            statusHtml += '<small class="text-info"><i class="fas fa-bell"></i> 已发送通知</small>';
+        }
+    } else {
+        statusHtml = '<small class="text-secondary"><i class="fas fa-pause-circle"></i> 已禁用</small>';
+    }
+    
+    statusDiv.innerHTML = statusHtml;
+}
+
+// 保存自动检测设置
+function saveAutoCheckSettings() {
+    const isEnabled = document.getElementById('autoCheckEnabled').checked;
+    const checkInterval = document.getElementById('checkInterval').value;
+    
+    const formData = new FormData();
+    formData.append('is_enabled', isEnabled);
+    formData.append('check_interval', checkInterval);
+    
+    fetch('/update_cookies_auto_check', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // 显示成功消息
+            showMessage('自动检测设置已更新', 'success');
+            // 重新加载配置
+            setTimeout(loadAutoCheckSettings, 1000);
+        } else {
+            showMessage('更新失败: ' + (data.error || '未知错误'), 'error');
+        }
+    })
+    .catch(error => {
+        console.error('保存设置失败:', error);
+        showMessage('保存设置失败，请稍后重试', 'error');
+    });
+}
+
+// 手动检测
+function manualCheck() {
+    const button = event.target;
+    const originalText = button.innerHTML;
+    
+    // 显示加载状态
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 检测中...';
+    button.disabled = true;
+    
+    fetch('/manual_check_cookies')
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showMessage('手动检测已完成', 'success');
+            // 重新加载配置和页面
+            setTimeout(() => {
+                loadAutoCheckSettings();
+                location.reload();
+            }, 1000);
+        } else {
+            showMessage('手动检测失败: ' + (data.error || '未知错误'), 'error');
+        }
+    })
+    .catch(error => {
+        console.error('手动检测失败:', error);
+        showMessage('手动检测失败，请稍后重试', 'error');
+    })
+    .finally(() => {
+        // 恢复按钮状态
+        button.innerHTML = originalText;
+        button.disabled = false;
+    });
+}
+
+// 显示消息
+function showMessage(message, type) {
+    // 创建消息元素
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    // 插入到页面顶部
+    const container = document.querySelector('.container-fluid');
+    container.insertBefore(alertDiv, container.firstChild);
+    
+    // 3秒后自动消失
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.remove();
+        }
+    }, 3000);
+}
+</script>
+
+{% endblock %} 

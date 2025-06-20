@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+
+{% block title %}仪表板 - 南昌新东方凭证打印系统{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">仪表板</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <div class="btn-group me-2">
+            <a href="{{ url_for('print_page') }}" class="btn btn-primary">
+                <i class="fas fa-print me-1"></i>开始打印
+            </a>
+        </div>
+        <span class="text-muted">欢迎回来，{{ current_user.username }}！</span>
+    </div>
+</div>
+
+<!-- 统计卡片 -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card stats-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title text-muted">我的打印次数</h6>
+                        <h2 class="text-primary">{{ user_print_count }}</h2>
+                    </div>
+                    <i class="fas fa-print fa-2x text-primary"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    {% if current_user.role == 'admin' %}
+    <div class="col-md-3">
+        <div class="card stats-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title text-muted">总用户数</h6>
+                        <h2 class="text-success">{{ stats.total_users }}</h2>
+                    </div>
+                    <i class="fas fa-users fa-2x text-success"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card stats-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title text-muted">活跃用户</h6>
+                        <h2 class="text-info">{{ stats.active_users }}</h2>
+                    </div>
+                    <i class="fas fa-user-check fa-2x text-info"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card stats-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title text-muted">总打印次数</h6>
+                        <h2 class="text-warning">{{ stats.total_prints }}</h2>
+                    </div>
+                    <i class="fas fa-chart-bar fa-2x text-warning"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- 快速操作 -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">快速操作</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <a href="{{ url_for('print_page') }}" class="btn btn-outline-primary btn-lg w-100 mb-3">
+                            <i class="fas fa-print fa-2x d-block mb-2"></i>
+                            打印凭证
+                        </a>
+                    </div>
+                    <div class="col-md-4">
+                        <a href="{{ url_for('print_logs') }}" class="btn btn-outline-info btn-lg w-100 mb-3">
+                            <i class="fas fa-history fa-2x d-block mb-2"></i>
+                            查看记录
+                        </a>
+                    </div>
+                    {% if current_user.role == 'admin' %}
+                    <div class="col-md-4">
+                        <a href="{{ url_for('users') }}" class="btn btn-outline-success btn-lg w-100 mb-3">
+                            <i class="fas fa-users-cog fa-2x d-block mb-2"></i>
+                            用户管理
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if current_user.role == 'admin' and stats.recent_prints %}
+<!-- 最近打印记录 -->
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">最近打印记录</h5>
+                <a href="{{ url_for('print_logs') }}" class="btn btn-sm btn-outline-primary">查看全部</a>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>用户</th>
+                                <th>学员</th>
+                                <th>凭证类型</th>
+                                <th>打印时间</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for log in stats.recent_prints %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="user-avatar me-2" style="width: 24px; height: 24px; font-size: 12px;">
+                                            {{ log.user.username[0].upper() }}
+                                        </div>
+                                        {{ log.user.username }}
+                                    </div>
+                                </td>
+                                <td>
+                                    <div>
+                                        <strong>{{ log.student_name }}</strong><br>
+                                        <small class="text-muted">{{ log.student_code }}</small>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-primary">{{ log.biz_name }}</span>
+                                </td>
+                                <td>
+                                    <small>{{ log.print_time.strftime('%Y-%m-%d %H:%M:%S') }}</small>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- 系统说明 -->
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">系统说明</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-info-circle text-info me-2"></i>功能介绍</h6>
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-check text-success me-2"></i>支持多种凭证类型打印</li>
+                            <li><i class="fas fa-check text-success me-2"></i>完整的操作日志记录</li>
+                            <li><i class="fas fa-check text-success me-2"></i>用户权限管理</li>
+                            <li><i class="fas fa-check text-success me-2"></i>批量用户创建</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-question-circle text-warning me-2"></i>使用帮助</h6>
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-arrow-right text-primary me-2"></i>在"打印凭证"页面输入学员编码查询</li>
+                            <li><i class="fas fa-arrow-right text-primary me-2"></i>选择需要打印的凭证类型</li>
+                            <li><i class="fas fa-arrow-right text-primary me-2"></i>预览无误后点击生成打印</li>
+                            <li><i class="fas fa-arrow-right text-primary me-2"></i>在"打印记录"中查看历史操作</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

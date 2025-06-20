@@ -1,0 +1,597 @@
+{% extends "base.html" %}
+
+{% block title %}打印记录 - 南昌新东方凭证打印系统{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">打印记录</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <div class="btn-group me-2">
+            <a href="{{ url_for('print_page') }}" class="btn btn-primary">
+                <i class="fas fa-print me-1"></i>打印凭证
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- 搜索筛选表单 -->
+<div class="card mb-3">
+    <div class="card-header">
+        <h5 class="card-title mb-0">
+            <i class="fas fa-search me-2"></i>搜索筛选
+        </h5>
+    </div>
+    <div class="card-body">
+        <form method="GET" action="{{ url_for('print_logs') }}" class="row g-3">
+            <div class="col-md-3">
+                <label for="search_student" class="form-label">学员信息</label>
+                <input type="text" class="form-control" id="search_student" name="search_student" 
+                       placeholder="学员编码或姓名" value="{{ search_params.get('search_student', '') }}">
+            </div>
+            <div class="col-md-3">
+                <label for="search_biz_type" class="form-label">凭证类型</label>
+                <select class="form-select" id="search_biz_type" name="search_biz_type">
+                    <option value="">全部类型</option>
+                    {% for biz_type, biz_name in biz_types %}
+                    <option value="{{ biz_type }}" {% if search_params.get('search_biz_type') == biz_type|string %}selected{% endif %}>
+                        {{ biz_name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="search_date_start" class="form-label">开始日期</label>
+                <input type="date" class="form-control" id="search_date_start" name="search_date_start" 
+                       value="{{ search_params.get('search_date_start', '') }}">
+            </div>
+            <div class="col-md-2">
+                <label for="search_date_end" class="form-label">结束日期</label>
+                <input type="date" class="form-control" id="search_date_end" name="search_date_end" 
+                       value="{{ search_params.get('search_date_end', '') }}">
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <div class="btn-group w-100">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search me-1"></i>搜索
+                    </button>
+                    <a href="{{ url_for('print_logs') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-times me-1"></i>清空
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title mb-0">
+            <i class="fas fa-history me-2"></i>操作日志
+            {% if current_user.role != 'admin' %}
+            <small class="text-muted">（仅显示您的操作记录）</small>
+            {% endif %}
+        </h5>
+    </div>
+    <div class="card-body">
+        {% if logs.items %}
+        <!-- 每页记录数量控制 -->
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <div class="d-flex align-items-center">
+                    <label for="perPageSelect" class="form-label me-2 mb-0">每页显示：</label>
+                    <select class="form-select form-select-sm" id="perPageSelect" style="width: auto;" onchange="changePerPage(this.value)">
+                        <option value="10" {% if current_per_page == 10 %}selected{% endif %}>10条</option>
+                        <option value="20" {% if current_per_page == 20 %}selected{% endif %}>20条</option>
+                        <option value="50" {% if current_per_page == 50 %}selected{% endif %}>50条</option>
+                        <option value="100" {% if current_per_page == 100 %}selected{% endif %}>100条</option>
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-6 text-end">
+                <small class="text-muted">
+                    共 {{ logs.total }} 条记录，第 {{ logs.page }} / {{ logs.pages }} 页
+                </small>
+            </div>
+        </div>
+        
+        <!-- 表格容器 -->
+        <div class="table-responsive">
+            <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th class="sortable" data-sort="id" style="cursor: pointer;">
+                        ID
+                        {% if search_params.get('sort_by') == 'id' %}
+                            {% if search_params.get('sort_order') == 'asc' %}
+                                <i class="fas fa-sort-up"></i>
+                            {% else %}
+                                <i class="fas fa-sort-down"></i>
+                            {% endif %}
+                        {% else %}
+                            <i class="fas fa-sort text-muted"></i>
+                        {% endif %}
+                    </th>
+                    {% if current_user.role == 'admin' %}
+                    <th class="sortable" data-sort="user_id" style="cursor: pointer;">
+                        操作用户
+                        {% if search_params.get('sort_by') == 'user_id' %}
+                            {% if search_params.get('sort_order') == 'asc' %}
+                                <i class="fas fa-sort-up"></i>
+                            {% else %}
+                                <i class="fas fa-sort-down"></i>
+                            {% endif %}
+                        {% else %}
+                            <i class="fas fa-sort text-muted"></i>
+                        {% endif %}
+                    </th>
+                    {% endif %}
+                    <th class="sortable" data-sort="student_name" style="cursor: pointer;">
+                        学员信息
+                        {% if search_params.get('sort_by') == 'student_name' %}
+                            {% if search_params.get('sort_order') == 'asc' %}
+                                <i class="fas fa-sort-up"></i>
+                            {% else %}
+                                <i class="fas fa-sort-down"></i>
+                            {% endif %}
+                        {% else %}
+                            <i class="fas fa-sort text-muted"></i>
+                        {% endif %}
+                    </th>
+                    <th class="sortable" data-sort="biz_name" style="cursor: pointer;">
+                        凭证类型
+                        {% if search_params.get('sort_by') == 'biz_name' %}
+                            {% if search_params.get('sort_order') == 'asc' %}
+                                <i class="fas fa-sort-up"></i>
+                            {% else %}
+                                <i class="fas fa-sort-down"></i>
+                            {% endif %}
+                        {% else %}
+                            <i class="fas fa-sort text-muted"></i>
+                        {% endif %}
+                    </th>
+                    <th class="sortable" data-sort="print_time" style="cursor: pointer;">
+                        打印时间
+                        {% if search_params.get('sort_by') == 'print_time' %}
+                            {% if search_params.get('sort_order') == 'asc' %}
+                                <i class="fas fa-sort-up"></i>
+                            {% else %}
+                                <i class="fas fa-sort-down"></i>
+                            {% endif %}
+                        {% else %}
+                            <i class="fas fa-sort text-muted"></i>
+                        {% endif %}
+                    </th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs.items %}
+                <tr>
+                    <td>{{ log.id }}</td>
+                    {% if current_user.role == 'admin' %}
+                    <td>
+                        <div class="d-flex align-items-center">
+                            <div class="user-avatar me-2" style="width: 24px; height: 24px; font-size: 12px;">
+                                {{ log.user.username[0].upper() }}
+                            </div>
+                            {{ log.user.username }}
+                            {% if log.user.role == 'admin' %}
+                            <span class="badge bg-warning ms-2">管理员</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                    {% endif %}
+                    <td>
+                        <div>
+                            <strong>{{ log.student_name }}</strong><br>
+                            <small class="text-muted">{{ log.student_code }}</small>
+                        </div>
+                    </td>
+                    <td>
+                        <div>
+                            <span class="badge bg-primary">{{ log.biz_name }}</span>
+                            {% if log.detail_info %}
+                            <br><small class="text-muted mt-1">{{ log.detail_info }}</small>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td>
+                        <small>{{ log.print_time.strftime('%Y-%m-%d %H:%M:%S') }}</small>
+                    </td>
+                    <td>
+                        {% if current_user.role == 'admin' %}
+                        <button class="btn btn-outline-danger btn-sm" 
+                                onclick="deleteLog({{ log.id }}, '{{ log.student_name }}')" 
+                                title="删除记录">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                        {% else %}
+                        <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            </table>
+        </div>
+        
+        <!-- 分页 -->
+        {% if logs.pages > 1 %}
+        <nav aria-label="打印记录分页">
+            <ul class="pagination justify-content-center">
+                {% if logs.has_prev %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('print_logs', page=logs.prev_num) }}{{ search_query_string }}">
+                        <i class="fas fa-chevron-left"></i>
+                    </a>
+                </li>
+                {% endif %}
+                
+                {% for page_num in logs.iter_pages() %}
+                    {% if page_num %}
+                        {% if page_num != logs.page %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('print_logs', page=page_num) }}{{ search_query_string }}">{{ page_num }}</a>
+                        </li>
+                        {% else %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ page_num }}</span>
+                        </li>
+                        {% endif %}
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">…</span>
+                    </li>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if logs.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('print_logs', page=logs.next_num) }}{{ search_query_string }}">
+                        <i class="fas fa-chevron-right"></i>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+            
+            <!-- 快速跳转 -->
+            <div class="d-flex justify-content-center align-items-center mt-2">
+                <div class="page-jump-container">
+                    <span class="text-muted me-2">跳转至</span>
+                    <div class="input-group input-group-sm" style="width: 120px; display: inline-flex;">
+                        <input type="number" 
+                               class="form-control" 
+                               id="pageJumpInput" 
+                               placeholder="页码" 
+                               min="1" 
+                               max="{{ logs.pages }}"
+                               title="输入1-{{ logs.pages }}之间的页码">
+                        <button class="btn btn-outline-secondary" 
+                                type="button" 
+                                onclick="jumpToPage()"
+                                title="跳转到指定页面">
+                            <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+                    <span class="text-muted ms-2">页</span>
+                </div>
+            </div>
+        </nav>
+        {% endif %}
+        
+
+        
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-clipboard-list fa-4x text-muted mb-3"></i>
+            <h5 class="text-muted">暂无打印记录</h5>
+            <p class="text-muted">
+                {% if search_params %}
+                没有找到符合条件的记录，请尝试调整搜索条件
+                {% else %}
+                开始使用系统打印凭证后，操作记录将显示在这里
+                {% endif %}
+            </p>
+            {% if not search_params %}
+            <a href="{{ url_for('print_page') }}" class="btn btn-primary">
+                <i class="fas fa-print me-1"></i>开始打印
+            </a>
+            {% else %}
+            <a href="{{ url_for('print_logs') }}" class="btn btn-secondary">
+                <i class="fas fa-list me-1"></i>查看所有记录
+            </a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 删除确认模态框 -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle me-2 text-warning"></i>确认删除
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>确定要删除 <strong id="deleteStudentName"></strong> 的打印记录吗？</p>
+                <p class="text-muted small">此操作不可恢复。</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <a href="#" id="confirmDelete" class="btn btn-danger">
+                    <i class="fas fa-trash me-1"></i>确认删除
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+
+@media (max-width: 768px) {
+    .floating-control {
+        top: 80px;
+        right: 10px;
+        width: 120px;
+    }
+}
+
+/* 确保页面底部有固定空间给技术支持 */
+.content {
+    min-height: calc(100vh - 200px);
+    padding-bottom: 80px; /* 为技术支持和版权信息留出空间 */
+}
+
+
+
+/* 页面跳转样式 */
+.page-jump-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.page-jump-container .input-group {
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    border-radius: 0.375rem;
+    overflow: hidden;
+}
+
+.page-jump-container input[type="number"] {
+    text-align: center;
+    font-weight: 500;
+}
+
+.page-jump-container input[type="number"]:focus {
+    border-color: #287042;
+    box-shadow: 0 0 0 0.2rem rgba(40, 112, 66, 0.25);
+}
+
+.page-jump-container .btn {
+    border-color: #dee2e6;
+}
+
+.page-jump-container .btn:hover {
+    background-color: #287042;
+    border-color: #287042;
+    color: white;
+}
+
+/* 响应式设计 */
+@media (max-width: 576px) {
+    .page-jump-container {
+        font-size: 0.875rem;
+    }
+    
+    .page-jump-container .input-group {
+        width: 100px !important;
+    }
+}
+</style>
+
+{% block scripts %}
+<script>
+// 删除确认
+function deleteLog(logId, studentName) {
+    // 设置学员姓名
+    document.getElementById('deleteStudentName').textContent = studentName;
+    
+    // 设置删除链接
+    document.getElementById('confirmDelete').href = `{{ url_for('delete_print_log', log_id=0) }}`.replace('0', logId);
+    
+    // 显示确认对话框
+    const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    modal.show();
+}
+
+// 改变每页显示数量
+function changePerPage(perPage) {
+    // 构建新的URL参数
+    const url = new URL(window.location);
+    url.searchParams.set('per_page', perPage);
+    url.searchParams.set('page', '1'); // 重置到第一页
+    
+    // 重定向到新URL
+    window.location.href = url.toString();
+}
+
+// 快速跳转到指定页面
+function jumpToPage() {
+    const input = document.getElementById('pageJumpInput');
+    const pageValue = input.value.trim();
+    
+    // 验证输入是否为空
+    if (!pageValue) {
+        showJumpMessage('请输入页码', 'warning');
+        input.focus();
+        return;
+    }
+    
+    // 验证是否为数字
+    const pageNum = parseInt(pageValue, 10);
+    if (isNaN(pageNum) || pageValue.includes('.') || pageValue.includes('e') || pageValue.includes('E')) {
+        showJumpMessage('请输入有效的页码数字', 'error');
+        input.focus();
+        input.select();
+        return;
+    }
+    
+    // 获取最大页码数
+    const maxPages = parseInt(input.getAttribute('max'), 10);
+    const minPages = parseInt(input.getAttribute('min'), 10);
+    
+    // 验证页码范围
+    if (pageNum < minPages) {
+        showJumpMessage(`页码不能小于 ${minPages}`, 'error');
+        input.focus();
+        input.select();
+        return;
+    }
+    
+    if (pageNum > maxPages) {
+        showJumpMessage(`页码不能大于 ${maxPages}`, 'error');
+        input.focus();
+        input.select();
+        return;
+    }
+    
+    // 检查是否跳转到当前页
+    const currentPage = {{ logs.page }};
+    if (pageNum === currentPage) {
+        showJumpMessage('已经在当前页面了', 'info');
+        input.value = '';
+        return;
+    }
+    
+    // 构建跳转URL
+    const url = new URL(window.location);
+    url.searchParams.set('page', pageNum);
+    
+    // 执行跳转
+    window.location.href = url.toString();
+}
+
+// 显示跳转提示消息
+function showJumpMessage(message, type) {
+    // 创建或更新提示元素
+    let messageElement = document.getElementById('pageJumpMessage');
+    if (!messageElement) {
+        messageElement = document.createElement('div');
+        messageElement.id = 'pageJumpMessage';
+        messageElement.className = 'alert alert-dismissible fade show mt-2 mb-0';
+        messageElement.style.fontSize = '0.875rem';
+        messageElement.style.padding = '0.5rem 0.75rem';
+        
+        // 插入到跳转容器后面
+        const jumpContainer = document.querySelector('.page-jump-container').parentElement;
+        jumpContainer.appendChild(messageElement);
+    }
+    
+    // 设置消息类型样式
+    messageElement.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show mt-2 mb-0`;
+    messageElement.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="alert"></button>
+    `;
+    
+    // 自动隐藏消息（除了错误消息）
+    if (type !== 'error') {
+        setTimeout(() => {
+            if (messageElement.parentElement) {
+                messageElement.remove();
+            }
+        }, 3000);
+    }
+}
+
+// 排序功能
+function sortTable(field) {
+    // 获取当前排序状态
+    const currentSort = '{{ search_params.get("sort_by", "") }}';
+    const currentOrder = '{{ search_params.get("sort_order", "") }}';
+    
+    // 决定新的排序方向
+    let newOrder = 'desc';
+    if (currentSort === field && currentOrder === 'desc') {
+        newOrder = 'asc';
+    }
+    
+    // 构建新的URL
+    const url = new URL(window.location);
+    url.searchParams.set('sort_by', field);
+    url.searchParams.set('sort_order', newOrder);
+    url.searchParams.set('page', '1'); // 重置到第一页
+    
+    // 重定向到新URL
+    window.location.href = url.toString();
+}
+
+// 初始化页面组件
+document.addEventListener('DOMContentLoaded', function() {
+    // 初始化页面跳转功能
+    initPageJump();
+    
+    // 绑定排序事件
+    document.querySelectorAll('.sortable').forEach(function(header) {
+        header.addEventListener('click', function() {
+            const sortField = this.getAttribute('data-sort');
+            sortTable(sortField);
+        });
+    });
+});
+
+// 初始化页面跳转功能
+function initPageJump() {
+    const jumpInput = document.getElementById('pageJumpInput');
+    if (jumpInput) {
+        // 支持回车键快速跳转
+        jumpInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                jumpToPage();
+            }
+        });
+        
+        // 防止输入非数字字符（除了删除、方向键等）
+        jumpInput.addEventListener('keydown', function(e) {
+            // 允许的键：数字、退格、删除、方向键、Tab、Enter
+            const allowedKeys = [
+                'Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 
+                'ArrowUp', 'ArrowDown', 'Tab', 'Enter'
+            ];
+            
+            const isNumber = (e.key >= '0' && e.key <= '9');
+            const isAllowedKey = allowedKeys.includes(e.key);
+            const isCtrlKey = e.ctrlKey || e.metaKey; // 允许Ctrl+A, Ctrl+C等
+            
+            if (!isNumber && !isAllowedKey && !isCtrlKey) {
+                e.preventDefault();
+                showJumpMessage('只能输入数字', 'warning');
+            }
+        });
+        
+        // 防止粘贴非数字内容
+        jumpInput.addEventListener('paste', function(e) {
+            setTimeout(() => {
+                const value = e.target.value;
+                if (!/^\d*$/.test(value)) {
+                    e.target.value = value.replace(/\D/g, '');
+                    showJumpMessage('已过滤非数字字符', 'warning');
+                }
+            }, 10);
+        });
+    }
+}
+
+
+
+
+
+</script>
+{% endblock %} 

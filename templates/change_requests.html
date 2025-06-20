@@ -1,0 +1,330 @@
+{% extends "base.html" %}
+
+{% block title %}用户变更申请管理{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-user-check me-2"></i>用户变更申请管理</h2>
+                <a href="{{ url_for('users') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-1"></i>返回用户管理
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 统计信息 -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-primary">{{ stats.total }}</h5>
+                    <p class="card-text">总申请数</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-warning">{{ stats.pending }}</h5>
+                    <p class="card-text">待处理</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-success">{{ stats.approved }}</h5>
+                    <p class="card-text">已批准</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-danger">{{ stats.rejected }}</h5>
+                    <p class="card-text">已拒绝</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 筛选器 -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-3">
+                    <label for="status" class="form-label">状态筛选</label>
+                    <select class="form-select" id="status" name="status" onchange="this.form.submit()">
+                        <option value="all" {% if status_filter == 'all' %}selected{% endif %}>全部状态</option>
+                        <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>待处理</option>
+                        <option value="approved" {% if status_filter == 'approved' %}selected{% endif %}>已批准</option>
+                        <option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>已拒绝</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="per_page" class="form-label">每页显示</label>
+                    <select class="form-select" id="per_page" name="per_page" onchange="this.form.submit()">
+                        <option value="10" {% if current_per_page == 10 %}selected{% endif %}>10条</option>
+                        <option value="20" {% if current_per_page == 20 %}selected{% endif %}>20条</option>
+                        <option value="50" {% if current_per_page == 50 %}selected{% endif %}>50条</option>
+                    </select>
+                </div>
+                <div class="col-md-6 d-flex align-items-end">
+                    <div class="text-muted">
+                        共 {{ requests.total }} 条记录，第 {{ requests.page }} / {{ requests.pages }} 页
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 申请列表 -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="card-title mb-0">
+                <i class="fas fa-list me-2"></i>变更申请列表
+            </h5>
+        </div>
+        <div class="card-body">
+            {% if requests.items %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>申请人</th>
+                            <th>申请时间</th>
+                            <th>变更内容</th>
+                            <th>申请理由</th>
+                            <th>状态</th>
+                            <th>处理信息</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for req in requests.items %}
+                        <tr>
+                            <td>
+                                {% set user = user_dict.get(req.user_id) %}
+                                {% if user %}
+                                    <div class="d-flex align-items-center">
+                                        <div class="user-avatar me-2" style="width: 24px; height: 24px; font-size: 12px;">
+                                            {{ user.username[0].upper() }}
+                                        </div>
+                                        <div>
+                                            <div><strong>{{ user.username }}</strong></div>
+                                            <small class="text-muted">{{ user.name or '未设置姓名' }}</small>
+                                        </div>
+                                    </div>
+                                {% else %}
+                                    <span class="text-muted">用户已删除</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <small>{{ req.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</small>
+                            </td>
+                            <td>
+                                <div class="change-details">
+                                    {% if req.new_username and req.new_username != req.old_username %}
+                                        <div class="mb-1">
+                                            <span class="badge bg-info me-1">用户名</span>
+                                            <small>{{ req.old_username }} → {{ req.new_username }}</small>
+                                        </div>
+                                    {% endif %}
+                                    {% if req.new_name is not none and req.new_name != req.old_name %}
+                                        <div class="mb-1">
+                                            <span class="badge bg-success me-1">姓名</span>
+                                            <small>{{ req.old_name or '未设置' }} → {{ req.new_name or '未设置' }}</small>
+                                        </div>
+                                    {% endif %}
+                                    {% if req.new_email is not none and req.new_email != req.old_email %}
+                                        <div class="mb-1">
+                                            <span class="badge bg-primary me-1">邮箱</span>
+                                            <small>{{ req.old_email or '未设置' }} → {{ req.new_email or '未设置' }}</small>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                <small class="text-muted">{{ req.reason }}</small>
+                            </td>
+                            <td>
+                                {% if req.status == 'pending' %}
+                                    <span class="badge bg-warning">
+                                        <i class="fas fa-clock me-1"></i>待处理
+                                    </span>
+                                {% elif req.status == 'approved' %}
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-check me-1"></i>已批准
+                                    </span>
+                                {% elif req.status == 'rejected' %}
+                                    <span class="badge bg-danger">
+                                        <i class="fas fa-times me-1"></i>已拒绝
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if req.processed_at %}
+                                    {% set processor = user_dict.get(req.processed_by) %}
+                                    <div>
+                                        <small class="text-muted">
+                                            处理时间：{{ req.processed_at.strftime('%Y-%m-%d %H:%M:%S') }}
+                                        </small>
+                                    </div>
+                                    <div>
+                                        <small class="text-muted">
+                                            处理人：{{ processor.username if processor else '未知' }}
+                                        </small>
+                                    </div>
+                                    {% if req.admin_comment %}
+                                        <div>
+                                            <small class="text-muted">备注：{{ req.admin_comment }}</small>
+                                        </div>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if req.status == 'pending' %}
+                                    <div class="btn-group" role="group">
+                                        <button type="button" class="btn btn-sm btn-success" 
+                                                onclick="processRequest({{ req.id }}, 'approve', '{{ req.user_id }}')">
+                                            <i class="fas fa-check me-1"></i>批准
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-danger" 
+                                                onclick="processRequest({{ req.id }}, 'reject', '{{ req.user_id }}')">
+                                            <i class="fas fa-times me-1"></i>拒绝
+                                        </button>
+                                    </div>
+                                {% else %}
+                                    <span class="text-muted">已处理</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 分页 -->
+            {% if requests.pages > 1 %}
+            <nav aria-label="分页导航">
+                <ul class="pagination justify-content-center">
+                    {% if requests.has_prev %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('change_requests', page=requests.prev_num, status=status_filter, per_page=current_per_page) }}">上一页</a>
+                        </li>
+                    {% endif %}
+                    
+                    {% for page_num in requests.iter_pages() %}
+                        {% if page_num %}
+                            {% if page_num != requests.page %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('change_requests', page=page_num, status=status_filter, per_page=current_per_page) }}">{{ page_num }}</a>
+                                </li>
+                            {% else %}
+                                <li class="page-item active">
+                                    <span class="page-link">{{ page_num }}</span>
+                                </li>
+                            {% endif %}
+                        {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link">…</span>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if requests.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('change_requests', page=requests.next_num, status=status_filter, per_page=current_per_page) }}">下一页</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">暂无变更申请</h5>
+                <p class="text-muted">当用户提交个人信息变更申请时，将在此处显示</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- 处理申请模态框 -->
+<div class="modal fade" id="processModal" tabindex="-1" aria-labelledby="processModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="processModalLabel">处理变更申请</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="processContent"></div>
+                <div class="mt-3">
+                    <label for="adminComment" class="form-label">管理员备注（可选）</label>
+                    <textarea class="form-control" id="adminComment" rows="3" placeholder="请输入处理备注..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn" id="confirmProcessBtn">确认</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function processRequest(requestId, action, userId) {
+    const modal = new bootstrap.Modal(document.getElementById('processModal'));
+    const modalTitle = document.getElementById('processModalLabel');
+    const processContent = document.getElementById('processContent');
+    const confirmBtn = document.getElementById('confirmProcessBtn');
+    
+    if (action === 'approve') {
+        modalTitle.textContent = '批准变更申请';
+        processContent.innerHTML = '<div class="alert alert-success"><i class="fas fa-check me-2"></i>确定要批准这个变更申请吗？批准后用户信息将立即更新。</div>';
+        confirmBtn.className = 'btn btn-success';
+        confirmBtn.innerHTML = '<i class="fas fa-check me-1"></i>批准';
+    } else {
+        modalTitle.textContent = '拒绝变更申请';
+        processContent.innerHTML = '<div class="alert alert-danger"><i class="fas fa-times me-2"></i>确定要拒绝这个变更申请吗？</div>';
+        confirmBtn.className = 'btn btn-danger';
+        confirmBtn.innerHTML = '<i class="fas fa-times me-1"></i>拒绝';
+    }
+    
+    confirmBtn.onclick = function() {
+        const comment = document.getElementById('adminComment').value.trim();
+        const url = `{{ url_for('process_change_request', request_id=0, action='') }}`.replace('0', requestId).replace('action', action);
+        
+        // 使用POST方法发送数据
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = url;
+        
+        if (comment) {
+            const commentInput = document.createElement('input');
+            commentInput.type = 'hidden';
+            commentInput.name = 'admin_comment';
+            commentInput.value = comment;
+            form.appendChild(commentInput);
+        }
+        
+        document.body.appendChild(form);
+        form.submit();
+    };
+    
+    // 清空之前的备注
+    document.getElementById('adminComment').value = '';
+    
+    modal.show();
+}
+</script>
+{% endblock %} 
