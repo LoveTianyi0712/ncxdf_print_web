@@ -616,19 +616,14 @@ def check_cookie_timeout():
                 flash('登录状态异常，请重新登录', 'warning')
                 return response
         else:
-            # 没有登录时间cookie，设置相关cookies
-            response = make_response()
-            current_timestamp = str(datetime.now().timestamp())
-            
-            response.set_cookie('login_time', 
-                              current_timestamp, 
-                              max_age=12*60*60)  # 12小时
-            response.set_cookie('login_user', 
-                              current_user.username, 
-                              max_age=12*60*60)  # 12小时
-            response.set_cookie('login_user_id', 
-                              str(current_user.id), 
-                              max_age=12*60*60)  # 12小时
+            # 没有登录时间cookie但用户显示为已认证，可能是状态不一致，强制退出重新登录
+            logout_user()
+            session.clear()
+            response = make_response(redirect(url_for('login')))
+            response.set_cookie('login_time', '', expires=0)
+            response.set_cookie('login_user', '', expires=0)
+            response.set_cookie('login_user_id', '', expires=0)
+            flash('登录状态异常，请重新登录', 'warning')
             return response
 
 # 验证码生成函数
@@ -720,7 +715,34 @@ def first_login_required(f):
 # 路由
 @app.route('/')
 def index():
+    # 检查登录状态和cookie一致性
     if current_user.is_authenticated:
+        # 检查cookie是否存在且有效
+        login_time_cookie = request.cookies.get('login_time')
+        login_user_cookie = request.cookies.get('login_user')
+        login_user_id_cookie = request.cookies.get('login_user_id')
+        
+        # 如果用户已登录但cookie不存在或不匹配，强制重新登录
+        if not login_time_cookie or not login_user_cookie or not login_user_id_cookie:
+            logout_user()
+            session.clear()
+            flash('登录状态异常，请重新登录', 'warning')
+            return redirect(url_for('login'))
+        
+        # 检查cookie中的用户信息是否匹配
+        try:
+            cookie_user_id = int(login_user_id_cookie)
+            if login_user_cookie != current_user.username or cookie_user_id != current_user.id:
+                logout_user()
+                session.clear()
+                flash('登录身份验证失败，请重新登录', 'warning')
+                return redirect(url_for('login'))
+        except (ValueError, TypeError):
+            logout_user()
+            session.clear()
+            flash('登录状态异常，请重新登录', 'warning')
+            return redirect(url_for('login'))
+        
         return redirect(url_for('dashboard'))
     return redirect(url_for('login'))
 
@@ -752,6 +774,27 @@ def captcha():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    # 如果用户已经登录，重定向到dashboard
+    if current_user.is_authenticated:
+        # 检查cookie是否存在且有效
+        login_time_cookie = request.cookies.get('login_time')
+        login_user_cookie = request.cookies.get('login_user')
+        login_user_id_cookie = request.cookies.get('login_user_id')
+        
+        # 如果cookie都存在且匹配，则重定向到dashboard
+        if (login_time_cookie and login_user_cookie and login_user_id_cookie):
+            try:
+                cookie_user_id = int(login_user_id_cookie)
+                if login_user_cookie == current_user.username and cookie_user_id == current_user.id:
+                    return redirect(url_for('dashboard'))
+            except (ValueError, TypeError):
+                pass
+        
+        # 如果cookie不匹配或不存在，强制退出重新登录
+        logout_user()
+        session.clear()
+        flash('登录状态异常，请重新登录', 'warning')
+    
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
@@ -814,15 +857,36 @@ def login():
 @app.route('/logout')
 @login_required
 def logout():
+    # 记录用户退出信息
+    username = current_user.username if current_user.is_authenticated else '未知用户'
+    
+    # 强制退出用户
     logout_user()
-    session.clear()  # 清除所有session数据
+    
+    # 清除所有session数据，包括Flask-Login的session
+    session.clear()
+    
+    # 如果有其他需要清除的session key，也在这里清除
+    for key in list(session.keys()):
+        session.pop(key, None)
+    
     flash('已成功退出登录', 'info')
     
     # 创建响应并删除所有登录相关cookies
     response = make_response(redirect(url_for('login')))
-    response.set_cookie('login_time', '', expires=0)
-    response.set_cookie('login_user', '', expires=0)
-    response.set_cookie('login_user_id', '', expires=0)
+    
+    # 删除所有可能的登录相关cookies
+    response.set_cookie('login_time', '', expires=0, path='/')
+    response.set_cookie('login_user', '', expires=0, path='/')
+    response.set_cookie('login_user_id', '', expires=0, path='/')
+    
+    # 也删除可能的Flask-Login session cookie
+    response.set_cookie('session', '', expires=0, path='/')
+    
+    # 设置缓存控制头，确保页面不被缓存
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
     
     return response
 
@@ -3033,4 +3097,4 @@ if __name__ == '__main__':
         # 初始化cookies自动检测
         init_cookies_auto_check()
     
-    app.run(debug=True, host='0.0.0.0', port=5000) 
+    app.run(debug=True, host='0.0.0.0', port=8080) 
