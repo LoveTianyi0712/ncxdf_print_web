@@ -485,10 +485,16 @@ function generatePrint() {
             
             // 绑定下载事件
             const downloadHandler = () => {
-                const link = document.createElement('a');
-                link.href = data.image_url;
-                link.download = `${selectedReport.biz_name}_${new Date().getTime()}.png`;
-                link.click();
+                if (isMobile) {
+                    // 移动端使用改进的下载方法
+                    downloadImageForMobile(data.image_url, `${selectedReport.biz_name}_${new Date().getTime()}.png`);
+                } else {
+                    // 桌面端使用传统方法
+                    const link = document.createElement('a');
+                    link.href = data.image_url;
+                    link.download = `${selectedReport.biz_name}_${new Date().getTime()}.png`;
+                    link.click();
+                }
             };
             
             document.querySelector(elements.downloadBtn).onclick = downloadHandler;
@@ -513,6 +519,103 @@ function generatePrint() {
 document.querySelector(elements.generateBtn).addEventListener('click', generatePrint);
 if (isMobile) {
     document.getElementById('mobileGenerateBtn').addEventListener('click', generatePrint);
+}
+
+// 移动端下载图片功能
+function downloadImageForMobile(imageUrl, filename) {
+    try {
+        // 尝试标准下载方法
+        const link = document.createElement('a');
+        link.href = imageUrl;
+        link.download = filename;
+        
+        // 检查是否支持download属性
+        if (typeof link.download !== 'undefined') {
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            // 显示成功提示
+            showMobileDownloadTip('success');
+        } else {
+            // 不支持download属性，使用备用方案
+            fallbackDownload(imageUrl);
+        }
+    } catch (error) {
+        console.error('下载失败:', error);
+        fallbackDownload(imageUrl);
+    }
+}
+
+// 备用下载方案
+function fallbackDownload(imageUrl) {
+    try {
+        // 在新窗口打开图片
+        const newWindow = window.open(imageUrl, '_blank');
+        if (newWindow) {
+            // 显示长按保存提示
+            showMobileDownloadTip('longpress');
+        } else {
+            // 新窗口被阻止，直接跳转
+            window.location.href = imageUrl;
+            showMobileDownloadTip('longpress');
+        }
+    } catch (error) {
+        console.error('备用下载方案失败:', error);
+        showMobileDownloadTip('error');
+    }
+}
+
+// 显示移动端下载提示
+function showMobileDownloadTip(type) {
+    let message = '';
+    let alertClass = '';
+    
+    switch (type) {
+        case 'success':
+            message = '图片下载已开始，请查看下载文件夹';
+            alertClass = 'alert-success';
+            break;
+        case 'longpress':
+            message = '💡 提示：在打开的图片上<strong>长按图片</strong>，然后选择"保存图片"或"下载图片"';
+            alertClass = 'alert-info';
+            break;
+        case 'error':
+            message = '下载失败，请尝试长按图片保存';
+            alertClass = 'alert-warning';
+            break;
+    }
+    
+    // 创建提示框
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert ${alertClass} alert-dismissible fade show mobile-download-tip`;
+    alertDiv.style.cssText = `
+        position: fixed;
+        top: 20px;
+        left: 15px;
+        right: 15px;
+        z-index: 9999;
+        border-radius: 10px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    `;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="关闭"></button>
+    `;
+    
+    document.body.appendChild(alertDiv);
+    
+    // 自动消失
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.classList.remove('show');
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    document.body.removeChild(alertDiv);
+                }
+            }, 300);
+        }
+    }, type === 'longpress' ? 8000 : 4000); // 长按提示显示更久
 }
 
 // 返回顶部功能

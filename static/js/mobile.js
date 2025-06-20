@@ -242,9 +242,12 @@ function optimizePrintPreviewForMobile(imageUrl) {
                     <button id="downloadBtn" class="btn btn-success w-100 mb-2">
                         <i class="fas fa-download me-2"></i>下载图片
                     </button>
-                    <button class="btn btn-outline-primary w-100" onclick="zoomPrintPreview()">
+                    <button class="btn btn-outline-primary w-100 mb-2" onclick="zoomPrintPreview()">
                         <i class="fas fa-search-plus me-2"></i>放大查看
                     </button>
+                    <div class="alert alert-info p-2 mb-0">
+                        <small>💡 提示：如下载不成功，可<strong>长按图片</strong>选择保存</small>
+                    </div>
                 </div>
             </div>
         `;
