@@ -10,7 +10,7 @@
                 <h2>
                     <i class="fas fa-inbox"></i> 消息盒子
                     {% if stats.unread > 0 %}
-                    <span class="badge badge-danger">{{ stats.unread }}</span>
+                    <span class="badge badge-danger">{% if stats.unread <= 99 %}{{ stats.unread }}{% else %}99+{% endif %}</span>
                     {% endif %}
                 </h2>
                 <div>
@@ -46,7 +46,7 @@
                                 </div>
                                 <div>
                                     <div class="text-xs font-weight-bold text-uppercase mb-1">未读消息</div>
-                                    <div class="h5 mb-0 font-weight-bold">{{ stats.unread }}</div>
+                                    <div class="h5 mb-0 font-weight-bold">{% if stats.unread <= 99 %}{{ stats.unread }}{% else %}99+{% endif %}</div>
                                 </div>
                             </div>
                         </div>
@@ -162,7 +162,7 @@
                                             
                                             <!-- 已读/未读标识 -->
                                             {% if not message.is_read %}
-                                                <span class="badge badge-warning mr-2">
+                                                <span class="badge badge-danger mr-2">
                                                     <i class="fas fa-circle"></i> 未读
                                                 </span>
                                             {% endif %}
@@ -283,6 +283,62 @@
 .message-clickable {
     transition: all 0.2s ease;
 }
+
+/* 自定义未读消息标识样式 */
+.badge-danger {
+    background-color: #dc3545 !important;
+    color: #ffffff !important;
+    font-weight: 600 !important;
+    border: 1px solid #dc3545 !important;
+}
+
+/* 确保未读消息徽章在不同背景下都清晰可见 */
+.list-group-item .badge-danger {
+    background-color: #e74c3c !important;
+    color: #ffffff !important;
+    box-shadow: 0 1px 3px rgba(231, 76, 60, 0.3);
+}
+
+/* 自定义消息类型标识样式 - 确保所有颜色都清晰可见 */
+.badge-success {
+    background-color: #28a745 !important;
+    color: #ffffff !important;
+    font-weight: 600 !important;
+    border: 1px solid #28a745 !important;
+}
+
+.badge-info {
+    background-color: #17a2b8 !important;
+    color: #ffffff !important;
+    font-weight: 600 !important;
+    border: 1px solid #17a2b8 !important;
+}
+
+.badge-warning {
+    background-color: #ffc107 !important;
+    color: #212529 !important;
+    font-weight: 600 !important;
+    border: 1px solid #ffc107 !important;
+}
+
+/* 确保所有消息类型徽章在列表中都清晰可见 */
+.list-group-item .badge-success {
+    background-color: #27ae60 !important;
+    color: #ffffff !important;
+    box-shadow: 0 1px 3px rgba(39, 174, 96, 0.3);
+}
+
+.list-group-item .badge-info {
+    background-color: #3498db !important;
+    color: #ffffff !important;
+    box-shadow: 0 1px 3px rgba(52, 152, 219, 0.3);
+}
+
+.list-group-item .badge-warning {
+    background-color: #f39c12 !important;
+    color: #ffffff !important;
+    box-shadow: 0 1px 3px rgba(243, 156, 18, 0.3);
+}
 </style>
 
 <script>
@@ -337,7 +393,7 @@ function markAsReadByClick(messageId, event) {
                 messageElement.removeAttribute('onclick');
                 
                 // 移除未读徽章
-                const unreadBadge = messageElement.querySelector('.badge-warning');
+                const unreadBadge = messageElement.querySelector('.badge-danger');
                 if (unreadBadge) {
                     unreadBadge.remove();
                 }
@@ -429,24 +485,5 @@ function deleteMessage(messageId) {
 document.addEventListener('DOMContentLoaded', function() {
     updateUnreadCount();
 });
-
-function updateUnreadCount() {
-    fetch('/api/get_unread_count')
-    .then(response => response.json())
-    .then(data => {
-        const badge = document.querySelector('.navbar .badge');
-        if (badge) {
-            if (data.count > 0) {
-                badge.textContent = data.count;
-                badge.style.display = 'inline';
-            } else {
-                badge.style.display = 'none';
-            }
-        }
-    })
-    .catch(error => {
-        console.error('Error updating unread count:', error);
-    });
-}
 </script>
 {% endblock %} 
