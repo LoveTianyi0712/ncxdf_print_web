@@ -75,21 +75,7 @@
           <Parent isRef="3" />
           <Stretch>True</Stretch>
         </Image3>
-        <Text79 Ref="6" type="Text" isKey="true">
-          <Brush>Transparent</Brush>
-          <ClientRectangle>8.6,0.4,4.2,0.4</ClientRectangle>
-          <Conditions isList="true" count="0" />
-          <Font>Arial,8</Font>
-          <Guid>28ff161b396d4f7b9f1d61b17c5a9e1c</Guid>
-          <HorAlignment>Right</HorAlignment>
-          <Margins>1,0.5,0.2,0.5</Margins>
-          <Name>Text79</Name>
-          <Page isRef="3" />
-          <Parent isRef="3" />
-          <Text>联系电话：{ArrayList.sTelePhone}</Text>
-          <TextBrush>Black</TextBrush>
-          <Type>DataColumn</Type>
-        </Text79>
+
         <Text27 Ref="7" type="Text" isKey="true">
           <Brush>Transparent</Brush>
           <ClientRectangle>15,1.2,1.2,0.4</ClientRectangle>

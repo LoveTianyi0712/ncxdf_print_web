@@ -71,7 +71,7 @@ class EnrollmentCertificateProcessor:
         
         # 设置默认值 - 根据模板字段要求
         processed_data.setdefault('sChannel', '直营')
-        processed_data.setdefault('sTelePhone', '400-175-9898')
+        # 已移除联系电话字段
         processed_data.setdefault('sStudentCode', '')
         processed_data.setdefault('sGender', '不详')
         processed_data.setdefault('sCardCode', '')
@@ -400,14 +400,8 @@ class EnrollmentCertificateProcessor:
                    center_offset_x, center_offset_y, components):
         """添加页脚信息"""
         try:
-            # 检查是否已有联系电话信息
-            has_phone = any('联系电话' in comp.get('text', '') for comp in components)
-            
-            if not has_phone:
-                # 添加默认联系电话
-                footer_font = self._get_font({'size': 8}, chinese_font_path, True, False, {}, default_font)
-                footer_text = "联系电话：400-175-9898"
-                draw.text((50, height - 30), footer_text, font=footer_font, fill='gray')
+            # 不再添加联系电话信息 - 已从模板中移除
+            pass
                 
         except Exception as e:
             print(f"页脚添加失败: {e}")
@@ -441,7 +435,6 @@ if __name__ == "__main__":
     test_data = {
         # 基本信息
         'sSchoolName': '南昌学校',
-        'sTelePhone': '400-175-9898',
         'sChannel': '直营',
         
         # 学员信息
