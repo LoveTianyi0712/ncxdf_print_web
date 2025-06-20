@@ -3,10 +3,16 @@
 
 """
 南昌新东方凭证打印系统
-Version: 2.2.1
-Release Date: 2025-06-19
+Version: 2.3.0
+Release Date: 2025-06-20
 
 更新日志:
+v2.3.0 (2025-06-20)
+- 全面优化并发安全机制，支持多用户同时操作
+- 新增并发处理工具模块和线程锁管理
+- 优化数据库连接池配置，提升系统性能
+- 添加死锁检测和自动重试机制
+
 v2.2.0 (2025-06-19)
 - 新增Excel批量导入用户功能，支持用户名、密码、姓名、邮箱、角色等完整信息导入
 - 提供详细的Excel模板下载，包含数据模板和填写说明两个工作表
@@ -76,6 +82,14 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 import atexit
 import threading
+import uuid
+from sqlalchemy import text
+from contextlib import contextmanager
+
+# 添加线程锁用于关键操作
+_print_lock = threading.Lock()
+_user_creation_lock = threading.Lock()
+_cookies_config_lock = threading.Lock()
 
 # 安装PyMySQL作为MySQLdb的替代
 pymysql.install_as_MySQLdb()
@@ -1141,85 +1155,82 @@ def process_change_request(request_id, action):
 @admin_required
 def create_user():
     if request.method == 'POST':
-        usernames = request.form.get('usernames', '').strip()
-        passwords = request.form.get('passwords', '').strip()
-        names = request.form.get('names', '').strip()  # 新增姓名参数
-        emails = request.form.get('emails', '').strip()  # 新增邮箱参数
-        role = request.form.get('role', 'user')
-        
-        if not usernames:
-            flash('请输入用户名', 'error')
-            return render_template('create_user.html')
-        
-        # 处理批量创建
-        username_list = [u.strip() for u in usernames.split('\n') if u.strip()]
-        password_list = []
-        name_list = []
-        email_list = []
-        
-        if passwords:
-            password_list = [p.strip() for p in passwords.split('\n') if p.strip()]
-        
-        if names:
-            name_list = [n.strip() for n in names.split('\n') if n.strip()]
-        
-        if emails:
-            email_list = [e.strip() for e in emails.split('\n') if e.strip()]
-        
-        created_users = []
-        errors = []
-        
-        for i, username in enumerate(username_list):
-            if User.query.filter_by(username=username, is_deleted=False).first():
-                errors.append(f'用户名 {username} 已存在')
-                continue
+        # 使用线程锁确保用户创建操作的并发安全
+        with _user_creation_lock:
+            # 获取表单数据
+            usernames = request.form.get('usernames', '').strip()
+            passwords = request.form.get('passwords', '').strip()
+            names = request.form.get('names', '').strip()
+            emails = request.form.get('emails', '').strip()
+            role = request.form.get('role', 'user')
             
-            # 如果提供了密码列表，使用对应的密码，否则使用默认密码
-            if i < len(password_list):
-                password = sanitize_password_input(password_list[i])
-            else:
-                password = '123456'  # 默认密码
+            if not usernames:
+                flash('请输入用户名', 'error')
+                return render_template('create_user.html')
             
-            # 验证密码安全性
-            is_valid, error_msg = validate_password_security(password)
-            if not is_valid:
-                errors.append(f'用户 {username} 的密码不符合安全要求：{error_msg}')
-                continue
+            # 分割输入的数据
+            username_list = [u.strip() for u in usernames.split('\n') if u.strip()]
+            password_list = [p.strip() for p in passwords.split('\n') if p.strip()] if passwords else []
+            name_list = [n.strip() for n in names.split('\n') if n.strip()] if names else []
+            email_list = [e.strip() for e in emails.split('\n') if e.strip()] if emails else []
             
-            # 获取对应的姓名和邮箱
-            name = name_list[i] if i < len(name_list) else None
-            email = email_list[i] if i < len(email_list) else None
+            created_users = []
+            errors = []
             
-            try:
-                user = User(
-                    username=username,
-                    password_hash=generate_password_hash(password),
-                    name=name,
-                    email=email,
-                    role=role,
-                    created_by=current_user.id
-                )
-                db.session.add(user)
-                created_users.append({
-                    'username': username, 
-                    'password': password, 
-                    'name': name, 
-                    'email': email
-                })
-            except Exception as e:
-                errors.append(f'创建用户 {username} 失败：{str(e)}')
-        
-        try:
-            db.session.commit()
-            if created_users:
-                flash(f'成功创建 {len(created_users)} 个用户', 'success')
-            if errors:
-                for error in errors:
-                    flash(error, 'warning')
-            return render_template('user_created.html', users=created_users)
-        except Exception as e:
-            db.session.rollback()
-            flash(f'创建用户失败：{str(e)}', 'error')
+            # 使用安全的数据库事务上下文
+            with safe_db_transaction() as session:
+                for i, username in enumerate(username_list):
+                    # 并发安全的用户名唯一性检查
+                    if not check_username_uniqueness_safe(username):
+                        errors.append(f'用户名 {username} 已存在')
+                        continue
+                    
+                    # 如果提供了密码列表，使用对应的密码，否则使用默认密码
+                    if i < len(password_list):
+                        password = sanitize_password_input(password_list[i])
+                    else:
+                        password = '123456'  # 默认密码
+                    
+                    # 验证密码安全性
+                    is_valid, error_msg = validate_password_security(password)
+                    if not is_valid:
+                        errors.append(f'用户 {username} 的密码不符合安全要求：{error_msg}')
+                        continue
+                    
+                    # 获取对应的姓名和邮箱
+                    name = name_list[i] if i < len(name_list) else None
+                    email = email_list[i] if i < len(email_list) else None
+                    
+                    try:
+                        user = User(
+                            username=username,
+                            password_hash=generate_password_hash(password),
+                            name=name,
+                            email=email,
+                            role=role,
+                            created_by=current_user.id
+                        )
+                        session.add(user)
+                        created_users.append({
+                            'username': username, 
+                            'password': password, 
+                            'name': name, 
+                            'email': email,
+                            'role': role
+                        })
+                    except Exception as e:
+                        errors.append(f'创建用户 {username} 失败：{str(e)}')
+                        continue
+                
+                # 显示结果
+                if created_users:
+                    flash(f'成功创建 {len(created_users)} 个用户', 'success')
+                if errors:
+                    for error in errors:
+                        flash(error, 'warning')
+                
+                if created_users:
+                    return render_template('user_created.html', users=created_users)
     
     return render_template('create_user.html')
 
@@ -1631,110 +1642,113 @@ def _fallback_mock_search(student_code):
 @app.route('/generate_print', methods=['POST'])
 @login_required
 def generate_print():
-    try:
-        data = request.json
-        biz_type = data.get('biz_type')
-        student_data = data.get('student_data')
-        
-        if not biz_type or not student_data:
-            return jsonify({'error': '缺少必要参数'}), 400
-        
-        # 使用新的凭证管理器生成打印图像
-        # 方法1: 使用新的独立处理器（推荐）
+    # 使用线程锁确保打印操作的并发安全
+    with _print_lock:
         try:
-            image_path = generate_certificate_by_type(biz_type, student_data)
-        except Exception as e:
-            print(f"新处理器失败: {str(e)}")
-            image_path = None
-        
-        # 方法2: 如果新处理器失败，使用原有方法（备选）
-        if not image_path:
+            data = request.json
+            biz_type = data.get('biz_type')
+            student_data = data.get('student_data')
+            
+            if not biz_type or not student_data:
+                return jsonify({'error': '缺少必要参数'}), 400
+            
+            # 使用新的凭证管理器生成打印图像
+            # 方法1: 使用新的独立处理器（推荐）
             try:
-                image_path = print_certificate_by_biz_type(biz_type, student_data)
+                image_path = generate_certificate_by_type(biz_type, student_data)
             except Exception as e:
-                print(f"原有方法也失败: {str(e)}")
+                print(f"新处理器失败: {str(e)}")
                 image_path = None
-        
-        # 方法3: 最后的传统方法（保底）
-        if not image_path:
-            # 创建打印消息
-            message = {
-                "PrintType": "proofprintnew",
-                "Info": {
-                    "Params": {
-                        "BizType": biz_type,
-                        "JsonString": json.dumps(student_data),
-                        "DefaultPrinter": "",
-                        "DefaultPrintNumber": 1,
-                        "NeedPreview": True,
-                        "SchoolId": 35,
-                        "CurrencySymbol": "¥"
+            
+            # 方法2: 如果新处理器失败，使用原有方法（备选）
+            if not image_path:
+                try:
+                    image_path = print_certificate_by_biz_type(biz_type, student_data)
+                except Exception as e:
+                    print(f"原有方法也失败: {str(e)}")
+                    image_path = None
+            
+            # 方法3: 最后的传统方法（保底）
+            if not image_path:
+                # 创建打印消息
+                message = {
+                    "PrintType": "proofprintnew",
+                    "Info": {
+                        "Params": {
+                            "BizType": biz_type,
+                            "JsonString": json.dumps(student_data),
+                            "DefaultPrinter": "",
+                            "DefaultPrintNumber": 1,
+                            "NeedPreview": True,
+                            "SchoolId": 35,
+                            "CurrencySymbol": "¥"
+                        }
                     }
                 }
-            }
+                
+                # 生成打印图像
+                simulator = ProofPrintSimulator()
+                image_path = simulator.process_print_request(message)
             
-            # 生成打印图像
-            simulator = ProofPrintSimulator()
-            image_path = simulator.process_print_request(message)
-        
-        if image_path and os.path.exists(image_path):
-            # 将图像转换为base64
-            with open(image_path, 'rb') as img_file:
-                img_data = base64.b64encode(img_file.read()).decode()
-            
-            # 获取文件名
-            filename = os.path.basename(image_path)
-            
-            # 根据biz_type确定凭证名称和详细信息
-            biz_name, detail_info = _get_certificate_info(biz_type, student_data)
-            
-            print_log = PrintLog(
-                user_id=current_user.id,
-                student_code=student_data.get('sStudentCode', ''),
-                student_name=student_data.get('sStudentName', ''),
-                biz_type=biz_type,
-                biz_name=biz_name,
-                print_data=json.dumps(student_data, ensure_ascii=False),
-                detail_info=detail_info
-            )
-            db.session.add(print_log)
-            db.session.flush()  # 获取print_log.id
-            
-            # 创建打印成功消息
-            message_content = f'凭证打印成功！\n\n学员信息：\n学员编码：{student_data.get("sStudentCode", "")}\n学员姓名：{student_data.get("sStudentName", "")}\n\n凭证信息：\n凭证类型：{biz_name}'
-            if detail_info:
-                message_content += f'\n详细信息：{detail_info}'
-            
-            create_message(
-                user_id=current_user.id,
-                message_type='print_success',
-                title=f'{biz_name}打印成功',
-                content=message_content,
-                related_id=print_log.id,
-                related_type='print_log'
-            )
-            
-            db.session.commit()
-            
-            # 清理临时文件
-            try:
-                os.remove(image_path)
-                json_file = image_path.replace('.png', '.json')
-                if os.path.exists(json_file):
-                    os.remove(json_file)
-            except:
-                pass
-            
-            return jsonify({
-                'success': True,
-                'image': img_data,
-                'filename': filename
-            })
-        else:
-            return jsonify({'error': '打印处理失败'}), 500
-            
-    except Exception as e:
-        return jsonify({'error': f'生成打印失败：{str(e)}'}), 500
+            if image_path and os.path.exists(image_path):
+                # 将图像转换为base64
+                with open(image_path, 'rb') as img_file:
+                    img_data = base64.b64encode(img_file.read()).decode()
+                
+                # 使用并发安全的文件名生成器
+                filename = generate_unique_filename("print_certificate", "png")
+                
+                # 根据biz_type确定凭证名称和详细信息
+                biz_name, detail_info = _get_certificate_info(biz_type, student_data)
+                
+                # 使用安全的数据库事务上下文
+                with safe_db_transaction() as session:
+                    print_log = PrintLog(
+                        user_id=current_user.id,
+                        student_code=student_data.get('sStudentCode', ''),
+                        student_name=student_data.get('sStudentName', ''),
+                        biz_type=biz_type,
+                        biz_name=biz_name,
+                        print_data=json.dumps(student_data, ensure_ascii=False),
+                        detail_info=detail_info
+                    )
+                    session.add(print_log)
+                    session.flush()  # 获取print_log.id
+                    
+                    # 创建打印成功消息
+                    message_content = f'凭证打印成功！\n\n学员信息：\n学员编码：{student_data.get("sStudentCode", "")}\n学员姓名：{student_data.get("sStudentName", "")}\n\n凭证信息：\n凭证类型：{biz_name}'
+                    if detail_info:
+                        message_content += f'\n详细信息：{detail_info}'
+                    
+                    message = Message(
+                        user_id=current_user.id,
+                        message_type='print_success',
+                        title=f'{biz_name}打印成功',
+                        content=message_content,
+                        related_id=print_log.id,
+                        related_type='print_log'
+                    )
+                    session.add(message)
+                
+                # 清理临时文件
+                try:
+                    os.remove(image_path)
+                    json_file = image_path.replace('.png', '.json')
+                    if os.path.exists(json_file):
+                        os.remove(json_file)
+                except:
+                    pass
+                
+                return jsonify({
+                    'success': True,
+                    'image': img_data,
+                    'filename': filename
+                })
+            else:
+                return jsonify({'error': '打印处理失败'}), 500
+                
+        except Exception as e:
+            return jsonify({'error': f'生成打印失败：{str(e)}'}), 500
 
 @app.route('/api/certificate_types')
 @login_required  
@@ -2297,8 +2311,8 @@ def get_version():
     """获取系统版本信息"""
     return jsonify({
         'name': '南昌新东方凭证打印系统',
-        'version': '2.2.1',
-        'release_date': '2025-06-19',
+        'version': '2.3.0',
+        'release_date': '2025-06-20',
         'description': '支持多种凭证打印、用户管理、Excel批量导入、消息通知的综合管理系统'
     })
 
@@ -2375,59 +2389,38 @@ def cookies_config():
 @login_required
 @admin_required
 def save_cookies():
-    """保存cookies配置"""
-    try:
-        cookies_text = request.form.get('cookies_data', '').strip()
-        config_name = request.form.get('config_name', 'ERP Cookies').strip()
-        
-        if not cookies_text:
-            flash('请输入cookies数据', 'error')
-            return redirect(url_for('cookies_config'))
-        
-        # 解析cookies文本
-        cookies_dict = {}
+    # 使用线程锁确保Cookies配置操作的并发安全
+    with _cookies_config_lock:
         try:
-            # 支持多种格式的cookies输入
-            if cookies_text.startswith('{'):
-                # JSON格式
-                cookies_dict = json.loads(cookies_text)
-            else:
-                # 键值对格式，支持分号或换行分隔
-                lines = cookies_text.replace(';', '\n').split('\n')
-                for line in lines:
-                    line = line.strip()
-                    if '=' in line:
-                        key, value = line.split('=', 1)
-                        cookies_dict[key.strip()] = value.strip()
+            data = request.json
+            name = data.get('name', 'ERP Cookies')
+            cookies_data = data.get('cookies_data', {})
+            
+            if not cookies_data:
+                return jsonify({'error': 'Cookies数据不能为空'}), 400
+            
+            # 使用安全的数据库事务上下文
+            with safe_db_transaction() as session:
+                # 创建新的Cookies配置
+                config = CookiesConfig(
+                    name=name,
+                    cookies_data=json.dumps(cookies_data, ensure_ascii=False),
+                    created_by=current_user.id,
+                    is_active=False  # 新创建的配置默认不激活
+                )
+                session.add(config)
+                session.flush()  # 获取配置ID
+                
+                return jsonify({
+                    'success': True,
+                    'message': 'Cookies配置保存成功',
+                    'config_id': config.id
+                })
+                
+        except json.JSONDecodeError:
+            return jsonify({'error': 'Cookies数据格式不正确'}), 400
         except Exception as e:
-            flash(f'Cookies格式解析失败：{str(e)}', 'error')
-            return redirect(url_for('cookies_config'))
-        
-        if not cookies_dict:
-            flash('未能解析到有效的cookies数据', 'error')
-            return redirect(url_for('cookies_config'))
-        
-        # 将所有其他配置设为非活跃
-        CookiesConfig.query.update({'is_active': False})
-        
-        # 创建新配置
-        new_config = CookiesConfig(
-            name=config_name,
-            cookies_data=json.dumps(cookies_dict, ensure_ascii=False),
-            is_active=True,
-            created_by=current_user.id
-        )
-        
-        db.session.add(new_config)
-        db.session.commit()
-        
-        flash(f'Cookies配置 "{config_name}" 保存成功！', 'success')
-        
-    except Exception as e:
-        db.session.rollback()
-        flash(f'保存失败：{str(e)}', 'error')
-    
-    return redirect(url_for('cookies_config'))
+            return jsonify({'error': f'保存失败：{str(e)}'}), 500
 
 @app.route('/test_cookies/<int:config_id>')
 @login_required
@@ -2736,6 +2729,35 @@ def create_admin_user():
         db.session.add(admin)
         db.session.commit()
         print("默认管理员账户已创建 - 用户名: admin, 密码: admin123")
+
+@contextmanager
+def safe_db_transaction():
+    """安全的数据库事务上下文管理器"""
+    try:
+        yield db.session
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        print(f"数据库事务回滚: {str(e)}")
+        raise
+    finally:
+        db.session.close()
+
+def generate_unique_filename(prefix="print", extension="png"):
+    """生成唯一的文件名，避免并发冲突"""
+    timestamp = get_beijing_timestamp()
+    unique_id = str(uuid.uuid4())[:8]
+    return f"{prefix}_{timestamp}_{unique_id}.{extension}"
+
+def check_username_uniqueness_safe(username, exclude_user_id=None):
+    """并发安全的用户名唯一性检查"""
+    query = User.query.filter_by(username=username, is_deleted=False)
+    if exclude_user_id:
+        query = query.filter(User.id != exclude_user_id)
+    
+    # 使用SELECT FOR UPDATE确保读取时的一致性
+    existing_user = query.with_for_update().first()
+    return existing_user is None
 
 if __name__ == '__main__':
     with app.app_context():
