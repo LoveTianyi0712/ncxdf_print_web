@@ -1080,8 +1080,8 @@ class ProofPrintSimulator:
                 # 加载二维码图片
                 qr_image = Image.open(qr_code_path)
                 
-                # 设置二维码大小 - 稍微大一点
-                qr_size = int(120 * scale_factor)  # 根据缩放因子调整大小
+                # 设置二维码大小 - 再放大一点，让二维码更清晰易扫
+                qr_size = int(200 * scale_factor)  # 根据缩放因子调整大小，从160增加到200
                 qr_image = qr_image.resize((qr_size, qr_size), Image.Resampling.LANCZOS)
                 
                 # 计算二维码位置 - 固定在左下角，距离边缘有适当间距，向上调整两行字的距离
