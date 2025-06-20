@@ -86,6 +86,11 @@ import uuid
 from sqlalchemy import text
 from contextlib import contextmanager
 
+# 添加更多专用锁
+_user_operation_lock = threading.Lock()
+_message_operation_lock = threading.Lock()
+_cookies_operation_lock = threading.Lock()
+
 # 添加线程锁用于关键操作
 _print_lock = threading.Lock()
 _user_creation_lock = threading.Lock()
@@ -1038,115 +1043,117 @@ def process_change_request(request_id, action):
         flash('无效的操作', 'error')
         return redirect(url_for('change_requests'))
     
-    change_request = UserChangeRequest.query.get_or_404(request_id)
-    
-    if change_request.status != 'pending':
-        flash('该请求已被处理', 'warning')
-        return redirect(url_for('change_requests'))
-    
-    # 从POST或GET获取管理员备注
-    admin_comment = ''
-    if request.method == 'POST':
-        admin_comment = request.form.get('admin_comment', '').strip()
-    else:
-        admin_comment = request.args.get('comment', '').strip()
-    
-    if action == 'approve':
-        # 批准变更
-        user = User.query.get(change_request.user_id)
-        if not user:
-            flash('用户不存在', 'error')
-            return redirect(url_for('change_requests'))
-        
+    # 使用线程锁确保变更请求处理的并发安全
+    with _user_operation_lock:
         try:
-            # 应用变更
-            if change_request.new_username:
-                # 再次检查用户名是否已存在
-                existing_user = User.query.filter_by(username=change_request.new_username, is_deleted=False).first()
-                if existing_user and existing_user.id != user.id:
-                    flash('用户名已被其他用户使用，无法批准', 'error')
+            with safe_db_transaction() as session:
+                change_request = UserChangeRequest.query.with_for_update().get_or_404(request_id)
+                
+                if change_request.status != 'pending':
+                    flash('该请求已被处理', 'warning')
                     return redirect(url_for('change_requests'))
-                user.username = change_request.new_username
-            
-            if change_request.new_name is not None:
-                user.name = change_request.new_name
-            
-            if change_request.new_email is not None:
-                user.email = change_request.new_email
-            
-            # 更新请求状态
-            change_request.status = 'approved'
-            change_request.processed_at = get_beijing_datetime()
-            change_request.processed_by = current_user.id
-            change_request.admin_comment = admin_comment
-            
-            # 创建成功消息
-            changes = []
-            if change_request.new_username and change_request.new_username != change_request.old_username:
-                changes.append(f"用户名: {change_request.old_username} → {change_request.new_username}")
-            if change_request.new_name != change_request.old_name:
-                old_name = change_request.old_name or "未设置"
-                new_name = change_request.new_name or "未设置"
-                changes.append(f"姓名: {old_name} → {new_name}")
-            if change_request.new_email != change_request.old_email:
-                old_email = change_request.old_email or "未设置"
-                new_email = change_request.new_email or "未设置"
-                changes.append(f"邮箱: {old_email} → {new_email}")
-            
-            message_content = f"您的信息变更申请已被批准并生效。\n\n变更内容：\n" + "\n".join(changes)
-            if admin_comment:
-                message_content += f"\n\n管理员备注：{admin_comment}"
-            
-            create_message(
-                user_id=change_request.user_id,
-                message_type='change_request_approved',
-                title='信息变更申请已批准',
-                content=message_content,
-                related_id=change_request.id,
-                related_type='change_request'
-            )
-            
-            db.session.commit()
-            flash(f'已批准用户 {user.username} 的信息变更申请', 'success')
-            
+                
+                # 从POST或GET获取管理员备注
+                admin_comment = ''
+                if request.method == 'POST':
+                    admin_comment = request.form.get('admin_comment', '').strip()
+                else:
+                    admin_comment = request.args.get('comment', '').strip()
+                
+                if action == 'approve':
+                    # 批准变更
+                    user = User.query.with_for_update().get(change_request.user_id)
+                    if not user:
+                        flash('用户不存在', 'error')
+                        return redirect(url_for('change_requests'))
+                    
+                    # 应用变更
+                    if change_request.new_username:
+                        # 再次检查用户名是否已存在
+                        existing_user = User.query.filter_by(username=change_request.new_username, is_deleted=False).with_for_update().first()
+                        if existing_user and existing_user.id != user.id:
+                            flash('用户名已被其他用户使用，无法批准', 'error')
+                            return redirect(url_for('change_requests'))
+                        user.username = change_request.new_username
+                    
+                    if change_request.new_name is not None:
+                        user.name = change_request.new_name
+                    
+                    if change_request.new_email is not None:
+                        user.email = change_request.new_email
+                    
+                    # 更新请求状态
+                    change_request.status = 'approved'
+                    change_request.processed_at = get_beijing_datetime()
+                    change_request.processed_by = current_user.id
+                    change_request.admin_comment = admin_comment
+                    
+                    # 创建成功消息
+                    changes = []
+                    if change_request.new_username and change_request.new_username != change_request.old_username:
+                        changes.append(f"用户名: {change_request.old_username} → {change_request.new_username}")
+                    if change_request.new_name != change_request.old_name:
+                        old_name = change_request.old_name or "未设置"
+                        new_name = change_request.new_name or "未设置"
+                        changes.append(f"姓名: {old_name} → {new_name}")
+                    if change_request.new_email != change_request.old_email:
+                        old_email = change_request.old_email or "未设置"
+                        new_email = change_request.new_email or "未设置"
+                        changes.append(f"邮箱: {old_email} → {new_email}")
+                    
+                    message_content = f"您的信息变更申请已被批准并生效。\n\n变更内容：\n" + "\n".join(changes)
+                    if admin_comment:
+                        message_content += f"\n\n管理员备注：{admin_comment}"
+                    
+                    message = Message(
+                        user_id=change_request.user_id,
+                        message_type='change_request_approved',
+                        title='信息变更申请已批准',
+                        content=message_content,
+                        related_id=change_request.id,
+                        related_type='change_request'
+                    )
+                    session.add(message)
+                    
+                    flash(f'已批准用户 {user.username} 的信息变更申请', 'success')
+                    
+                else:  # reject
+                    change_request.status = 'rejected'
+                    change_request.processed_at = get_beijing_datetime()
+                    change_request.processed_by = current_user.id
+                    change_request.admin_comment = admin_comment
+                    
+                    # 创建拒绝消息
+                    changes = []
+                    if change_request.new_username and change_request.new_username != change_request.old_username:
+                        changes.append(f"用户名: {change_request.old_username} → {change_request.new_username}")
+                    if change_request.new_name != change_request.old_name:
+                        old_name = change_request.old_name or "未设置"
+                        new_name = change_request.new_name or "未设置"
+                        changes.append(f"姓名: {old_name} → {new_name}")
+                    if change_request.new_email != change_request.old_email:
+                        old_email = change_request.old_email or "未设置"
+                        new_email = change_request.new_email or "未设置"
+                        changes.append(f"邮箱: {old_email} → {new_email}")
+                    
+                    message_content = f"您的信息变更申请已被拒绝。\n\n申请内容：\n" + "\n".join(changes)
+                    if admin_comment:
+                        message_content += f"\n\n拒绝原因：{admin_comment}"
+                    
+                    message = Message(
+                        user_id=change_request.user_id,
+                        message_type='change_request_rejected',
+                        title='信息变更申请已拒绝',
+                        content=message_content,
+                        related_id=change_request.id,
+                        related_type='change_request'
+                    )
+                    session.add(message)
+                    
+                    flash('已拒绝该变更申请', 'info')
+                
         except Exception as e:
-            db.session.rollback()
             flash(f'处理失败：{str(e)}', 'error')
-    
-    else:  # reject
-        change_request.status = 'rejected'
-        change_request.processed_at = get_beijing_datetime()
-        change_request.processed_by = current_user.id
-        change_request.admin_comment = admin_comment
-        
-        # 创建拒绝消息
-        changes = []
-        if change_request.new_username and change_request.new_username != change_request.old_username:
-            changes.append(f"用户名: {change_request.old_username} → {change_request.new_username}")
-        if change_request.new_name != change_request.old_name:
-            old_name = change_request.old_name or "未设置"
-            new_name = change_request.new_name or "未设置"
-            changes.append(f"姓名: {old_name} → {new_name}")
-        if change_request.new_email != change_request.old_email:
-            old_email = change_request.old_email or "未设置"
-            new_email = change_request.new_email or "未设置"
-            changes.append(f"邮箱: {old_email} → {new_email}")
-        
-        message_content = f"您的信息变更申请已被拒绝。\n\n申请内容：\n" + "\n".join(changes)
-        if admin_comment:
-            message_content += f"\n\n拒绝原因：{admin_comment}"
-        
-        create_message(
-            user_id=change_request.user_id,
-            message_type='change_request_rejected',
-            title='信息变更申请已拒绝',
-            content=message_content,
-            related_id=change_request.id,
-            related_type='change_request'
-        )
-        
-        db.session.commit()
-        flash('已拒绝该变更申请', 'info')
     
     return redirect(url_for('change_requests'))
 
@@ -1532,14 +1539,20 @@ def import_users_excel():
 @login_required
 @admin_required
 def toggle_user(user_id):
-    user = User.query.get_or_404(user_id)
-    if user.id == current_user.id:
-        flash('不能禁用自己的账号', 'error')
-    else:
-        user.is_enabled = not user.is_enabled
-        db.session.commit()
-        status = '启用' if user.is_enabled else '禁用'
-        flash(f'已{status}用户 {user.username}', 'success')
+    # 使用线程锁确保用户状态修改的并发安全
+    with _user_operation_lock:
+        try:
+            with safe_db_transaction() as session:
+                user = User.query.with_for_update().get_or_404(user_id)
+                if user.id == current_user.id:
+                    flash('不能禁用自己的账号', 'error')
+                else:
+                    user.is_enabled = not user.is_enabled
+                    status = '启用' if user.is_enabled else '禁用'
+                    flash(f'已{status}用户 {user.username}', 'success')
+        except Exception as e:
+            flash(f'操作失败：{str(e)}', 'error')
+    
     return redirect(url_for('users'))
 
 @app.route('/delete_user/<int:user_id>')
@@ -1547,23 +1560,29 @@ def toggle_user(user_id):
 @admin_required
 def delete_user(user_id):
     """软删除用户 - 仅管理员可操作"""
-    user = User.query.get_or_404(user_id)
+    # 使用线程锁确保用户删除操作的并发安全
+    with _user_operation_lock:
+        try:
+            with safe_db_transaction() as session:
+                user = User.query.with_for_update().get_or_404(user_id)
+                
+                # 不能删除自己
+                if user.id == current_user.id:
+                    flash('不能删除自己的账号', 'error')
+                    return redirect(url_for('users'))
+                
+                # 检查用户是否已被删除
+                if user.is_deleted:
+                    flash('用户已被删除', 'warning')
+                    return redirect(url_for('users'))
+                
+                # 执行软删除
+                user.is_deleted = True
+                flash(f'已删除用户 {user.username}', 'success')
+                
+        except Exception as e:
+            flash(f'删除失败：{str(e)}', 'error')
     
-    # 不能删除自己
-    if user.id == current_user.id:
-        flash('不能删除自己的账号', 'error')
-        return redirect(url_for('users'))
-    
-    # 检查用户是否已被删除
-    if user.is_deleted:
-        flash('用户已被删除', 'warning')
-        return redirect(url_for('users'))
-    
-    # 执行软删除
-    user.is_deleted = True
-    db.session.commit()
-    
-    flash(f'已删除用户 {user.username}', 'success')
     return redirect(url_for('users'))
 
 @app.route('/print')
@@ -1902,19 +1921,17 @@ def print_logs():
 @login_required
 @admin_required
 def delete_print_log(log_id):
-    """软删除打印记录 - 仅管理员可操作"""
-    log = PrintLog.query.get_or_404(log_id)
+    """删除打印记录 - 仅管理员可操作"""
+    # 使用线程锁确保打印记录删除的并发安全
+    with _print_lock:
+        try:
+            with safe_db_transaction() as session:
+                log = PrintLog.query.with_for_update().get_or_404(log_id)
+                log.is_deleted = True  # 软删除
+                flash('打印记录已删除', 'success')
+        except Exception as e:
+            flash(f'删除失败：{str(e)}', 'error')
     
-    # 检查记录是否已被删除
-    if log.is_deleted:
-        flash('记录已被删除', 'warning')
-        return redirect(url_for('print_logs'))
-    
-    # 执行软删除
-    log.is_deleted = True
-    db.session.commit()
-    
-    flash(f'已删除 {log.student_name} 的打印记录', 'success')
     return redirect(url_for('print_logs'))
 
 @app.route('/first_login_change_password', methods=['GET', 'POST'])
@@ -2224,45 +2241,64 @@ def messages():
 @login_required
 def mark_message_read(message_id):
     """标记消息为已读"""
-    message = Message.query.get_or_404(message_id)
-    
-    # 检查权限
-    if message.user_id != current_user.id:
-        return jsonify({'error': '无权限操作此消息'}), 403
-    
-    if not message.is_read:
-        message.is_read = True
-        message.read_at = get_beijing_datetime()
-        db.session.commit()
-    
-    return jsonify({'success': True})
+    # 使用线程锁确保消息操作的并发安全
+    with _message_operation_lock:
+        try:
+            with safe_db_transaction() as session:
+                message = Message.query.with_for_update().get_or_404(message_id)
+                
+                # 检查权限
+                if message.user_id != current_user.id:
+                    return jsonify({'error': '无权限操作此消息'}), 403
+                
+                if not message.is_read:
+                    message.is_read = True
+                    message.read_at = get_beijing_datetime()
+                
+                return jsonify({'success': True})
+        except Exception as e:
+            return jsonify({'error': f'操作失败：{str(e)}'}), 500
 
 @app.route('/api/mark_all_messages_read', methods=['POST'])
 @login_required
 def mark_all_messages_read():
     """标记所有消息为已读"""
-    Message.query.filter_by(user_id=current_user.id, is_read=False).update({
-        'is_read': True,
-        'read_at': get_beijing_datetime()
-    })
-    db.session.commit()
-    
-    return jsonify({'success': True})
+    # 使用线程锁确保批量消息操作的并发安全
+    with _message_operation_lock:
+        try:
+            with safe_db_transaction() as session:
+                # 使用SELECT FOR UPDATE确保一致性
+                unread_messages = Message.query.filter_by(
+                    user_id=current_user.id, 
+                    is_read=False
+                ).with_for_update().all()
+                
+                for message in unread_messages:
+                    message.is_read = True
+                    message.read_at = get_beijing_datetime()
+                
+                return jsonify({'success': True, 'updated_count': len(unread_messages)})
+        except Exception as e:
+            return jsonify({'error': f'操作失败：{str(e)}'}), 500
 
 @app.route('/api/delete_message/<int:message_id>', methods=['DELETE'])
 @login_required
 def delete_message(message_id):
     """删除消息"""
-    message = Message.query.get_or_404(message_id)
-    
-    # 检查权限
-    if message.user_id != current_user.id:
-        return jsonify({'error': '无权限操作此消息'}), 403
-    
-    db.session.delete(message)
-    db.session.commit()
-    
-    return jsonify({'success': True})
+    # 使用线程锁确保消息删除的并发安全
+    with _message_operation_lock:
+        try:
+            with safe_db_transaction() as session:
+                message = Message.query.with_for_update().get_or_404(message_id)
+                
+                # 检查权限
+                if message.user_id != current_user.id:
+                    return jsonify({'error': '无权限操作此消息'}), 403
+                
+                session.delete(message)
+                return jsonify({'success': True})
+        except Exception as e:
+            return jsonify({'error': f'删除失败：{str(e)}'}), 500
 
 @app.route('/api/get_unread_count')
 @login_required
@@ -2427,34 +2463,35 @@ def save_cookies():
 @admin_required
 def test_cookies(config_id):
     """测试cookies配置"""
-    try:
-        config = CookiesConfig.query.get_or_404(config_id)
-        cookies_dict = json.loads(config.cookies_data)
-        
-        # 使用测试学员编号测试API
-        from utils.certificate_processors.search_student_certificate import search_student
-        test_result = search_student(cookies_dict, current_user, 'NC24048S6UzC')  # 使用一个测试学员编号
-        
-        # 更新测试状态
-        config.last_test_time = get_beijing_datetime()
-        
-        if test_result == 404:
-            config.test_status = '失败'
-            flash(f'Cookies测试失败：API请求失败', 'error')
-        elif test_result == 0:
-            config.test_status = '成功'
-            flash(f'Cookies测试成功：API连接正常（测试学员不存在是正常的）', 'success')
-        elif isinstance(test_result, dict):
-            config.test_status = '成功'
-            flash(f'Cookies测试成功：找到学员数据', 'success')
-        else:
-            config.test_status = '失败'
-            flash(f'Cookies测试失败：返回异常结果', 'error')
-        
-        db.session.commit()
-        
-    except Exception as e:
-        flash(f'测试失败：{str(e)}', 'error')
+    # 使用线程锁确保配置测试的并发安全
+    with _cookies_operation_lock:
+        try:
+            with safe_db_transaction() as session:
+                config = CookiesConfig.query.with_for_update().get_or_404(config_id)
+                cookies_dict = json.loads(config.cookies_data)
+                
+                # 使用测试学员编号测试API
+                from utils.certificate_processors.search_student_certificate import search_student
+                test_result = search_student(cookies_dict, current_user, 'NC24048S6UzC')  # 使用一个测试学员编号
+                
+                # 更新测试状态
+                config.last_test_time = get_beijing_datetime()
+                
+                if test_result == 404:
+                    config.test_status = '失败'
+                    flash(f'Cookies测试失败：API请求失败', 'error')
+                elif test_result == 0:
+                    config.test_status = '成功'
+                    flash(f'Cookies测试成功：API连接正常（测试学员不存在是正常的）', 'success')
+                elif isinstance(test_result, dict):
+                    config.test_status = '成功'
+                    flash(f'Cookies测试成功：找到学员数据', 'success')
+                else:
+                    config.test_status = '失败'
+                    flash(f'Cookies测试失败：返回异常结果', 'error')
+                
+        except Exception as e:
+            flash(f'测试失败：{str(e)}', 'error')
     
     return redirect(url_for('cookies_config'))
 
@@ -2463,20 +2500,23 @@ def test_cookies(config_id):
 @admin_required
 def activate_cookies(config_id):
     """激活指定的cookies配置"""
-    try:
-        # 将所有配置设为非活跃
-        CookiesConfig.query.update({'is_active': False})
-        
-        # 激活指定配置
-        config = CookiesConfig.query.get_or_404(config_id)
-        config.is_active = True
-        db.session.commit()
-        
-        flash(f'已激活配置：{config.name}', 'success')
-        
-    except Exception as e:
-        db.session.rollback()
-        flash(f'激活失败：{str(e)}', 'error')
+    # 使用线程锁确保配置激活的并发安全
+    with _cookies_operation_lock:
+        try:
+            with safe_db_transaction() as session:
+                # 将所有配置设为非活跃
+                all_configs = CookiesConfig.query.with_for_update().all()
+                for config in all_configs:
+                    config.is_active = False
+                
+                # 激活指定配置
+                target_config = CookiesConfig.query.with_for_update().get_or_404(config_id)
+                target_config.is_active = True
+                
+                flash(f'已激活配置：{target_config.name}', 'success')
+                
+        except Exception as e:
+            flash(f'激活失败：{str(e)}', 'error')
     
     return redirect(url_for('cookies_config'))
 
@@ -2485,16 +2525,18 @@ def activate_cookies(config_id):
 @admin_required
 def delete_cookies(config_id):
     """删除cookies配置"""
-    try:
-        config = CookiesConfig.query.get_or_404(config_id)
-        db.session.delete(config)
-        db.session.commit()
-        
-        flash(f'已删除配置：{config.name}', 'success')
-        
-    except Exception as e:
-        db.session.rollback()
-        flash(f'删除失败：{str(e)}', 'error')
+    # 使用线程锁确保配置删除的并发安全
+    with _cookies_operation_lock:
+        try:
+            with safe_db_transaction() as session:
+                config = CookiesConfig.query.with_for_update().get_or_404(config_id)
+                config_name = config.name
+                session.delete(config)
+                
+                flash(f'已删除配置：{config_name}', 'success')
+                
+        except Exception as e:
+            flash(f'删除失败：{str(e)}', 'error')
     
     return redirect(url_for('cookies_config'))
 
