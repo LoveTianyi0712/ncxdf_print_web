@@ -1073,6 +1073,61 @@ class ProofPrintSimulator:
             footer_y = height - 50 + center_offset_y   # 调整位置
             draw.text((footer_x, footer_y), f"打印时间: {get_beijing_time_str()}", fill='black', font=footer_font)
 
+        # 添加二维码和"【在线客服】"文字到左下角
+        try:
+            qr_code_path = os.path.join(self.base_dir, "properties", "qr_code.jpg")
+            if os.path.exists(qr_code_path):
+                # 加载二维码图片
+                qr_image = Image.open(qr_code_path)
+                
+                # 设置二维码大小 - 稍微大一点
+                qr_size = int(120 * scale_factor)  # 根据缩放因子调整大小
+                qr_image = qr_image.resize((qr_size, qr_size), Image.Resampling.LANCZOS)
+                
+                # 计算二维码位置 - 固定在左下角，距离边缘有适当间距，向上调整两行字的距离
+                qr_margin = int(30 * scale_factor)
+                qr_x = qr_margin + center_offset_x
+                # 向上调整大约两行字的距离（约50像素）
+                qr_y = height - qr_size - qr_margin - int(50 * scale_factor) + center_offset_y
+                
+                # 粘贴二维码到图像
+                if qr_image.mode in ('RGBA', 'LA') or (qr_image.mode == 'P' and 'transparency' in qr_image.info):
+                    # 处理有透明度的图像
+                    background = Image.new('RGB', qr_image.size, (255, 255, 255))
+                    if qr_image.mode == 'P':
+                        qr_image = qr_image.convert('RGBA')
+                    background.paste(qr_image, mask=qr_image.split()[-1] if qr_image.mode == 'RGBA' else None)
+                    qr_image = background
+                
+                image.paste(qr_image, (int(qr_x), int(qr_y)))
+                
+                # 添加"【在线客服】"文字，在二维码正上方
+                service_text = "【在线客服】"
+                service_font = None
+                if chinese_font_path:
+                    try:
+                        service_font = ImageFont.truetype(chinese_font_path, int(20 * scale_factor))
+                    except:
+                        service_font = footer_font
+                else:
+                    service_font = footer_font
+                
+                # 计算文字位置 - 在二维码正上方居中，与二维码空一行距离
+                text_bbox = draw.textbbox((0, 0), service_text, font=service_font)
+                text_width = text_bbox[2] - text_bbox[0]
+                text_x = qr_x + (qr_size - text_width) / 2  # 居中对齐
+                text_y = qr_y - int(45 * scale_factor)  # 在二维码上方45像素，空出一行距离
+                
+                # 绘制"【在线客服】"文字
+                draw.text((text_x, text_y), service_text, fill='black', font=service_font)
+                
+                print(f"已添加二维码和在线客服文字到位置: ({int(qr_x)}, {int(qr_y)})")
+            else:
+                print(f"警告: 二维码文件不存在: {qr_code_path}")
+                
+        except Exception as e:
+            print(f"添加二维码时出错: {str(e)}")
+
         # 不再添加页码显示
         # 删除添加"第1页"的代码
 

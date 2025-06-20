@@ -28,6 +28,7 @@ if __name__ == '__main__':
     print(f"监听地址: 0.0.0.0:{port}")
     print("如需登录账号请联系管理员")
     print("默认管理员: admin / admin123")
+    print(f"热部署状态: {'已启用' if debug else '已关闭'}")
     print("=" * 50)
     
     # 启动Flask应用
