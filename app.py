@@ -2421,6 +2421,118 @@ def cookies_config():
     active_config = CookiesConfig.query.filter_by(is_active=True).first()
     return render_template('cookies_config.html', configs=configs, active_config=active_config)
 
+# 在save_cookies路由之前添加cookies数据解析函数
+def parse_cookies_data(cookies_input):
+    """
+    解析不同格式的cookies数据
+    支持以下格式：
+    1. JSON格式
+    2. Python字典格式（用单引号）
+    3. 键值对格式（换行分隔）
+    4. 键值对格式（分号分隔）
+    5. 浏览器原始Cookie字符串格式
+    """
+    cookies_input = cookies_input.strip()
+    
+    if not cookies_input:
+        return {}
+    
+    # 尝试解析JSON格式
+    try:
+        if cookies_input.startswith('{') and cookies_input.endswith('}'):
+            return json.loads(cookies_input)
+    except json.JSONDecodeError:
+        pass
+    
+    # 尝试解析Python字典格式（将单引号替换为双引号）
+    try:
+        if cookies_input.startswith('{') and cookies_input.endswith('}'):
+            # 处理Python字典格式：将单引号替换为双引号
+            # 但要注意值中可能包含单引号，所以使用正则表达式处理
+            import re
+            # 替换键名的单引号为双引号
+            cookies_input_fixed = re.sub(r"'([^']*?)':", r'"\1":', cookies_input)
+            # 替换值的单引号为双引号（但保留转义的单引号）
+            cookies_input_fixed = re.sub(r": '([^']*?)'([,}])", r': "\1"\2', cookies_input_fixed)
+            return json.loads(cookies_input_fixed)
+    except (json.JSONDecodeError, Exception):
+        pass
+    
+    # 处理重复键的特殊情况：手动解析字典格式
+    try:
+        if cookies_input.startswith('{') and cookies_input.endswith('}'):
+            cookies_dict = {}
+            content = cookies_input[1:-1].strip()  # 去掉大括号
+            
+            # 使用正则表达式匹配键值对
+            import re
+            # 匹配 'key': 'value' 或 "key": "value" 格式
+            pattern = r"""['"]([^'"]*?)['"]:\s*['"]([^'"]*?)['"]"""
+            matches = re.findall(pattern, content)
+            
+            for key, value in matches:
+                # 处理重复键：如果键已存在，在键名后添加数字后缀
+                original_key = key
+                counter = 1
+                while key in cookies_dict:
+                    key = f"{original_key}_{counter}"
+                    counter += 1
+                cookies_dict[key] = value
+            
+            if cookies_dict:
+                return cookies_dict
+    except Exception as e:
+        print(f"Debug: Manual parsing failed: {e}")
+        pass
+    
+    # 尝试使用eval解析Python字典（谨慎使用）
+    try:
+        if cookies_input.startswith('{') and cookies_input.endswith('}'):
+            # 安全性检查：只允许基本的字典语法
+            if not any(dangerous in cookies_input.lower() for dangerous in ['import', 'exec', 'eval', '__']):
+                result = eval(cookies_input)
+                if isinstance(result, dict):
+                    return result
+    except Exception:
+        pass
+    
+    # 解析键值对格式
+    cookies_dict = {}
+    
+    # 判断分隔符
+    if cookies_input.startswith('{') and cookies_input.endswith('}'):
+        # 去掉大括号，然后按逗号分割
+        content = cookies_input[1:-1].strip()
+        if ',' in content:
+            pairs = content.split(',')
+        else:
+            pairs = [content]
+    elif ';' in cookies_input and '\n' not in cookies_input:
+        # 分号分隔格式
+        pairs = cookies_input.split(';')
+    else:
+        # 换行分隔格式
+        pairs = cookies_input.split('\n')
+    
+    for pair in pairs:
+        pair = pair.strip()
+        if ':' in pair and '=' not in pair:
+            # 处理 'key': 'value' 格式
+            key, value = pair.split(':', 1)
+            key = key.strip().strip("'\"")
+            value = value.strip().strip("'\"").rstrip(',')
+            if key and value:
+                cookies_dict[key] = value
+        elif '=' in pair:
+            # 处理 key=value 格式
+            key, value = pair.split('=', 1)
+            key = key.strip().strip("'\"")
+            value = value.strip().strip("'\"").rstrip(',')
+            if key and value:
+                cookies_dict[key] = value
+    
+    return cookies_dict
+
 @app.route('/save_cookies', methods=['POST'])
 @login_required
 @admin_required
@@ -2428,12 +2540,35 @@ def save_cookies():
     # 使用线程锁确保Cookies配置操作的并发安全
     with _cookies_config_lock:
         try:
-            data = request.json
-            name = data.get('name', 'ERP Cookies')
-            cookies_data = data.get('cookies_data', {})
+            # 判断请求类型并获取数据
+            if request.is_json:
+                # JSON请求
+                data = request.json
+                name = data.get('name', 'ERP Cookies')
+                cookies_input = data.get('cookies_data', {})
+                if isinstance(cookies_input, dict):
+                    cookies_data = cookies_input
+                else:
+                    cookies_data = parse_cookies_data(str(cookies_input))
+            else:
+                # 表单请求
+                name = request.form.get('config_name', 'ERP Cookies')
+                cookies_input = request.form.get('cookies_data', '')
+                cookies_data = parse_cookies_data(cookies_input)
+                
+                # 添加调试信息
+                print(f"Debug: cookies_input length: {len(cookies_input)}")
+                print(f"Debug: cookies_data: {cookies_data}")
+                print(f"Debug: cookies_data type: {type(cookies_data)}")
+                print(f"Debug: cookies_data empty: {not cookies_data}")
             
             if not cookies_data:
-                return jsonify({'error': 'Cookies数据不能为空'}), 400
+                error_msg = f'Cookies数据解析失败或为空。输入数据长度: {len(cookies_input)}'
+                if request.is_json:
+                    return jsonify({'error': error_msg}), 400
+                else:
+                    flash(error_msg, 'error')
+                    return redirect(url_for('cookies_config'))
             
             # 使用安全的数据库事务上下文
             with safe_db_transaction() as session:
@@ -2447,16 +2582,30 @@ def save_cookies():
                 session.add(config)
                 session.flush()  # 获取配置ID
                 
-                return jsonify({
-                    'success': True,
-                    'message': 'Cookies配置保存成功',
-                    'config_id': config.id
-                })
+                if request.is_json:
+                    return jsonify({
+                        'success': True,
+                        'message': 'Cookies配置保存成功',
+                        'config_id': config.id
+                    })
+                else:
+                    flash(f'Cookies配置 "{name}" 保存成功', 'success')
+                    return redirect(url_for('cookies_config'))
                 
         except json.JSONDecodeError:
-            return jsonify({'error': 'Cookies数据格式不正确'}), 400
+            error_msg = 'Cookies数据格式不正确'
+            if request.is_json:
+                return jsonify({'error': error_msg}), 400
+            else:
+                flash(error_msg, 'error')
+                return redirect(url_for('cookies_config'))
         except Exception as e:
-            return jsonify({'error': f'保存失败：{str(e)}'}), 500
+            error_msg = f'保存失败：{str(e)}'
+            if request.is_json:
+                return jsonify({'error': error_msg}), 500
+            else:
+                flash(error_msg, 'error')
+                return redirect(url_for('cookies_config'))
 
 @app.route('/test_cookies/<int:config_id>')
 @login_required
