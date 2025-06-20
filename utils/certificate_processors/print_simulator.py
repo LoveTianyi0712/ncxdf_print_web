@@ -1106,7 +1106,7 @@ class ProofPrintSimulator:
                 service_font = None
                 if chinese_font_path:
                     try:
-                        service_font = ImageFont.truetype(chinese_font_path, int(20 * scale_factor))
+                        service_font = ImageFont.truetype(chinese_font_path, int(26 * scale_factor))
                     except:
                         service_font = footer_font
                 else:
