@@ -3,11 +3,11 @@
 
 """
 南昌新东方凭证打印系统
-Version: 2.3.0
+Version: 2.4.0
 Release Date: 2025-06-20
 
 更新日志:
-v2.3.0 (2025-06-20)
+v2.4.0 (2025-06-20)
 - 全面优化并发安全机制，支持多用户同时操作
 - 新增并发处理工具模块和线程锁管理
 - 优化数据库连接池配置，提升系统性能
@@ -1274,15 +1274,21 @@ def create_user():
                     
                     # 如果提供了密码列表，使用对应的密码，否则使用默认密码
                     if i < len(password_list):
-                        password = sanitize_password_input(password_list[i])
+                        original_password = sanitize_password_input(password_list[i])
+                        password = original_password
+                        is_using_default_password = False
                     else:
                         password = '123456'  # 默认密码
+                        is_using_default_password = True
                     
-                    # 验证密码安全性
-                    is_valid, error_msg = validate_password_security(password)
-                    if not is_valid:
-                        errors.append(f'用户 {username} 的密码不符合安全要求：{error_msg}')
-                        continue
+                    # 只有当管理员提供了密码时才进行密码安全性检查
+                    # 如果使用默认密码，则跳过密码检查
+                    if not is_using_default_password:
+                        # 管理员提供了密码，需要进行安全性检查
+                        is_valid, error_msg = validate_password_security(password)
+                        if not is_valid:
+                            errors.append(f'用户 {username} 的密码不符合安全要求：{error_msg}')
+                            continue
                     
                     # 获取对应的姓名和邮箱
                     name = name_list[i] if i < len(name_list) else None
@@ -1312,6 +1318,15 @@ def create_user():
                 # 显示结果
                 if created_users:
                     flash(f'成功创建 {len(created_users)} 个用户', 'success')
+                    # 创建用户创建成功消息
+                    user_list = '\n'.join([f"• {user['username']} ({user['name'] or '未设置姓名'})" for user in created_users])
+                    create_message(
+                        user_id=current_user.id,
+                        message_type='users_created',
+                        title=f'成功创建{len(created_users)}个用户',
+                        content=f'您已成功批量创建{len(created_users)}个用户账号\n\n创建时间：{get_beijing_datetime().strftime("%Y-%m-%d %H:%M:%S")}\n\n用户列表：\n{user_list}\n\n请及时将账号信息安全地分发给相应用户。',
+                        related_type='user_management'
+                    )
                 if errors:
                     for error in errors:
                         flash(error, 'warning')
@@ -1384,7 +1399,7 @@ def download_user_template():
         instructions = [
             ['字段名称', '是否必填', '说明', '示例'],
             ['用户名', '是', '用户登录名，必须唯一，不能重复', 'user001, teacher001'],
-            ['密码', '否', '用户密码，如果不填写则使用默认密码：123456', 'Abc123456, MyPass@2024'],
+            ['密码', '否', '用户密码，如果不填写则使用默认密码：123456（无需验证）', 'Abc123456, MyPass@2024'],
             ['姓名', '否', '用户真实姓名，支持中文', '张三, 李老师'],
             ['邮箱', '否', '用户邮箱地址', 'user@example.com'],
             ['角色', '否', '用户角色，只能填写 user 或 admin，默认为 user', 'user, admin'],
@@ -1393,20 +1408,21 @@ def download_user_template():
             ['重要说明：', '', '', ''],
             ['1. 带*号的字段为必填项', '', '', ''],
             ['2. 用户名不能重复，如果系统中已存在相同用户名，该行将被跳过', '', '', ''],
-            ['3. 密码如果不填写，系统将使用默认密码：123456', '', '', ''],
+            ['3. 密码如果不填写，系统将使用默认密码：123456（无需安全性验证）', '', '', ''],
             ['4. 角色只能填写 user（普通用户）或 admin（管理员）', '', '', ''],
             ['5. 管理员角色拥有完整的系统管理权限，请谨慎分配', '', '', ''],
             ['6. 示例数据可以删除，填写您的实际数据', '', '', ''],
             ['7. 支持批量导入，一次最多导入1000个用户', '', '', ''],
             ['8. 请保持Excel格式不变，不要修改表头', '', '', ''],
             ['', '', '', ''],
-            ['密码安全要求：', '', '', ''],
+            ['密码安全要求（仅对自定义密码）：', '', '', ''],
             ['• 长度至少6位，建议8位以上', '', '', ''],
             ['• 不能包含危险字符：引号、分号、脚本标签等', '', '', ''],
             ['• 不能包含SQL关键词：select、insert、delete等', '', '', ''],
             ['• 不能是常见弱密码：123456、password、admin等', '', '', ''],
             ['• 不能全是相同字符或连续字符', '', '', ''],
-            ['• 建议包含大小写字母、数字和特殊字符', '', '', '']
+            ['• 建议包含大小写字母、数字和特殊字符', '', '', ''],
+            ['• 密码为空时自动使用默认密码123456，无需验证', '', '', '']
         ]
         
         for row, data in enumerate(instructions, 1):
@@ -1520,14 +1536,14 @@ def import_users_excel():
                 role_col = col_indices.get('角色', -1)
                 
                 username = str(row[username_col]).strip() if row[username_col] else ''
-                password = str(row[password_col]).strip() if password_col >= 0 and len(row) > password_col and row[password_col] else '123456'
+                # 检查原始密码是否为空（用于判断是否使用默认密码）
+                original_password = str(row[password_col]).strip() if password_col >= 0 and len(row) > password_col and row[password_col] else ''
+                password = original_password if original_password and original_password != 'nan' else '123456'
                 name = str(row[name_col]).strip() if name_col >= 0 and len(row) > name_col and row[name_col] else None
                 email = str(row[email_col]).strip() if email_col >= 0 and len(row) > email_col and row[email_col] else None
                 role = str(row[role_col]).strip().lower() if role_col >= 0 and len(row) > role_col and row[role_col] else 'user'
                 
                 # 清理数据
-                if password == '' or password == 'nan':
-                    password = '123456'
                 if name == '' or name == 'nan':
                     name = None
                 if email == '' or email == 'nan':
@@ -1548,11 +1564,15 @@ def import_users_excel():
                     errors.append(f'第{index+2}行：用户名 {username} 已存在')
                     continue
                 
-                # 验证密码安全性
-                is_valid, error_msg = validate_password_security(password)
-                if not is_valid:
-                    errors.append(f'第{index+2}行：密码不符合安全要求 - {error_msg}')
-                    continue
+                # 只有当管理员提供了密码时才进行密码安全性检查
+                # 如果密码字段为空，则使用默认密码并跳过密码检查
+                is_using_default_password = not original_password or original_password == 'nan'
+                if not is_using_default_password:
+                    # 管理员提供了密码，需要进行安全性检查
+                    is_valid, error_msg = validate_password_security(password)
+                    if not is_valid:
+                        errors.append(f'第{index+2}行：密码不符合安全要求 - {error_msg}')
+                        continue
                 
                 # 验证角色
                 if role not in ['user', 'admin']:
@@ -1593,6 +1613,15 @@ def import_users_excel():
             try:
                 db.session.commit()
                 flash(f'成功导入 {len(created_users)} 个用户', 'success')
+                # 创建Excel导入成功消息
+                user_list = '\n'.join([f"• {user['username']} ({user['name'] or '未设置姓名'})" for user in created_users])
+                create_message(
+                    user_id=current_user.id,
+                    message_type='users_imported',
+                    title=f'Excel导入成功：{len(created_users)}个用户',
+                    content=f'您已成功通过Excel文件导入{len(created_users)}个用户账号\n\n导入时间：{get_beijing_datetime().strftime("%Y-%m-%d %H:%M:%S")}\n\n用户列表：\n{user_list}\n\n请及时将账号信息安全地分发给相应用户。',
+                    related_type='user_management'
+                )
             except Exception as e:
                 db.session.rollback()
                 flash(f'导入失败：{str(e)}', 'error')
@@ -2427,7 +2456,7 @@ def get_version():
     """获取系统版本信息"""
     return jsonify({
         'name': '南昌新东方凭证打印系统',
-        'version': '2.3.0',
+        'version': '2.4.0',
         'release_date': '2025-06-20',
         'description': '支持多种凭证打印、用户管理、Excel批量导入、消息通知的综合管理系统'
     })
@@ -2711,6 +2740,16 @@ def save_cookies():
                 session.add(config)
                 session.flush()  # 获取配置ID
                 
+                # 创建消息通知
+                create_message(
+                    user_id=current_user.id,
+                    message_type='cookies_saved',
+                    title='Cookies配置保存成功',
+                    content=f'您已成功保存新的Cookies配置：{name}\n\n配置ID：{config.id}\n保存时间：{get_beijing_datetime().strftime("%Y-%m-%d %H:%M:%S")}\n\n配置已保存但尚未激活，请在测试成功后手动激活。',
+                    related_id=config.id,
+                    related_type='cookies_config'
+                )
+                
                 if request.is_json:
                     return jsonify({
                         'success': True,
@@ -2758,15 +2797,51 @@ def test_cookies(config_id):
                 if test_result == 404:
                     config.test_status = '失败'
                     flash(f'Cookies测试失败：API请求失败', 'error')
+                    # 创建测试失败消息
+                    create_message(
+                        user_id=current_user.id,
+                        message_type='cookies_test_failed',
+                        title='Cookies配置测试失败',
+                        content=f'Cookies配置"{config.name}"测试失败\n\n配置ID：{config.id}\n测试时间：{get_beijing_datetime().strftime("%Y-%m-%d %H:%M:%S")}\n失败原因：API请求失败，可能是网络问题或认证失效\n\n请检查配置是否正确或网络连接是否正常。',
+                        related_id=config.id,
+                        related_type='cookies_config'
+                    )
                 elif test_result == 0:
                     config.test_status = '成功'
                     flash(f'Cookies测试成功：API连接正常（测试学员不存在是正常的）', 'success')
+                    # 创建测试成功消息
+                    create_message(
+                        user_id=current_user.id,
+                        message_type='cookies_test_success',
+                        title='Cookies配置测试成功',
+                        content=f'Cookies配置"{config.name}"测试成功\n\n配置ID：{config.id}\n测试时间：{get_beijing_datetime().strftime("%Y-%m-%d %H:%M:%S")}\n测试结果：API连接正常（测试学员不存在是正常的）\n\n配置可以正常使用，您可以考虑激活此配置。',
+                        related_id=config.id,
+                        related_type='cookies_config'
+                    )
                 elif isinstance(test_result, dict):
                     config.test_status = '成功'
                     flash(f'Cookies测试成功：找到学员数据', 'success')
+                    # 创建测试成功消息
+                    create_message(
+                        user_id=current_user.id,
+                        message_type='cookies_test_success',
+                        title='Cookies配置测试成功',
+                        content=f'Cookies配置"{config.name}"测试成功\n\n配置ID：{config.id}\n测试时间：{get_beijing_datetime().strftime("%Y-%m-%d %H:%M:%S")}\n测试结果：找到学员数据，API工作正常\n\n配置可以正常使用，您可以考虑激活此配置。',
+                        related_id=config.id,
+                        related_type='cookies_config'
+                    )
                 else:
                     config.test_status = '失败'
                     flash(f'Cookies测试失败：返回异常结果', 'error')
+                    # 创建测试失败消息
+                    create_message(
+                        user_id=current_user.id,
+                        message_type='cookies_test_failed',
+                        title='Cookies配置测试失败',
+                        content=f'Cookies配置"{config.name}"测试失败\n\n配置ID：{config.id}\n测试时间：{get_beijing_datetime().strftime("%Y-%m-%d %H:%M:%S")}\n失败原因：返回异常结果\n返回内容：{str(test_result)}\n\n请检查配置是否正确。',
+                        related_id=config.id,
+                        related_type='cookies_config'
+                    )
                 
         except Exception as e:
             flash(f'测试失败：{str(e)}', 'error')
@@ -2790,6 +2865,16 @@ def activate_cookies(config_id):
                 # 激活指定配置
                 target_config = CookiesConfig.query.with_for_update().get_or_404(config_id)
                 target_config.is_active = True
+                
+                # 创建激活成功消息
+                create_message(
+                    user_id=current_user.id,
+                    message_type='cookies_activated',
+                    title='Cookies配置已激活',
+                    content=f'您已成功激活Cookies配置：{target_config.name}\n\n配置ID：{target_config.id}\n激活时间：{get_beijing_datetime().strftime("%Y-%m-%d %H:%M:%S")}\n\n该配置现在是系统的活跃配置，将用于所有API请求。',
+                    related_id=target_config.id,
+                    related_type='cookies_config'
+                )
                 
                 flash(f'已激活配置：{target_config.name}', 'success')
                 
@@ -2871,9 +2956,25 @@ def update_cookies_auto_check():
         if is_enabled:
             start_cookies_auto_check()
             flash(f'已启用Cookies自动检测，检测间隔：{check_interval}分钟', 'success')
+            # 创建启用自动检测消息
+            create_message(
+                user_id=current_user.id,
+                message_type='cookies_auto_check_enabled',
+                title='Cookies自动检测已启用',
+                content=f'您已成功启用Cookies自动检测功能\n\n检测间隔：{check_interval}分钟\n配置时间：{get_beijing_datetime().strftime("%Y-%m-%d %H:%M:%S")}\n\n系统将定期检测Cookies配置的有效性，如果检测到失效将自动通知管理员。',
+                related_type='cookies_auto_check'
+            )
         else:
             stop_cookies_auto_check()
             flash('已禁用Cookies自动检测', 'info')
+            # 创建禁用自动检测消息
+            create_message(
+                user_id=current_user.id,
+                message_type='cookies_auto_check_disabled',
+                title='Cookies自动检测已禁用',
+                content=f'您已禁用Cookies自动检测功能\n\n禁用时间：{get_beijing_datetime().strftime("%Y-%m-%d %H:%M:%S")}\n\n系统将不再自动检测Cookies配置的有效性，请手动关注配置状态。',
+                related_type='cookies_auto_check'
+            )
         
         return jsonify({'success': True})
         

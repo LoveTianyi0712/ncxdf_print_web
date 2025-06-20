@@ -87,6 +87,14 @@
                                 <option value="change_request_approved" {% if message_type == 'change_request_approved' %}selected{% endif %}>申请已批准</option>
                                 <option value="change_request_rejected" {% if message_type == 'change_request_rejected' %}selected{% endif %}>申请已拒绝</option>
                                 <option value="cookies_expired" {% if message_type == 'cookies_expired' %}selected{% endif %}>系统认证过期</option>
+                                <option value="cookies_saved" {% if message_type == 'cookies_saved' %}selected{% endif %}>Cookies保存成功</option>
+                                <option value="cookies_activated" {% if message_type == 'cookies_activated' %}selected{% endif %}>Cookies配置激活</option>
+                                <option value="cookies_test_success" {% if message_type == 'cookies_test_success' %}selected{% endif %}>Cookies测试成功</option>
+                                <option value="cookies_test_failed" {% if message_type == 'cookies_test_failed' %}selected{% endif %}>Cookies测试失败</option>
+                                <option value="cookies_auto_check_enabled" {% if message_type == 'cookies_auto_check_enabled' %}selected{% endif %}>自动检测已启用</option>
+                                <option value="cookies_auto_check_disabled" {% if message_type == 'cookies_auto_check_disabled' %}selected{% endif %}>自动检测已禁用</option>
+                                <option value="users_created" {% if message_type == 'users_created' %}selected{% endif %}>用户创建成功</option>
+                                <option value="users_imported" {% if message_type == 'users_imported' %}selected{% endif %}>用户导入成功</option>
                             </select>
                         </div>
                         <div class="col-md-3">
@@ -157,6 +165,38 @@
                                             {% elif message.message_type == 'cookies_expired' %}
                                                 <span class="badge badge-warning mr-2">
                                                     <i class="fas fa-exclamation-triangle"></i> 系统认证过期
+                                                </span>
+                                            {% elif message.message_type == 'cookies_saved' %}
+                                                <span class="badge badge-success mr-2">
+                                                    <i class="fas fa-save"></i> Cookies保存成功
+                                                </span>
+                                            {% elif message.message_type == 'cookies_activated' %}
+                                                <span class="badge badge-success mr-2">
+                                                    <i class="fas fa-power-off"></i> Cookies配置激活
+                                                </span>
+                                            {% elif message.message_type == 'cookies_test_success' %}
+                                                <span class="badge badge-success mr-2">
+                                                    <i class="fas fa-check-circle"></i> Cookies测试成功
+                                                </span>
+                                            {% elif message.message_type == 'cookies_test_failed' %}
+                                                <span class="badge badge-danger mr-2">
+                                                    <i class="fas fa-times-circle"></i> Cookies测试失败
+                                                </span>
+                                            {% elif message.message_type == 'cookies_auto_check_enabled' %}
+                                                <span class="badge badge-info mr-2">
+                                                    <i class="fas fa-clock"></i> 自动检测已启用
+                                                </span>
+                                            {% elif message.message_type == 'cookies_auto_check_disabled' %}
+                                                <span class="badge badge-secondary mr-2">
+                                                    <i class="fas fa-clock"></i> 自动检测已禁用
+                                                </span>
+                                            {% elif message.message_type == 'users_created' %}
+                                                <span class="badge badge-success mr-2">
+                                                    <i class="fas fa-user-plus"></i> 用户创建成功
+                                                </span>
+                                            {% elif message.message_type == 'users_imported' %}
+                                                <span class="badge badge-success mr-2">
+                                                    <i class="fas fa-file-upload"></i> 用户导入成功
                                                 </span>
                                             {% endif %}
                                             
