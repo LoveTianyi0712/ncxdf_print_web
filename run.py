@@ -6,13 +6,15 @@
 运行此脚本启动Web应用程序
 """
 
-from app import app, db, create_admin_user
+from app import app, db, create_admin_user, init_cookies_auto_check
 
 if __name__ == '__main__':
     # 创建数据库表和默认管理员账户
     with app.app_context():
         db.create_all()
         create_admin_user()
+        # 初始化cookies自动检测
+        init_cookies_auto_check()
     
     print("=" * 50)
     print("南昌新东方凭证打印系统")

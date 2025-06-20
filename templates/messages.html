@@ -86,6 +86,7 @@
                                 <option value="change_request_submitted" {% if message_type == 'change_request_submitted' %}selected{% endif %}>申请已提交</option>
                                 <option value="change_request_approved" {% if message_type == 'change_request_approved' %}selected{% endif %}>申请已批准</option>
                                 <option value="change_request_rejected" {% if message_type == 'change_request_rejected' %}selected{% endif %}>申请已拒绝</option>
+                                <option value="cookies_expired" {% if message_type == 'cookies_expired' %}selected{% endif %}>系统认证过期</option>
                             </select>
                         </div>
                         <div class="col-md-3">
@@ -152,6 +153,10 @@
                                             {% elif message.message_type == 'change_request_rejected' %}
                                                 <span class="badge badge-danger mr-2">
                                                     <i class="fas fa-times-circle"></i> 申请拒绝
+                                                </span>
+                                            {% elif message.message_type == 'cookies_expired' %}
+                                                <span class="badge badge-warning mr-2">
+                                                    <i class="fas fa-exclamation-triangle"></i> 系统认证过期
                                                 </span>
                                             {% endif %}
                                             

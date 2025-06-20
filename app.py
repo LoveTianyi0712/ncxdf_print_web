@@ -71,6 +71,12 @@ import random
 import string
 import re  # 新增正则表达式模块用于密码验证
 
+# 定时任务相关导入
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.interval import IntervalTrigger
+import atexit
+import threading
+
 # 安装PyMySQL作为MySQLdb的替代
 pymysql.install_as_MySQLdb()
 
@@ -85,6 +91,12 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 login_manager.login_message = '请先登录才能访问此页面'
+
+# 初始化定时任务调度器
+scheduler = BackgroundScheduler()
+scheduler.start()
+# 确保应用退出时停止调度器
+atexit.register(lambda: scheduler.shutdown())
 
 # 数据库模型
 class User(UserMixin, db.Model):
@@ -127,6 +139,17 @@ class CookiesConfig(db.Model):
     created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     last_test_time = db.Column(db.DateTime, nullable=True)  # 最后测试时间
     test_status = db.Column(db.String(20), default='未测试')  # 测试状态：成功、失败、未测试
+
+class CookiesAutoCheck(db.Model):
+    """Cookies自动检测配置模型"""
+    id = db.Column(db.Integer, primary_key=True)
+    is_enabled = db.Column(db.Boolean, default=False)  # 是否启用自动检测
+    check_interval = db.Column(db.Integer, default=30)  # 检测间隔（分钟）
+    failure_notification_sent = db.Column(db.Boolean, default=False)  # 是否已发送失败通知
+    last_check_time = db.Column(db.DateTime, nullable=True)  # 最后检测时间
+    consecutive_failures = db.Column(db.Integer, default=0)  # 连续失败次数
+    created_at = db.Column(db.DateTime, default=get_beijing_datetime)
+    updated_at = db.Column(db.DateTime, default=get_beijing_datetime, onupdate=get_beijing_datetime)
 
 class UserChangeRequest(db.Model):
     """用户信息变更请求模型"""
@@ -349,6 +372,157 @@ def create_message(user_id, message_type, title, content, related_id=None, relat
         print(f"创建消息失败: {e}")
         db.session.rollback()
         return None  # 返回None而不是False
+
+def send_cookies_expired_notification():
+    """向所有管理员发送cookies过期通知"""
+    try:
+        # 获取所有管理员用户
+        admin_users = User.query.filter_by(role='admin', is_deleted=False, is_enabled=True).all()
+        
+        for admin in admin_users:
+            # 检查是否已经发送过类似的通知（避免重复发送）
+            existing_notification = Message.query.filter_by(
+                user_id=admin.id,
+                message_type='cookies_expired',
+                is_read=False
+            ).first()
+            
+            if not existing_notification:
+                create_message(
+                    user_id=admin.id,
+                    message_type='cookies_expired',
+                    title='系统认证配置已过期',
+                    content=f'系统检测到当前的ERP认证配置（Cookies）已失效，请及时更新配置以确保系统正常运行。\n\n检测时间：{get_beijing_datetime().strftime("%Y-%m-%d %H:%M:%S")}\n\n请前往"Cookies配置"页面更新认证信息。',
+                    related_type='cookies_config'
+                )
+        
+        print(f"已向 {len(admin_users)} 位管理员发送cookies过期通知")
+        return True
+    except Exception as e:
+        print(f"发送cookies过期通知失败: {e}")
+        return False
+
+def auto_check_cookies():
+    """自动检测cookies状态"""
+    try:
+        with app.app_context():
+            # 获取自动检测配置
+            auto_check_config = CookiesAutoCheck.query.first()
+            if not auto_check_config or not auto_check_config.is_enabled:
+                return
+            
+            # 获取当前活跃的cookies配置
+            active_config = CookiesConfig.query.filter_by(is_active=True).first()
+            if not active_config:
+                print("没有找到活跃的cookies配置")
+                return
+            
+            print(f"开始自动检测cookies状态 - {get_beijing_datetime().strftime('%Y-%m-%d %H:%M:%S')}")
+            
+            try:
+                cookies_dict = json.loads(active_config.cookies_data)
+                
+                # 使用测试学员编号测试API
+                from utils.certificate_processors.search_student_certificate import search_student
+                test_result = search_student(cookies_dict, None, 'NC24048S6UzC')
+                
+                # 更新检测时间
+                auto_check_config.last_check_time = get_beijing_datetime()
+                active_config.last_test_time = get_beijing_datetime()
+                
+                if test_result == 404:
+                    # API请求失败，可能是cookies过期
+                    active_config.test_status = '失败'
+                    auto_check_config.consecutive_failures += 1
+                    
+                    print(f"Cookies检测失败，连续失败次数: {auto_check_config.consecutive_failures}")
+                    
+                    # 如果连续失败且未发送通知，则发送通知
+                    if auto_check_config.consecutive_failures >= 2 and not auto_check_config.failure_notification_sent:
+                        send_cookies_expired_notification()
+                        auto_check_config.failure_notification_sent = True
+                        print("已发送cookies过期通知")
+                    
+                elif test_result == 0 or isinstance(test_result, dict):
+                    # 测试成功
+                    active_config.test_status = '成功' 
+                    auto_check_config.consecutive_failures = 0
+                    auto_check_config.failure_notification_sent = False
+                    print("Cookies检测成功")
+                else:
+                    # 其他情况视为失败
+                    active_config.test_status = '失败'
+                    auto_check_config.consecutive_failures += 1
+                    print(f"Cookies检测失败（异常结果），连续失败次数: {auto_check_config.consecutive_failures}")
+                
+                db.session.commit()
+                
+            except Exception as e:
+                print(f"执行cookies检测时出错: {e}")
+                auto_check_config.consecutive_failures += 1
+                db.session.commit()
+    
+    except Exception as e:
+        print(f"自动检测cookies时出错: {e}")
+
+def init_cookies_auto_check():
+    """初始化cookies自动检测"""
+    try:
+        with app.app_context():
+            # 检查是否已存在配置
+            auto_check_config = CookiesAutoCheck.query.first()
+            if not auto_check_config:
+                # 创建默认配置
+                auto_check_config = CookiesAutoCheck(
+                    is_enabled=False,
+                    check_interval=30
+                )
+                db.session.add(auto_check_config)
+                db.session.commit()
+                print("已创建默认的cookies自动检测配置")
+            
+            # 如果启用了自动检测，启动定时任务
+            if auto_check_config.is_enabled:
+                start_cookies_auto_check()
+                
+    except Exception as e:
+        print(f"初始化cookies自动检测失败: {e}")
+
+def start_cookies_auto_check():
+    """启动cookies自动检测任务"""
+    try:
+        with app.app_context():
+            auto_check_config = CookiesAutoCheck.query.first()
+            if not auto_check_config or not auto_check_config.is_enabled:
+                return
+            
+            # 移除现有的任务（如果存在）
+            try:
+                scheduler.remove_job('cookies_auto_check')
+            except:
+                pass
+            
+            # 添加新的定时任务
+            scheduler.add_job(
+                func=auto_check_cookies,
+                trigger=IntervalTrigger(minutes=auto_check_config.check_interval),
+                id='cookies_auto_check',
+                name='Cookies自动检测任务',
+                replace_existing=True
+            )
+            
+            print(f"已启动cookies自动检测任务，检测间隔: {auto_check_config.check_interval} 分钟")
+            
+    except Exception as e:
+        print(f"启动cookies自动检测任务失败: {e}")
+
+def stop_cookies_auto_check():
+    """停止cookies自动检测任务"""
+    try:
+        scheduler.remove_job('cookies_auto_check')
+        print("已停止cookies自动检测任务")
+    except:
+        pass
 
 # Cookies超时检查
 @app.before_request
@@ -2331,6 +2505,81 @@ def delete_cookies(config_id):
     
     return redirect(url_for('cookies_config'))
 
+@app.route('/cookies_auto_check_config')
+@login_required
+@admin_required
+def cookies_auto_check_config():
+    """Cookies自动检测配置页面"""
+    auto_check_config = CookiesAutoCheck.query.first()
+    if not auto_check_config:
+        # 创建默认配置
+        auto_check_config = CookiesAutoCheck(
+            is_enabled=False,
+            check_interval=30
+        )
+        db.session.add(auto_check_config)
+        db.session.commit()
+    
+    return jsonify({
+        'is_enabled': auto_check_config.is_enabled,
+        'check_interval': auto_check_config.check_interval,
+        'last_check_time': auto_check_config.last_check_time.strftime('%Y-%m-%d %H:%M:%S') if auto_check_config.last_check_time else None,
+        'consecutive_failures': auto_check_config.consecutive_failures,
+        'failure_notification_sent': auto_check_config.failure_notification_sent
+    })
+
+@app.route('/update_cookies_auto_check', methods=['POST'])
+@login_required
+@admin_required
+def update_cookies_auto_check():
+    """更新Cookies自动检测配置"""
+    try:
+        is_enabled = request.form.get('is_enabled') == 'true'
+        check_interval = int(request.form.get('check_interval', 30))
+        
+        # 验证检测间隔
+        if check_interval < 5:
+            return jsonify({'success': False, 'error': '检测间隔不能少于5分钟'})
+        if check_interval > 1440:  # 24小时
+            return jsonify({'success': False, 'error': '检测间隔不能超过24小时'})
+        
+        auto_check_config = CookiesAutoCheck.query.first()
+        if not auto_check_config:
+            auto_check_config = CookiesAutoCheck()
+            db.session.add(auto_check_config)
+        
+        auto_check_config.is_enabled = is_enabled
+        auto_check_config.check_interval = check_interval
+        auto_check_config.updated_at = get_beijing_datetime()
+        
+        db.session.commit()
+        
+        # 根据配置启动或停止定时任务
+        if is_enabled:
+            start_cookies_auto_check()
+            flash(f'已启用Cookies自动检测，检测间隔：{check_interval}分钟', 'success')
+        else:
+            stop_cookies_auto_check()
+            flash('已禁用Cookies自动检测', 'info')
+        
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': f'更新配置失败：{str(e)}'})
+
+@app.route('/manual_check_cookies')
+@login_required
+@admin_required
+def manual_check_cookies():
+    """手动触发Cookies检测"""
+    try:
+        # 手动执行检测
+        auto_check_cookies()
+        return jsonify({'success': True, 'message': '手动检测已完成'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': f'手动检测失败：{str(e)}'})
+
 @app.route('/test_class_search')
 @login_required
 def test_class_search():
@@ -2492,5 +2741,7 @@ if __name__ == '__main__':
     with app.app_context():
         db.create_all()
         create_admin_user()
+        # 初始化cookies自动检测
+        init_cookies_auto_check()
     
     app.run(debug=True, host='0.0.0.0', port=5000) 

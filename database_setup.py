@@ -279,6 +279,27 @@ def migrate_message_table():
             print(f"处理message表时出现错误: {str(e)}")
             print("这可能是因为表已经存在或者权限不足")
 
+def migrate_cookies_auto_check_table():
+    """创建Cookies自动检测配置表"""
+    with app.app_context():
+        try:
+            from sqlalchemy import inspect, text
+            inspector = inspect(db.engine)
+            
+            # 检查表是否存在
+            tables = inspector.get_table_names()
+            if 'cookies_auto_check' not in tables:
+                print("正在创建cookies_auto_check表...")
+                # 使用db.create_all()来创建新表
+                db.create_all()
+                print("cookies_auto_check表创建成功！")
+            else:
+                print("cookies_auto_check表已存在，跳过创建")
+                
+        except Exception as e:
+            print(f"处理cookies_auto_check表时出现错误: {str(e)}")
+            print("这可能是因为表已经存在或者权限不足")
+
 def main():
     """主函数"""
     print("=" * 50)
@@ -305,5 +326,6 @@ if __name__ == "__main__":
     migrate_user_table()
     migrate_user_change_request_table()
     migrate_message_table()
+    migrate_cookies_auto_check_table()
     create_admin_user()
     main() 

@@ -2,8 +2,10 @@ Flask==2.3.3
 Flask-SQLAlchemy==3.0.5
 Flask-Login==0.6.3
 Werkzeug==2.3.7
-Pillow==10.0.1
+Pillow~=11.2.1
 PyMySQL==1.1.0
 python-dotenv==1.0.0
-pytz==2023.3
-openpyxl==3.1.2 
+pytz~=2025.2
+openpyxl==3.1.2
+APScheduler~=3.11.0
+requests~=2.32.3

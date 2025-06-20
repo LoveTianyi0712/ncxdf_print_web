@@ -19,18 +19,58 @@
                     </div>
                 </div>
                 <div class="card-body">
-                    {% if active_config %}
-                        <div class="alert alert-info">
-                            <i class="fas fa-info-circle"></i>
-                            当前活跃配置：<strong>{{ active_config.name }}</strong>
-                            （更新时间：{{ active_config.updated_at.strftime('%Y-%m-%d %H:%M:%S') }}）
+                    <div class="row mb-3">
+                        <div class="col-md-8">
+                            {% if active_config %}
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle"></i>
+                                    当前活跃配置：<strong>{{ active_config.name }}</strong>
+                                    （更新时间：{{ active_config.updated_at.strftime('%Y-%m-%d %H:%M:%S') }}）
+                                </div>
+                            {% else %}
+                                <div class="alert alert-warning">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    当前没有活跃的Cookies配置，系统将使用默认配置
+                                </div>
+                            {% endif %}
                         </div>
-                    {% else %}
-                        <div class="alert alert-warning">
-                            <i class="fas fa-exclamation-triangle"></i>
-                            当前没有活跃的Cookies配置，系统将使用默认配置
+                        <div class="col-md-4">
+                            <!-- 自动检测配置卡片 -->
+                            <div class="card border-primary">
+                                <div class="card-header bg-primary text-white">
+                                    <h6 class="card-title mb-0">
+                                        <i class="fas fa-robot"></i> 自动检测
+                                    </h6>
+                                </div>
+                                <div class="card-body p-2">
+                                    <div class="form-check form-switch mb-2">
+                                        <input class="form-check-input" type="checkbox" id="autoCheckEnabled">
+                                        <label class="form-check-label" for="autoCheckEnabled">
+                                            <small>启用自动检测</small>
+                                        </label>
+                                    </div>
+                                    <div class="mb-2" id="intervalSettings" style="display: none;">
+                                        <label for="checkInterval" class="form-label">
+                                            <small>检测间隔（分钟）</small>
+                                        </label>
+                                        <input type="number" class="form-control form-control-sm" id="checkInterval" 
+                                               min="5" max="1440" value="30">
+                                    </div>
+                                    <div class="d-grid gap-1">
+                                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="saveAutoCheckSettings()">
+                                            <i class="fas fa-save"></i> 保存设置
+                                        </button>
+                                        <button type="button" class="btn btn-outline-info btn-sm" onclick="manualCheck()">
+                                            <i class="fas fa-play"></i> 手动检测
+                                        </button>
+                                    </div>
+                                    <div id="autoCheckStatus" class="mt-2">
+                                        <small class="text-muted">正在加载状态...</small>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                    {% endif %}
+                    </div>
 
                     <div class="table-responsive">
                         <table class="table table-bordered table-striped">
@@ -234,5 +274,185 @@ FE_USER_CODE=NC24048S6UzC; FE_USER_NAME=%E5%BC%A0%E8%B0%A6235; rem=on" required>
 .table-success {
     background-color: rgba(40, 167, 69, 0.1) !important;
 }
+
+.card.border-primary {
+    border-width: 2px;
+}
+
+.pulse {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(0, 123, 255, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(0, 123, 255, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(0, 123, 255, 0);
+    }
+}
 </style>
+
+<script>
+// 页面加载完成后初始化
+document.addEventListener('DOMContentLoaded', function() {
+    loadAutoCheckSettings();
+    
+    // 监听自动检测开关变化
+    document.getElementById('autoCheckEnabled').addEventListener('change', function() {
+        const intervalSettings = document.getElementById('intervalSettings');
+        if (this.checked) {
+            intervalSettings.style.display = 'block';
+        } else {
+            intervalSettings.style.display = 'none';
+        }
+    });
+    
+    // 定期刷新状态
+    setInterval(loadAutoCheckSettings, 60000); // 每分钟刷新一次
+});
+
+// 加载自动检测配置
+function loadAutoCheckSettings() {
+    fetch('/cookies_auto_check_config')
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById('autoCheckEnabled').checked = data.is_enabled;
+        document.getElementById('checkInterval').value = data.check_interval;
+        
+        // 显示/隐藏间隔设置
+        const intervalSettings = document.getElementById('intervalSettings');
+        if (data.is_enabled) {
+            intervalSettings.style.display = 'block';
+        } else {
+            intervalSettings.style.display = 'none';
+        }
+        
+        // 更新状态显示
+        updateAutoCheckStatus(data);
+    })
+    .catch(error => {
+        console.error('加载自动检测配置失败:', error);
+        document.getElementById('autoCheckStatus').innerHTML = 
+            '<small class="text-danger">加载状态失败</small>';
+    });
+}
+
+// 更新自动检测状态显示
+function updateAutoCheckStatus(data) {
+    const statusDiv = document.getElementById('autoCheckStatus');
+    let statusHtml = '';
+    
+    if (data.is_enabled) {
+        statusHtml += '<small class="text-success"><i class="fas fa-check-circle"></i> 已启用</small><br>';
+        statusHtml += `<small class="text-muted">间隔: ${data.check_interval}分钟</small><br>`;
+        
+        if (data.last_check_time) {
+            statusHtml += `<small class="text-muted">上次检测: ${data.last_check_time}</small><br>`;
+        }
+        
+        if (data.consecutive_failures > 0) {
+            statusHtml += `<small class="text-warning">连续失败: ${data.consecutive_failures}次</small><br>`;
+        }
+        
+        if (data.failure_notification_sent) {
+            statusHtml += '<small class="text-info"><i class="fas fa-bell"></i> 已发送通知</small>';
+        }
+    } else {
+        statusHtml = '<small class="text-secondary"><i class="fas fa-pause-circle"></i> 已禁用</small>';
+    }
+    
+    statusDiv.innerHTML = statusHtml;
+}
+
+// 保存自动检测设置
+function saveAutoCheckSettings() {
+    const isEnabled = document.getElementById('autoCheckEnabled').checked;
+    const checkInterval = document.getElementById('checkInterval').value;
+    
+    const formData = new FormData();
+    formData.append('is_enabled', isEnabled);
+    formData.append('check_interval', checkInterval);
+    
+    fetch('/update_cookies_auto_check', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // 显示成功消息
+            showMessage('自动检测设置已更新', 'success');
+            // 重新加载配置
+            setTimeout(loadAutoCheckSettings, 1000);
+        } else {
+            showMessage('更新失败: ' + (data.error || '未知错误'), 'error');
+        }
+    })
+    .catch(error => {
+        console.error('保存设置失败:', error);
+        showMessage('保存设置失败，请稍后重试', 'error');
+    });
+}
+
+// 手动检测
+function manualCheck() {
+    const button = event.target;
+    const originalText = button.innerHTML;
+    
+    // 显示加载状态
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 检测中...';
+    button.disabled = true;
+    
+    fetch('/manual_check_cookies')
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showMessage('手动检测已完成', 'success');
+            // 重新加载配置和页面
+            setTimeout(() => {
+                loadAutoCheckSettings();
+                location.reload();
+            }, 1000);
+        } else {
+            showMessage('手动检测失败: ' + (data.error || '未知错误'), 'error');
+        }
+    })
+    .catch(error => {
+        console.error('手动检测失败:', error);
+        showMessage('手动检测失败，请稍后重试', 'error');
+    })
+    .finally(() => {
+        // 恢复按钮状态
+        button.innerHTML = originalText;
+        button.disabled = false;
+    });
+}
+
+// 显示消息
+function showMessage(message, type) {
+    // 创建消息元素
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    // 插入到页面顶部
+    const container = document.querySelector('.container-fluid');
+    container.insertBefore(alertDiv, container.firstChild);
+    
+    // 3秒后自动消失
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.remove();
+        }
+    }, 3000);
+}
+</script>
+
 {% endblock %} 
