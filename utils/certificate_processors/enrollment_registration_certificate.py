@@ -390,8 +390,8 @@ class EnrollmentRegistrationCertificateProcessor:
             # 总的DataBand高度 = 实际内容高度 + 间距
             total_databand_height = actual_content_height + databand_spacing
             
-            # 字体设置
-            font_to_use = self._get_font_with_scaling('Arial', font_size, False, True, 
+            # 字体设置 - 改为宋体
+            font_to_use = self._get_font_with_scaling('SimSun', font_size, False, True, 
                                                     chinese_font_path, font_cache, default_font)
             
             # 横线的起始和结束位置
@@ -534,8 +534,8 @@ class EnrollmentRegistrationCertificateProcessor:
                            center_offset_x, chinese_font_path, font_cache, default_font):
         """绘制FooterBand汇总信息 - 确保所有文字都加粗"""
         try:
-            # 使用加粗字体 (从mrt文件: Font>Arial,9.5,Bold)
-            bold_font = self._get_font_with_scaling('Arial', 9.5, True, True, 
+            # 使用加粗宋体 (从mrt文件: Font>Arial,9.5,Bold)
+            bold_font = self._get_font_with_scaling('SimSun', 9.5, True, True, 
                                                   chinese_font_path, font_cache, default_font)
             
             # 应收金额 (ClientRectangle>7.2,0.2,1.8,0.41)
@@ -594,8 +594,8 @@ class EnrollmentRegistrationCertificateProcessor:
                         chinese_font_path, font_cache, default_font, data):
         """绘制页脚信息"""
         try:
-            # 页脚字体
-            footer_font = self._get_font_with_scaling('Arial', 8, False, True, 
+            # 页脚字体 - 改为宋体
+            footer_font = self._get_font_with_scaling('SimSun', 8, False, True, 
                                                     chinese_font_path, font_cache, default_font)
             
             # 请妥善保存 (ClientRectangle>0,-0.01,4.2,0.41)
@@ -826,35 +826,71 @@ class EnrollmentRegistrationCertificateProcessor:
             # 对于加粗文字，稍微增加字体大小，但主要靠多次绘制实现
             adjusted_size = int(base_size * 1.1) if should_bold else base_size
             
-            if has_chinese and chinese_font_path:
-                try:
-                    font = ImageFont.truetype(chinese_font_path, adjusted_size)
-                    font_cache[font_key] = font
-                    return font
-                except Exception:
-                    pass
+            # 字体文件名映射
+            font_file_mapping = {
+                'SimSun': ['simsun.ttc', 'simsun.ttf'],
+                '宋体': ['simsun.ttc', 'simsun.ttf'],
+                'Arial': ['arial.ttf', 'arial.ttc'],
+                'Microsoft YaHei': ['msyh.ttc', 'msyh.ttf'],
+                '微软雅黑': ['msyh.ttc', 'msyh.ttf']
+            }
+            
+            # 对于中文字体或宋体，优先使用中文字体路径或系统宋体
+            if has_chinese or font_name in ['SimSun', '宋体']:
+                # 先尝试系统宋体
+                if font_name in ['SimSun', '宋体']:
+                    fonts_dir = os.path.join(os.environ.get('WINDIR', ''), 'Fonts')
+                    for font_file in font_file_mapping.get('SimSun', ['simsun.ttc']):
+                        font_path = os.path.join(fonts_dir, font_file)
+                        if os.path.exists(font_path):
+                            try:
+                                font = ImageFont.truetype(font_path, adjusted_size)
+                                font_cache[font_key] = font
+                                print(f"成功加载宋体: {font_path}")
+                                return font
+                            except Exception as e:
+                                print(f"加载宋体失败 {font_path}: {str(e)}")
+                                continue
+                
+                # 如果找不到宋体，尝试使用中文字体路径
+                if chinese_font_path:
+                    try:
+                        font = ImageFont.truetype(chinese_font_path, adjusted_size)
+                        font_cache[font_key] = font
+                        print(f"使用中文字体路径: {chinese_font_path}")
+                        return font
+                    except Exception as e:
+                        print(f"加载中文字体失败 {chinese_font_path}: {str(e)}")
             
             # 尝试英文字体
             try:
-                font_path = os.path.join(os.environ.get('WINDIR', ''), 'Fonts', f"{font_name}.ttf")
-                if not os.path.exists(font_path):
-                    # 尝试其他扩展名
-                    font_path = os.path.join(os.environ.get('WINDIR', ''), 'Fonts', f"{font_name}.ttc")
+                fonts_dir = os.path.join(os.environ.get('WINDIR', ''), 'Fonts')
+                font_files = font_file_mapping.get(font_name, [f"{font_name.lower()}.ttf", f"{font_name.lower()}.ttc"])
+                
+                for font_file in font_files:
+                    font_path = os.path.join(fonts_dir, font_file)
+                    if os.path.exists(font_path):
+                        try:
+                            font = ImageFont.truetype(font_path, adjusted_size)
+                            font_cache[font_key] = font
+                            print(f"成功加载字体: {font_path}")
+                            return font
+                        except Exception as e:
+                            print(f"加载字体失败 {font_path}: {str(e)}")
+                            continue
 
-                if not os.path.exists(font_path):
-                    # 如果找不到指定字体，使用中文字体
-                    if chinese_font_path:
-                        font = ImageFont.truetype(chinese_font_path, adjusted_size)
-                        font_cache[font_key] = font
-                        return font
-                    else:
-                        # 使用默认字体
-                        font_cache[font_key] = default_font
-                        return default_font
+                # 如果找不到指定字体，使用中文字体作为备用
+                if chinese_font_path:
+                    font = ImageFont.truetype(chinese_font_path, adjusted_size)
+                    font_cache[font_key] = font
+                    print(f"使用中文字体作为备用: {chinese_font_path}")
+                    return font
+                else:
+                    # 使用默认字体
+                    font_cache[font_key] = default_font
+                    print(f"使用默认字体")
+                    return default_font
 
-                font = ImageFont.truetype(font_path, adjusted_size)
-                font_cache[font_key] = font
-                return font
             except Exception as e:
                 print(f"加载字体失败 {font_name} 大小 {font_size}: {str(e)}")
                 # 如果加载失败，尝试使用中文字体作为备用
@@ -875,12 +911,27 @@ class EnrollmentRegistrationCertificateProcessor:
             return default_font
 
     def _get_font(self, font_info, chinese_font_path, has_chinese, should_bold, font_cache, default_font):
-        """获取字体对象 - 保持向后兼容性"""
+        """获取字体对象 - 保持向后兼容性，但强制使用宋体"""
+        # 解析字体信息
+        if isinstance(font_info, str):
+            # 解析字体字符串，例如 "Arial,8" 或 "Arial,8,Bold"
+            parts = font_info.split(',')
+            font_name = parts[0] if len(parts) > 0 else 'Arial'
+            font_size = int(parts[1]) if len(parts) > 1 and parts[1].isdigit() else 9
+            # 检查是否包含Bold
+            if len(parts) > 2 and 'Bold' in parts[2]:
+                should_bold = True
+        else:
+            # 如果是字典格式
+            font_name = font_info.get('name', 'Arial')
+            font_size = font_info.get('size', 9)
+        
+        # 强制使用宋体，不管原来指定的是什么字体
         return self._get_font_with_scaling(
-            font_info.get('name', 'Arial'),
-            font_info.get('size', 9),
+            'SimSun',  # 强制使用宋体
+            font_size,
             should_bold,
-            has_chinese,
+            True,  # 强制当作中文字体处理
             chinese_font_path,
             font_cache,
             default_font
@@ -916,8 +967,8 @@ class EnrollmentRegistrationCertificateProcessor:
             # 检查是否包含中文
             has_chinese = any('\u4e00' <= char <= '\u9fff' for char in str(text))
             
-            # 使用_get_font_with_scaling方法直接获取字体
-            font_to_use = self._get_font_with_scaling('Arial', 8, False, has_chinese, 
+            # 使用宋体字体
+            font_to_use = self._get_font_with_scaling('SimSun', 8, False, has_chinese, 
                                                     chinese_font_path, font_cache, default_font)
             
             # 绘制文本
