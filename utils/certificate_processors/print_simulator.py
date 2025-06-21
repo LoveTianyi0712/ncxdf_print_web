@@ -600,7 +600,28 @@ class ProofPrintSimulator:
     def enrollment_processor(self, data, biz_type):
         """报班类凭证处理器"""
         print("使用报班类凭证处理器")
-        # 对于报班类凭证，可能需要特殊的字段处理
+        
+        # 对于普通报班凭证(biz_type=1)，使用专门的报班凭证处理器
+        if biz_type == 1:
+            try:
+                # 使用专门的报班凭证处理器
+                from .enrollment_registration_certificate import EnrollmentRegistrationCertificateProcessor
+                
+                # 检查数据是否符合报班凭证的结构（包含DataBand数据）
+                if 'ClassAndCardArray' in data and 'Student' in data:
+                    print("检测到报班凭证的完整结构，使用专门的处理器")
+                    processor = EnrollmentRegistrationCertificateProcessor()
+                    # 验证并处理数据
+                    processor.validate_data(data)
+                    processed_data = processor.process_data(data)
+                    processed_data['证件类型'] = '报班凭证'
+                    return processed_data
+                else:
+                    print("数据结构不完整，使用标准处理器")
+            except Exception as e:
+                print(f"专门的报班凭证处理器失败: {str(e)}")
+        
+        # 对于其他报班类凭证，使用原有的处理逻辑
         processed_data = data.copy()
         
         # 根据不同的报班类型进行特殊处理

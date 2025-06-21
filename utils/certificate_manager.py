@@ -94,12 +94,20 @@ class CertificateManager:
             return self._fallback_generate(6, data, currency_symbol)
     
     def _generate_enrollment_certificate(self, data, currency_symbol):
-        """生成报班凭证"""
+        """生成报班凭证或班级凭证"""
         try:
-            from utils.certificate_processors.enrollment_certificate import generate_enrollment_certificate
-            return generate_enrollment_certificate(data, currency_symbol)
+            # 检查是否是报班凭证的数据结构（包含DataBand）
+            if 'ClassAndCardArray' in data and 'Student' in data:
+                print("检测到报班凭证的完整结构，使用专门的报班凭证处理器")
+                from utils.certificate_processors.enrollment_registration_certificate import generate_enrollment_registration_certificate
+                return generate_enrollment_registration_certificate(data, currency_symbol)
+            else:
+                # 使用原有的班级凭证处理器
+                print("使用标准的班级凭证处理器")
+                from utils.certificate_processors.enrollment_certificate import generate_enrollment_certificate
+                return generate_enrollment_certificate(data, currency_symbol)
         except ImportError as e:
-            print(f"导入报班凭证处理器失败: {str(e)}")
+            print(f"导入凭证处理器失败: {str(e)}")
             # 回退到旧的方法
             return self._fallback_generate(1, data, currency_symbol)
     

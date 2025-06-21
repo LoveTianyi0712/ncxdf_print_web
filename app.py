@@ -3031,6 +3031,121 @@ def test_class_search():
     except Exception as e:
         return jsonify({'error': f'测试失败: {str(e)}', 'student_code': student_code})
 
+@app.route('/search_order')
+@login_required
+def search_order():
+    """搜索订单信息（用于报班凭证）"""
+    order_code = request.args.get('order_code')
+    
+    if not order_code:
+        return jsonify({'error': '请提供订单号', 'example': '/search_order?order_code=ORD20240101001'}), 400
+    
+    try:
+        # 这里应该连接到实际的业务系统API来搜索订单
+        # 目前先返回模拟数据
+        from utils.certificate_processors.enrollment_registration_certificate import create_mock_data
+        
+        # 创建模拟数据，但使用搜索的订单号
+        mock_data = create_mock_data()
+        mock_data['sOrderCode'] = order_code
+        
+        # 检查是否有匹配的订单（这里是模拟逻辑）
+        if order_code.startswith('ORD') or order_code.startswith('TEST'):
+            return jsonify({
+                'success': True,
+                'order_code': order_code,
+                'order_data': mock_data
+            })
+        else:
+            return jsonify({'error': '未找到该订单', 'order_code': order_code})
+            
+    except Exception as e:
+        return jsonify({'error': f'搜索失败: {str(e)}', 'order_code': order_code})
+
+@app.route('/generate_enrollment_registration_certificate', methods=['POST'])
+@login_required
+def generate_enrollment_registration_certificate():
+    """生成报班凭证"""
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({'error': '请提供订单数据'}), 400
+        
+        # 验证必要字段
+        if 'sOrderCode' not in data:
+            return jsonify({'error': '缺少订单号'}), 400
+        
+        # 使用线程锁确保打印操作的并发安全
+        with _print_lock:
+            from utils.certificate_processors.enrollment_registration_certificate import generate_enrollment_registration_certificate
+            
+            # 生成凭证
+            output_path = generate_enrollment_registration_certificate(data)
+            
+            # 记录打印日志
+            order_code = data.get('sOrderCode', 'unknown')
+            student_name = data.get('Student', {}).get('sStudentName', 'unknown')
+            
+            # 生成详细信息
+            class_count = len(data.get('ClassAndCardArray', []))
+            detail_info = f"报班凭证，订单号：{order_code}，包含{class_count}个班级"
+            
+            print_log = PrintLog(
+                user_id=current_user.id,
+                student_code=order_code,  # 使用订单号作为标识
+                student_name=student_name,
+                biz_type=1,  # 报班凭证的BizType
+                biz_name='报班凭证',
+                print_data=json.dumps(data, ensure_ascii=False),
+                detail_info=detail_info
+            )
+            
+            db.session.add(print_log)
+            db.session.commit()
+            
+            # 创建成功消息
+            create_message(
+                user_id=current_user.id,
+                message_type='print_success',
+                title='报班凭证打印成功',
+                content=f'您的报班凭证已成功生成。订单号：{order_code}，学员：{student_name}',
+                related_id=print_log.id,
+                related_type='print_log'
+            )
+            
+            return jsonify({
+                'success': True,
+                'message': '报班凭证生成成功',
+                'output_path': output_path,
+                'log_id': print_log.id
+            })
+            
+    except Exception as e:
+        print(f"生成报班凭证失败: {str(e)}")
+        return jsonify({'error': f'生成失败: {str(e)}'}), 500
+
+@app.route('/test_enrollment_registration_certificate')
+@login_required
+def test_enrollment_registration_certificate():
+    """测试报班凭证生成功能"""
+    try:
+        from utils.certificate_processors.enrollment_registration_certificate import test_enrollment_registration_certificate
+        
+        # 运行测试
+        output_path = test_enrollment_registration_certificate()
+        
+        return jsonify({
+            'success': True,
+            'message': '报班凭证测试成功',
+            'output_path': output_path
+        })
+        
+    except Exception as e:
+        return jsonify({'error': f'测试失败: {str(e)}'}), 500
+
+
+
 def _get_certificate_info(biz_type, student_data):
     """根据业务类型和学员数据生成凭证名称和详细信息"""
     from utils.certificate_manager import CERTIFICATE_MAPPING
