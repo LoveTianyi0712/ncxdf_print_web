@@ -247,7 +247,7 @@ class EnrollmentRegistrationCertificateProcessor:
                         self._draw_line_component(component, draw, pixels_per_cm,
                                                 center_offset_x, center_offset_y)
             
-            # 绘制DataBand内容（班级列表）
+            # 绘制DataBand内容（班级列表）- 包含所有横线逻辑
             self._draw_databand_content(draw, data, pixels_per_cm, center_offset_x, center_offset_y, font_cache, self.chinese_font_path, default_font)
             
             return image
@@ -316,10 +316,15 @@ class EnrollmentRegistrationCertificateProcessor:
             
             # === 3. 过滤特定动态字段组件 ===
             skip_dynamic_fields = [
-                '{PageNofM}', '{ArrayList.sOperator}', '{ArrayList.dtCreate}',
+                '{ArrayList.sOperator}', '{ArrayList.dtCreate}',
                 '{ArrayList.dShouldFee}', '{ArrayList.dFee}', '{ArrayList.Discounttype}',
                 '{ArrayList.sPayType}', '{ArrayList.microServiceTitle}', '{ArrayList.feedBackTitle}'
             ]
+            
+            # 过滤页码相关字段，我们会用英文格式替换
+            if '{PageNofM}' in text:
+                print(f"过滤页码字段: {text} at ({x_pos}, {y_pos})")
+                return True
             
             for field in skip_dynamic_fields:
                 if field in text:
@@ -354,55 +359,83 @@ class EnrollmentRegistrationCertificateProcessor:
         if component_type == 'Image':
             return False
             
-        # 保留线条组件（但排除DataBand区域内的线条，避免重复）
+        # 过滤所有线条组件，我们会重新绘制
         if component_type == 'Line':
-            # 过滤DataBand区域内的线条，我们会重新绘制
-            if 2.0 <= y_pos <= 8.0:
-                print(f"过滤DataBand线条 at ({x_pos}, {y_pos})")
-                return True
-            return False
+            print(f"过滤原模板线条 at ({x_pos}, {y_pos})")
+            return True
             
         return False
     
     def _draw_databand_content(self, draw, data, pixels_per_cm, center_offset_x, center_offset_y, font_cache, chinese_font_path, default_font):
-        """绘制DataBand内容 - 根据mrt文件真实结构实现三列布局"""
+        """绘制DataBand内容 - 根据新的横线逻辑实现"""
         try:
             class_array = data.get('ClassAndCardArray', [])
             if not class_array:
                 return
             
-            # DataBand起始位置 (从mrt文件: ClientRectangle>0,3.2,19,2.6)
-            databand_start_y = 3.2 * pixels_per_cm + center_offset_y
-            databand_height = 2.6 * pixels_per_cm  # 每个DataBand项目的高度
+            # 计算字体高度用于精确定位
+            font_size = 8
+            font_height_cm = font_size * 0.035  # 大约字体高度转换为厘米
+            
+            # DataBand起始位置 - 再向上提升半个字的距离
+            databand_start_y = (2.1 - font_height_cm * 0.5) * pixels_per_cm + center_offset_y
+            
+            # DataBand的实际内容高度（从商品编号到报名序号的距离）
+            # 根据_draw_three_column_layout中的实际位置：报名序号在2.21cm处，再加上字体高度
+            actual_content_height = (2.21 + font_height_cm) * pixels_per_cm  # 报名序号位置 + 字体高度
+            
+            # 每个DataBand之间的间距
+            databand_spacing = font_height_cm * 0.8 * pixels_per_cm  # 总间距约0.8字高度
+            
+            # 总的DataBand高度 = 实际内容高度 + 间距
+            total_databand_height = actual_content_height + databand_spacing
             
             # 字体设置
-            font_size = 8
             font_to_use = self._get_font_with_scaling('Arial', font_size, False, True, 
                                                     chinese_font_path, font_cache, default_font)
             
-            # 绘制每个班级信息
+            # 横线的起始和结束位置
+            line_start_x = center_offset_x
+            line_end_x = center_offset_x + 19 * pixels_per_cm
+            
+            # 1. 在业务类型下方绘制加粗横线（Y坐标约1.9cm处）
+            business_line_y = 1.9 * pixels_per_cm + center_offset_y
+            draw.line([(line_start_x, business_line_y), (line_end_x, business_line_y)], fill='black', width=2)
+            print(f"绘制业务类型下方横线(加粗): y={business_line_y}")
+            
+            # 2. 绘制每个班级信息
             for i, class_item in enumerate(class_array):
-                current_y = databand_start_y + (i * databand_height)
-                
-                # 在第一条数据上方绘制完整横线（修复间断问题）
-                if i == 0:
-                    line_y = current_y - 0.1 * pixels_per_cm
-                    draw.line([(center_offset_x, line_y), 
-                              (center_offset_x + 19 * pixels_per_cm, line_y)], 
-                             fill='black', width=1)
+                # 当前DataBand的起始位置
+                current_y = databand_start_y + (i * total_databand_height)
                 
                 # 绘制三列布局
                 self._draw_three_column_layout(class_item, draw, current_y, pixels_per_cm,
                                              center_offset_x, font_to_use)
                 
-                # 绘制每条数据下方的水平分割线 (从mrt文件: ClientRectangle>0,2.61,19,0.0254)
-                line_y = current_y + (2.61 * pixels_per_cm)
-                draw.line([(center_offset_x, line_y), 
-                          (center_offset_x + 19 * pixels_per_cm, line_y)], 
-                         fill='black', width=1)
-                
-            # 绘制FooterBand汇总信息 (从mrt文件: ClientRectangle>0,6.6,19,1.8)
-            footer_y = 6.6 * pixels_per_cm + center_offset_y + (len(class_array) - 1) * databand_height
+                # 3. 在每条数据下方绘制细横线（但最后一条数据不画）
+                # 横线位置 = 当前DataBand起始位置 + 实际内容高度（这样横线就紧贴在报名序号下方）
+                if i < len(class_array) - 1:  # 不是最后一条数据
+                    # 报名序号的精确位置：DataBand起始 + 2.21cm（报名序号Y位置）
+                    registration_number_y = current_y + 2.21 * pixels_per_cm
+                    # 使用更大的间距确保横线在报名序号下方
+                    line_y = registration_number_y + (0.5 * pixels_per_cm)  # 固定0.5cm间距，约等于1.5个字高
+                    draw.line([(line_start_x, line_y), (line_end_x, line_y)], fill='black', width=1)
+                    print(f"绘制第{i+1}条数据下方横线(细): y={line_y}")
+                    print(f"  - DataBand起始位置: {current_y/pixels_per_cm:.2f}cm")
+                    print(f"  - 报名序号位置: {registration_number_y/pixels_per_cm:.2f}cm")
+                    print(f"  - 横线绑定位置: {line_y/pixels_per_cm:.2f}cm")
+                    print(f"  - 报名序号到横线距离: 0.5cm")
+            
+            # 4. 计算FooterBand位置并在应收金额上方绘制加粗横线
+            # 最后一个DataBand的结束位置（不包括间距）
+            last_databand_start = databand_start_y + (len(class_array) - 1) * total_databand_height
+            last_databand_end = last_databand_start + actual_content_height
+            footer_y = last_databand_end + 0.3 * pixels_per_cm  # 适当间距
+            footer_line_y = footer_y - 0.1 * pixels_per_cm
+            draw.line([(line_start_x, footer_line_y), (line_end_x, footer_line_y)], fill='black', width=2)
+            print(f"绘制应收金额上方横线(加粗): y={footer_line_y}")
+            
+            # 5. 绘制FooterBand汇总信息
             self._draw_footer_summary(data, draw, footer_y, pixels_per_cm, 
                                     center_offset_x, chinese_font_path, font_cache, default_font)
                 
@@ -533,7 +566,7 @@ class EnrollmentRegistrationCertificateProcessor:
                 self._draw_bold_text(draw, (right_align_x, footer_y + 0.8 * pixels_per_cm), 
                                    pay_type_text, bold_font)
             
-            # 绘制页脚信息 (替代原来的_add_footer)
+            # 绘制页脚信息
             self._draw_page_footer(draw, footer_y + 1.8 * pixels_per_cm, pixels_per_cm, 
                                  center_offset_x, chinese_font_path, font_cache, default_font, data)
             
@@ -559,57 +592,35 @@ class EnrollmentRegistrationCertificateProcessor:
 
     def _draw_page_footer(self, draw, footer_start_y, pixels_per_cm, center_offset_x, 
                         chinese_font_path, font_cache, default_font, data):
-        """绘制页脚信息 - 客户签字、操作员、日期等"""
+        """绘制页脚信息"""
         try:
-            # 获取字体 (从mrt文件: Font>Arial,8)
-            font = self._get_font_with_scaling('Arial', 8, False, True, 
-                                             chinese_font_path, font_cache, default_font)
+            # 页脚字体
+            footer_font = self._get_font_with_scaling('Arial', 8, False, True, 
+                                                    chinese_font_path, font_cache, default_font)
             
-            # 在页脚最上方添加横线
-            line_y = footer_start_y - 0.2 * pixels_per_cm
-            draw.line([(center_offset_x, line_y), 
-                      (center_offset_x + 19 * pixels_per_cm, line_y)], 
-                     fill='black', width=1)
+            # 请妥善保存 (ClientRectangle>0,-0.01,4.2,0.41)
+            draw.text((center_offset_x, footer_start_y), 
+                     "请妥善保存", font=footer_font, fill='black')
             
-            # 请妥善保存 (ClientRectangle>0,-0.01,1.79,0.41)
-            draw.text((center_offset_x, footer_start_y - 0.01 * pixels_per_cm), 
-                     "请妥善保存", font=font, fill='black')
+            # 客户代办人签字 (ClientRectangle>4.2,-0.01,6.8,0.41)
+            draw.text((center_offset_x + 4.2 * pixels_per_cm, footer_start_y), 
+                     "客户代办人签字：", font=footer_font, fill='black')
             
-            # 客户代办人签字 (ClientRectangle>4.2,-0.01,2.59,0.41)
-            draw.text((center_offset_x + 4.2 * pixels_per_cm, footer_start_y - 0.01 * pixels_per_cm), 
-                     "客户代办人签字：", font=font, fill='black')
+            # 操作员 (ClientRectangle>11.2,0.01,1.2,0.4)
+            draw.text((center_offset_x + 11.2 * pixels_per_cm, footer_start_y + 0.02 * pixels_per_cm), 
+                     "操作员：", font=footer_font, fill='black')
+            draw.text((center_offset_x + 12.4 * pixels_per_cm, footer_start_y + 0.02 * pixels_per_cm), 
+                     str(data.get('sOperator', '')), font=footer_font, fill='black')
             
-            # 操作员 (ClientRectangle>11.2,0.01,1.2,0.41)
-            draw.text((center_offset_x + 11.2 * pixels_per_cm, footer_start_y + 0.01 * pixels_per_cm), 
-                     "操作员：", font=font, fill='black')
-            # 操作员姓名 (ClientRectangle>12.4,0.01,2,0.41)
-            operator_name = data.get('sOperator', '系统操作员')
-            draw.text((center_offset_x + 12.4 * pixels_per_cm, footer_start_y + 0.01 * pixels_per_cm), 
-                     operator_name, font=font, fill='black')
+            # 日期 (ClientRectangle>15.0,0.0,1.0,0.4)
+            draw.text((center_offset_x + 15.0 * pixels_per_cm, footer_start_y), 
+                     "日期：", font=footer_font, fill='black')
+            draw.text((center_offset_x + 16.0 * pixels_per_cm, footer_start_y), 
+                     str(data.get('dtCreate', '')), font=footer_font, fill='black')
             
-            # 日期 (ClientRectangle>15,0,1,0.41)
-            draw.text((center_offset_x + 15 * pixels_per_cm, footer_start_y), 
-                     "日期：", font=font, fill='black')
-            # 日期值 (ClientRectangle>16,0,3,0.41)
-            date_str = data.get('dtCreate', get_beijing_time_str())
-            draw.text((center_offset_x + 16 * pixels_per_cm, footer_start_y), 
-                     str(date_str), font=font, fill='black')
-            
-            # 页码 (ClientRectangle>16.4,0.8,2.21,0.41) - 右对齐
-            page_text = "第1页 共1页"
-            text_bbox = draw.textbbox((0, 0), page_text, font=font)
-            text_width = text_bbox[2] - text_bbox[0]
-            right_align_x = center_offset_x + 18.61 * pixels_per_cm - text_width
-            draw.text((right_align_x, footer_start_y + 0.8 * pixels_per_cm), 
-                     page_text, font=font, fill='black')
-            
-            # 删除微信公众号和客服热线（注释掉）
-            # micro_service = data.get('microServiceTitle', '微信公众号：XXXXX')
-            # feedback = data.get('feedBackTitle', '客服热线：400-000-0000')
-            # draw.text((center_offset_x, footer_start_y + 0.79 * pixels_per_cm), 
-            #          micro_service, font=font, fill='black')
-            # draw.text((center_offset_x + 4.2 * pixels_per_cm, footer_start_y + 0.79 * pixels_per_cm), 
-            #          feedback, font=font, fill='black')
+            # 页码 - 修改为英文格式 (ClientRectangle>16.4,0.8,2.6,0.4)
+            draw.text((center_offset_x + 16.4 * pixels_per_cm, footer_start_y + 0.8 * pixels_per_cm), 
+                     "Page 1 of 1", font=footer_font, fill='black')
             
         except Exception as e:
             print(f"绘制页脚信息时出错: {str(e)}")
@@ -934,9 +945,6 @@ def create_mock_data():
         "Discounttype": 200.00,  # 优惠金额
         "BizType": "报班",
         "sChannel": "直营",
-        "dShouldFee": 4200.00,   # 应收金额
-        "dFee": 4000.00,         # 实收金额
-        "dReturnFee": 0.00,
         "sPayType": "现金支付",
         "sSchoolName": "南昌新东方培训学校",
         "sTelePhone": "400-000-0000",
