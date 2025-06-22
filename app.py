@@ -1700,6 +1700,8 @@ def delete_user(user_id):
 def print_page():
     return render_template('print.html', template_mapping=TEMPLATE_MAPPING)
 
+
+
 @app.route('/search_student')
 @login_required
 def search_student():
@@ -1779,6 +1781,112 @@ def generate_print():
             
             if not biz_type or not student_data:
                 return jsonify({'error': '缺少必要参数'}), 400
+            
+            # 检测是否为报班凭证（多页支持）
+            is_enrollment_registration = (
+                'ClassAndCardArray' in student_data and 
+                'Student' in student_data and 
+                biz_type == 1
+            )
+            
+            if is_enrollment_registration:
+                # 使用报班凭证专门处理器（支持多页）
+                try:
+                    from utils.certificate_processors.enrollment_registration_certificate import generate_enrollment_registration_certificate
+                    image_paths = generate_enrollment_registration_certificate(student_data)
+                    
+                    # 确保返回的是列表格式
+                    if not isinstance(image_paths, list):
+                        image_paths = [image_paths]
+                    
+                    # 验证所有图片文件存在
+                    valid_paths = []
+                    for path in image_paths:
+                        if path and os.path.exists(path):
+                            valid_paths.append(path)
+                    
+                    if not valid_paths:
+                        raise Exception("生成的图片文件不存在")
+                    
+                    # 处理多页图片
+                    images_data = []
+                    filenames = []
+                    
+                    for i, image_path in enumerate(valid_paths):
+                        # 将图像转换为base64
+                        with open(image_path, 'rb') as img_file:
+                            img_data = base64.b64encode(img_file.read()).decode()
+                        
+                        # 生成文件名
+                        filename = generate_unique_filename(f"enrollment_certificate_page_{i+1}", "png")
+                        
+                        images_data.append(img_data)
+                        filenames.append(filename)
+                    
+                    # 根据biz_type确定凭证名称和详细信息
+                    class_count = len(student_data.get('ClassAndCardArray', []))
+                    page_count = len(valid_paths)
+                    order_code = student_data.get('sOrderCode', '')
+                    student_name = student_data.get('Student', {}).get('sStudentName', '')
+                    
+                    biz_name = '报班凭证'
+                    detail_info = f"订单号：{order_code}，包含{class_count}个班级，共{page_count}页"
+                    
+                    # 使用安全的数据库事务上下文
+                    with safe_db_transaction() as session:
+                        print_log = PrintLog(
+                            user_id=current_user.id,
+                            student_code=order_code,  # 使用订单号作为标识
+                            student_name=student_name,
+                            biz_type=biz_type,
+                            biz_name=biz_name,
+                            print_data=json.dumps(student_data, ensure_ascii=False),
+                            detail_info=detail_info
+                        )
+                        session.add(print_log)
+                        session.flush()  # 获取print_log.id
+                        
+                        # 创建打印成功消息
+                        message_content = f'报班凭证打印成功！\n\n订单信息：\n订单号：{order_code}\n学员姓名：{student_name}\n\n凭证信息：\n包含班级：{class_count}个\n总页数：{page_count}页'
+                        
+                        message = Message(
+                            user_id=current_user.id,
+                            message_type='print_success',
+                            title=f'{biz_name}打印成功',
+                            content=message_content,
+                            related_id=print_log.id,
+                            related_type='print_log'
+                        )
+                        session.add(message)
+                    
+                    # 清理临时文件
+                    try:
+                        for image_path in valid_paths:
+                            os.remove(image_path)
+                            json_file = image_path.replace('.png', '.json')
+                            if os.path.exists(json_file):
+                                os.remove(json_file)
+                    except:
+                        pass
+                    
+                    return jsonify({
+                        'success': True,
+                        'is_multi_page': True,
+                        'page_count': page_count,
+                        'images': images_data,
+                        'filenames': filenames,
+                        'order_code': order_code,
+                        'student_name': student_name,
+                        'class_count': class_count
+                    })
+                    
+                except Exception as e:
+                    print(f"报班凭证处理失败: {str(e)}")
+                    # 如果专门处理器失败，继续使用传统方法
+                    pass
+            
+            # 传统单页处理逻辑
+            image_path = None
             
             # 使用新的凭证管理器生成打印图像
             # 方法1: 使用新的独立处理器（推荐）
@@ -1869,6 +1977,7 @@ def generate_print():
                 
                 return jsonify({
                     'success': True,
+                    'is_multi_page': False,
                     'image': img_data,
                     'filename': filename
                 })
@@ -3065,7 +3174,7 @@ def search_order():
 @app.route('/generate_enrollment_registration_certificate', methods=['POST'])
 @login_required
 def generate_enrollment_registration_certificate():
-    """生成报班凭证"""
+    """生成报班凭证 - 支持多页"""
     try:
         data = request.get_json()
         
@@ -3080,8 +3189,8 @@ def generate_enrollment_registration_certificate():
         with _print_lock:
             from utils.certificate_processors.enrollment_registration_certificate import generate_enrollment_registration_certificate
             
-            # 生成凭证
-            output_path = generate_enrollment_registration_certificate(data)
+            # 生成凭证（返回多页路径列表）
+            output_paths = generate_enrollment_registration_certificate(data)
             
             # 记录打印日志
             order_code = data.get('sOrderCode', 'unknown')
@@ -3089,7 +3198,8 @@ def generate_enrollment_registration_certificate():
             
             # 生成详细信息
             class_count = len(data.get('ClassAndCardArray', []))
-            detail_info = f"报班凭证，订单号：{order_code}，包含{class_count}个班级"
+            page_count = len(output_paths) if isinstance(output_paths, list) else 1
+            detail_info = f"报班凭证，订单号：{order_code}，包含{class_count}个班级，共{page_count}页"
             
             print_log = PrintLog(
                 user_id=current_user.id,
@@ -3109,16 +3219,24 @@ def generate_enrollment_registration_certificate():
                 user_id=current_user.id,
                 message_type='print_success',
                 title='报班凭证打印成功',
-                content=f'您的报班凭证已成功生成。订单号：{order_code}，学员：{student_name}',
+                content=f'您的报班凭证已成功生成。订单号：{order_code}，学员：{student_name}，共{page_count}页',
                 related_id=print_log.id,
                 related_type='print_log'
             )
             
+            # 确保返回的是列表格式
+            if not isinstance(output_paths, list):
+                output_paths = [output_paths]
+            
             return jsonify({
                 'success': True,
-                'message': '报班凭证生成成功',
-                'output_path': output_path,
-                'log_id': print_log.id
+                'message': f'报班凭证生成成功，共{page_count}页',
+                'output_paths': output_paths,  # 多页路径列表
+                'page_count': page_count,
+                'log_id': print_log.id,
+                'order_code': order_code,
+                'student_name': student_name,
+                'class_count': class_count
             })
             
     except Exception as e:
@@ -3132,17 +3250,126 @@ def test_enrollment_registration_certificate():
     try:
         from utils.certificate_processors.enrollment_registration_certificate import test_enrollment_registration_certificate
         
+        # 获取班级数量参数
+        num_classes = request.args.get('num_classes', 4, type=int)
+        
         # 运行测试
-        output_path = test_enrollment_registration_certificate()
+        output_paths = test_enrollment_registration_certificate(num_classes)
+        
+        # 确保返回的是列表格式
+        if not isinstance(output_paths, list):
+            output_paths = [output_paths]
         
         return jsonify({
             'success': True,
-            'message': '报班凭证测试成功',
-            'output_path': output_path
+            'message': f'报班凭证测试成功，共{len(output_paths)}页',
+            'output_paths': output_paths,
+            'page_count': len(output_paths),
+            'num_classes': num_classes
         })
         
     except Exception as e:
         return jsonify({'error': f'测试失败: {str(e)}'}), 500
+
+@app.route('/preview_enrollment_certificate/<path:image_path>')
+@login_required
+def preview_enrollment_certificate(image_path):
+    """预览报班凭证图片"""
+    try:
+        import os
+        from flask import send_file
+        
+        # 安全检查：确保路径在允许的目录内
+        if not image_path.startswith('image/') or '..' in image_path:
+            return jsonify({'error': '无效的图片路径'}), 400
+        
+        # 构建完整路径
+        full_path = os.path.join(os.getcwd(), image_path)
+        
+        # 检查文件是否存在
+        if not os.path.exists(full_path):
+            return jsonify({'error': '图片文件不存在'}), 404
+        
+        # 返回图片文件
+        return send_file(full_path, mimetype='image/png')
+        
+    except Exception as e:
+        print(f"预览图片失败: {str(e)}")
+        return jsonify({'error': f'预览失败: {str(e)}'}), 500
+
+@app.route('/download_enrollment_certificate/<path:image_path>')
+@login_required  
+def download_enrollment_certificate(image_path):
+    """下载报班凭证图片"""
+    try:
+        import os
+        from flask import send_file
+        
+        # 安全检查：确保路径在允许的目录内
+        if not image_path.startswith('image/') or '..' in image_path:
+            return jsonify({'error': '无效的图片路径'}), 400
+        
+        # 构建完整路径
+        full_path = os.path.join(os.getcwd(), image_path)
+        
+        # 检查文件是否存在
+        if not os.path.exists(full_path):
+            return jsonify({'error': '图片文件不存在'}), 404
+        
+        # 生成下载文件名
+        filename = os.path.basename(image_path)
+        
+        # 返回图片文件作为下载
+        return send_file(full_path, as_attachment=True, download_name=filename, mimetype='image/png')
+        
+    except Exception as e:
+        print(f"下载图片失败: {str(e)}")
+        return jsonify({'error': f'下载失败: {str(e)}'}), 500
+
+@app.route('/download_all_enrollment_certificates', methods=['POST'])
+@login_required
+def download_all_enrollment_certificates():
+    """打包下载多页报班凭证"""
+    try:
+        import os
+        import zipfile
+        import tempfile
+        from flask import send_file
+        
+        data = request.get_json()
+        image_paths = data.get('image_paths', [])
+        order_code = data.get('order_code', 'unknown')
+        
+        if not image_paths:
+            return jsonify({'error': '没有提供图片路径'}), 400
+        
+        # 创建临时zip文件
+        with tempfile.NamedTemporaryFile(suffix='.zip', delete=False) as temp_zip:
+            with zipfile.ZipFile(temp_zip.name, 'w') as zip_file:
+                for i, image_path in enumerate(image_paths, 1):
+                    # 安全检查
+                    if not image_path.startswith('image/') or '..' in image_path:
+                        continue
+                    
+                    full_path = os.path.join(os.getcwd(), image_path)
+                    if os.path.exists(full_path):
+                        # 生成zip内的文件名
+                        ext = os.path.splitext(image_path)[1]
+                        zip_filename = f"{order_code}_报班凭证_第{i}页{ext}"
+                        zip_file.write(full_path, zip_filename)
+            
+            # 返回zip文件
+            zip_filename = f"{order_code}_报班凭证_全部页面.zip"
+            return send_file(
+                temp_zip.name, 
+                as_attachment=True, 
+                download_name=zip_filename,
+                mimetype='application/zip'
+            )
+        
+    except Exception as e:
+        print(f"打包下载失败: {str(e)}")
+        return jsonify({'error': f'打包下载失败: {str(e)}'}), 500
 
 
 

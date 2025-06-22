@@ -363,7 +363,13 @@ document.getElementById('generateBtn').addEventListener('click', function() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            showPrintPreview(data.image, data.filename);
+            if (data.is_multi_page) {
+                // 多页显示
+                showMultiPagePreview(data);
+            } else {
+                // 单页显示
+                showPrintPreview(data.image, data.filename);
+            }
         } else {
             alert('生成失败: ' + data.error);
         }
@@ -380,7 +386,7 @@ document.getElementById('generateBtn').addEventListener('click', function() {
     });
 });
 
-// 显示打印预览
+// 显示打印预览（单页）
 function showPrintPreview(imageData, filename) {
     const preview = document.getElementById('printPreview');
     preview.innerHTML = `
@@ -402,6 +408,62 @@ function showPrintPreview(imageData, filename) {
     };
 }
 
+// 显示多页预览
+function showMultiPagePreview(data) {
+    const preview = document.getElementById('printPreview');
+    
+    // 构建多页预览HTML
+    let pagesHtml = '';
+    data.images.forEach((imageData, index) => {
+        pagesHtml += `
+            <div class="page-preview mb-4">
+                <div class="page-header mb-2">
+                    <span class="badge bg-primary">第 ${index + 1} 页 / 共 ${data.page_count} 页</span>
+                </div>
+                <div class="page-image">
+                    <img src="data:image/png;base64,${imageData}" alt="第${index + 1}页预览" class="img-fluid border rounded">
+                </div>
+                <div class="page-actions mt-2">
+                    <button class="btn btn-sm btn-outline-primary me-2" onclick="downloadSinglePage('${imageData}', '${data.filenames[index]}')">
+                        <i class="fas fa-download"></i> 下载第${index + 1}页
+                    </button>
+                    <button class="btn btn-sm btn-outline-success" onclick="printSinglePage('${imageData}', ${index + 1})">
+                        <i class="fas fa-print"></i> 打印第${index + 1}页
+                    </button>
+                </div>
+            </div>
+        `;
+    });
+    
+    preview.innerHTML = `
+        <div class="multi-page-preview">
+            <div class="alert alert-info mb-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>报班凭证已生成</strong>
+                        <div class="mt-1">
+                            <small>订单号：${data.order_code || 'N/A'} | 学员：${data.student_name || 'N/A'} | 班级数：${data.class_count || 0} | 总页数：${data.page_count}</small>
+                        </div>
+                    </div>
+                    <div>
+                        <button class="btn btn-success btn-sm me-2" onclick="downloadAllPages(${JSON.stringify(data).replace(/"/g, '&quot;')})">
+                            <i class="fas fa-download"></i> 下载全部
+                        </button>
+                        <button class="btn btn-primary btn-sm" onclick="printAllPages(${JSON.stringify(data).replace(/"/g, '&quot;')})">
+                            <i class="fas fa-print"></i> 打印全部
+                        </button>
+                    </div>
+                </div>
+            </div>
+            ${pagesHtml}
+        </div>
+    `;
+    
+    // 隐藏原有的下载按钮（因为多页有自己的下载逻辑）
+    document.getElementById('downloadBtn').style.display = 'none';
+}
+
 // 下载图片
 function downloadImage(imageData, filename) {
     const link = document.createElement('a');
@@ -410,6 +472,64 @@ function downloadImage(imageData, filename) {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+}
+
+// 下载单页
+function downloadSinglePage(imageData, filename) {
+    downloadImage(imageData, filename);
+}
+
+// 打印单页
+function printSinglePage(imageData, pageNum) {
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+        <html>
+            <head>
+                <title>打印第${pageNum}页</title>
+                <style>
+                    body { margin: 0; padding: 20px; text-align: center; }
+                    img { max-width: 100%; height: auto; }
+                    @media print { body { padding: 0; } }
+                </style>
+            </head>
+            <body>
+                <img src="data:image/png;base64,${imageData}" onload="window.print()">
+            </body>
+        </html>
+    `);
+    printWindow.document.close();
+}
+
+// 下载全部页面
+function downloadAllPages(data) {
+    // 创建ZIP文件下载
+    const downloadData = {
+        image_paths: data.filenames.map(filename => `image/${filename}`), // 假设路径格式
+        order_code: data.order_code || 'unknown'
+    };
+    
+    // 由于我们这里有base64数据而不是服务器路径，我们需要逐一下载
+    // 或者可以调用后端API来处理ZIP打包
+    data.images.forEach((imageData, index) => {
+        setTimeout(() => {
+            downloadImage(imageData, data.filenames[index]);
+        }, index * 500); // 每500ms下载一个文件，避免浏览器阻止
+    });
+    
+    // 显示提示
+    alert(`正在下载${data.page_count}个文件，请稍候...`);
+}
+
+// 打印全部页面
+function printAllPages(data) {
+    // 逐页打印，避免复杂的字符串拼接
+    data.images.forEach((imageData, index) => {
+        setTimeout(() => {
+            printSinglePage(imageData, index + 1);
+        }, index * 1000); // 每隔1秒打印一页
+    });
+    
+    alert('正在逐页打印' + data.page_count + '页内容，请稍候...');
 }
 </script>
 {% endblock %} 
