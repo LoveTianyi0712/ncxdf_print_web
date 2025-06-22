@@ -170,7 +170,7 @@ class EnrollmentRegistrationCertificateProcessor:
         return MrtParser(template_path)
     
     def generate_certificate(self, data, currency_symbol="¥"):
-        """生成报班凭证"""
+        """生成报班凭证 - 支持分页"""
         try:
             print(f"开始处理报班凭证...")
             
@@ -183,33 +183,49 @@ class EnrollmentRegistrationCertificateProcessor:
             # 解析模板
             mrt_parser = self.parse_template()
             
-            # 生成图像
-            image = self._create_certificate_image(processed_data, mrt_parser, currency_symbol)
+            # 计算分页
+            class_array = processed_data.get('ClassAndCardArray', [])
+            pages = self._calculate_pages(class_array)
             
-            # 保存文件
-            output_path = self._save_certificate(image, processed_data)
+            output_paths = []
             
-            print(f"报班凭证生成成功: {output_path}")
-            return output_path
+            # 生成每一页
+            for page_num, page_data in enumerate(pages, 1):
+                is_last_page = (page_num == len(pages))
+                
+                # 创建当前页的数据副本
+                page_processed_data = processed_data.copy()
+                page_processed_data['ClassAndCardArray'] = page_data['classes']
+                page_processed_data['current_page'] = page_num
+                page_processed_data['total_pages'] = len(pages)
+                page_processed_data['is_last_page'] = is_last_page
+                
+                # 生成图像
+                image = self._create_certificate_image(page_processed_data, mrt_parser, currency_symbol)
+                
+                # 保存文件
+                output_path = self._save_certificate_page(image, processed_data, page_num, len(pages))
+                output_paths.append(output_path)
+            
+            print(f"报班凭证生成成功，共{len(pages)}页: {output_paths}")
+            return output_paths
             
         except Exception as e:
             print(f"生成报班凭证失败: {str(e)}")
             raise
     
     def _create_certificate_image(self, data, mrt_parser, currency_symbol):
-        """创建凭证图像"""
+        """创建凭证图像 - 支持分页，使用固定纸张大小"""
         try:
+            # 重置已绘制组件缓存（每页重新开始）
+            self._drawn_components = set()
+            
             # 使用与print_simulator相同的像素转换比例
             pixels_per_cm = PIXELS_PER_CM
             
-            # 计算页面尺寸 - 横向A5尺寸 (从mrt文件: PageWidth>21, PageHeight>14.81, Orientation>Landscape)
+            # 固定页面尺寸 - 横向A5尺寸，稍微增加高度确保二维码下方有空隙
             width = int(21.0 * pixels_per_cm)  # A5横向宽度
-            
-            # 根据班级数量动态计算高度
-            class_count = len(data.get('ClassAndCardArray', []))
-            base_height = 14.81  # A5横向高度
-            extra_height = max(0, (class_count - 1) * 2.6)  # 每个额外班级增加2.6cm (DataBand高度)
-            height = int((base_height + extra_height) * pixels_per_cm)
+            height = int(16.0 * pixels_per_cm)  # 增加高度到16cm，确保二维码下方有足够空隙
             
             # 创建图像
             image = Image.new('RGB', (width, height), 'white')
@@ -229,10 +245,15 @@ class EnrollmentRegistrationCertificateProcessor:
             except:
                 default_font = ImageFont.load_default()
             
-            # 处理模板组件，但过滤掉FooterBand和PageFooterBand相关的组件
+            # 处理模板组件，但完全跳过页脚相关的Band
             if hasattr(mrt_parser, 'components') and mrt_parser.components:
                 for component in mrt_parser.components:
-                    # 跳过FooterBand和PageFooterBand的组件，避免重复绘制
+                    # 简单粗暴：完全跳过所有页脚相关组件
+                    text = component.get('text', '')
+                    if any(keyword in text for keyword in ['请妥善保存', '客户代办人签字', '操作员', '日期', 'sOperator', 'dtCreate', 'PageNofM']):
+                        continue
+                    
+                    # 跳过其他需要过滤的组件
                     if self._should_skip_component(component, data):
                         continue
                         
@@ -260,7 +281,7 @@ class EnrollmentRegistrationCertificateProcessor:
             raise
     
     def _should_skip_component(self, component, data):
-        """判断是否应该跳过绘制某个组件 - 清晰的逻辑区分"""
+        """判断是否应该跳过绘制某个组件 - 使用精确位置过滤重复组件"""
         text = component.get('text', '')
         component_type = component.get('type', '')
         rect = component.get('rect', '0,0,0,0')
@@ -278,13 +299,18 @@ class EnrollmentRegistrationCertificateProcessor:
         except (ValueError, IndexError):
             x_pos = y_pos = width = height = 0
         
+        # === 0. 去重处理：跟踪已绘制的组件，避免重复绘制相同位置的相同内容 ===
+        if not hasattr(self, '_drawn_components'):
+            self._drawn_components = set()
+        
+        component_key = f"{text}@{rect}"
+        if component_key in self._drawn_components:
+            print(f"跳过重复组件: {text} at ({x_pos}, {y_pos})")
+            return True
+        
         # 调试：查看所有包含ClassAndCardArray的组件
         if 'ClassAndCardArray' in text:
             print(f"发现DataBand组件: {text} at ({x_pos}, {y_pos}) type={component_type}")
-        
-        # 调试：查看所有包含手机号相关的组件
-        if '手机' in text or 'Mobile' in text or 'mobile' in text:
-            print(f"发现手机号相关组件: {text} at ({x_pos}, {y_pos}) type={component_type}")
         
         if component_type == 'Text':
             # === 1. 过滤原模板的DataBand区域组件 ===
@@ -304,37 +330,112 @@ class EnrollmentRegistrationCertificateProcessor:
                 print(f"过滤DataBand标签: {text} at ({x_pos}, {y_pos})")
                 return True
             
-            # === 2. 过滤FooterBand和PageFooterBand重复组件 ===
-            footer_keywords = [
-                '应收金额：', '优惠金额：', '实收金额：',  # FooterBand汇总信息
-                '操作员：', '日期：', '客户代办人签字：',  # PageFooterBand信息
-                '请妥善保存',  # PageFooterBand文字
-                '微信公众号：', '客服热线：',  # 联系信息（已要求删除）
-            ]
+            # === 1.5. 严格过滤所有页脚相关组件（基于Y坐标位置） ===
+            # 如果Y坐标小于等于1cm（页面底部区域），很可能是页脚组件
+            if y_pos <= 1.0:
+                footer_related_texts = [
+                    '请妥善保存', '客户代办人签字', '操作员', '日期', 
+                    '{ArrayList.sOperator}', '{ArrayList.dtCreate}', '{PageNofM}'
+                ]
+                for footer_text in footer_related_texts:
+                    if footer_text in text:
+                        print(f"过滤底部页脚组件(Y≤1cm): {text} at ({x_pos}, {y_pos})")
+                        return True
             
-            for keyword in footer_keywords:
-                if keyword in text:
-                    print(f"过滤Footer组件: {text} at ({x_pos}, {y_pos})")
-                    return True
+            # === 2. 彻底过滤所有FooterBand汇总信息 ===
+            # 我们将自己重新绘制这些信息，所以过滤掉模板中的所有相关组件
             
-            # === 3. 过滤特定动态字段组件 ===
-            skip_dynamic_fields = [
-                '{ArrayList.sOperator}', '{ArrayList.dtCreate}',
-                '{ArrayList.dShouldFee}', '{ArrayList.dFee}', '{ArrayList.Discounttype}',
-                '{ArrayList.sPayType}', '{ArrayList.microServiceTitle}', '{ArrayList.feedBackTitle}'
-            ]
+            # 过滤所有应收金额相关（无论位置）
+            if text == '应收金额：':
+                print(f"过滤模板应收金额: {text} at ({x_pos}, {y_pos})")
+                return True
+            
+            if text == '优惠金额：':
+                print(f"过滤模板优惠金额: {text} at ({x_pos}, {y_pos})")
+                return True
+            
+            if text == '实收金额：':
+                print(f"过滤模板实收金额: {text} at ({x_pos}, {y_pos})")
+                return True
+            
+            if text == '支付方式：':
+                print(f"过滤模板支付方式: {text} at ({x_pos}, {y_pos})")
+                return True
+            
+            # === 3. 彻底过滤所有PageFooterBand信息 ===
+            # 我们将自己重新绘制这些信息，所以过滤掉模板中的所有相关组件
+            
+            # 过滤所有操作员相关（无论位置）
+            if '操作员' in text and text.strip() in ['操作员：', '操作员']:
+                print(f"过滤模板操作员: {text} at ({x_pos}, {y_pos})")
+                return True
+            
+            # 过滤所有日期相关（无论位置）
+            if '日期' in text and text.strip() in ['日期：', '日期']:
+                print(f"过滤模板日期: {text} at ({x_pos}, {y_pos})")
+                return True
+            
+            # 过滤所有客户代办人签字相关（无论位置）
+            if '客户代办人签字' in text:
+                print(f"过滤模板客户代办人签字: {text} at ({x_pos}, {y_pos})")
+                return True
+            
+            # 过滤所有请妥善保存相关（无论位置）
+            if '请妥善保存' in text:
+                print(f"过滤模板请妥善保存: {text} at ({x_pos}, {y_pos})")
+                return True
+            
+            # === 4. 彻底过滤所有汇总动态字段 ===
+            # 我们将自己重新绘制这些信息，所以过滤掉模板中的所有相关字段
+            
+            if text == '{ArrayList.dShouldFee}':
+                print(f"过滤模板汇总字段: {text} at ({x_pos}, {y_pos})")
+                return True
+            
+            if text == '{ArrayList.dFee}':
+                print(f"过滤模板汇总字段: {text} at ({x_pos}, {y_pos})")
+                return True
+            
+            if text == '{ArrayList.Discounttype}':
+                print(f"过滤模板汇总字段: {text} at ({x_pos}, {y_pos})")
+                return True
+            
+            # PageFooterBand字段：彻底过滤，我们将自己重新绘制
+            if text == '{ArrayList.sOperator}':
+                print(f"过滤模板操作员字段: {text} at ({x_pos}, {y_pos})")
+                return True
+            
+            if text == '{ArrayList.dtCreate}':
+                print(f"过滤模板日期字段: {text} at ({x_pos}, {y_pos})")
+                return True
             
             # 过滤页码相关字段，我们会用英文格式替换
-            if '{PageNofM}' in text:
+            if '{PageNofM}' in text or 'PageNofM' in text:
                 print(f"过滤页码字段: {text} at ({x_pos}, {y_pos})")
                 return True
             
-            for field in skip_dynamic_fields:
-                if field in text:
-                    print(f"过滤动态字段: {text} at ({x_pos}, {y_pos})")
+            # 过滤所有可能包含页脚关键词的文本（更严格的过滤）
+            footer_keywords = ['请妥善保存', '客户代办人签字', '操作员', '日期']
+            for keyword in footer_keywords:
+                if keyword in text:
+                    print(f"过滤包含页脚关键词的组件: {text} at ({x_pos}, {y_pos})")
                     return True
             
-            # === 4. 保留的重要组件 ===
+            # 过滤其他字段
+            skip_other_fields = ['{ArrayList.sPayType}', '{ArrayList.microServiceTitle}', '{ArrayList.feedBackTitle}']
+            for field in skip_other_fields:
+                if field in text:
+                    print(f"过滤其他字段: {text} at ({x_pos}, {y_pos})")
+                    return True
+            
+            # 删除的联系信息
+            contact_keywords = ['微信公众号：', '客服热线：']
+            for keyword in contact_keywords:
+                if keyword in text:
+                    print(f"过滤联系信息: {text} at ({x_pos}, {y_pos})")
+                    return True
+            
+            # === 5. 保留的重要组件 ===
             # 保留标题相关组件
             if '报名凭证' in text or '{ArrayList.sSchoolName}' in text:
                 print(f"保留标题组件: {text} at ({x_pos}, {y_pos})")
@@ -357,7 +458,7 @@ class EnrollmentRegistrationCertificateProcessor:
                 print(f"保留基本信息: {text} at ({x_pos}, {y_pos})")
                 return False
         
-        # === 5. 其他组件类型 ===
+        # === 6. 其他组件类型 ===
         # 保留图片组件（logo等）
         if component_type == 'Image':
             return False
@@ -366,11 +467,14 @@ class EnrollmentRegistrationCertificateProcessor:
         if component_type == 'Line':
             print(f"过滤原模板线条 at ({x_pos}, {y_pos})")
             return True
-            
+        
+        # === 7. 记录不跳过的组件，避免后续重复绘制 ===
+        self._drawn_components.add(component_key)
+        print(f"记录组件: {text} at ({x_pos}, {y_pos})")
         return False
     
     def _draw_databand_content(self, draw, data, pixels_per_cm, center_offset_x, center_offset_y, font_cache, chinese_font_path, default_font):
-        """绘制DataBand内容 - 根据新的横线逻辑实现"""
+        """绘制DataBand内容 - 支持分页"""
         try:
             class_array = data.get('ClassAndCardArray', [])
             if not class_array:
@@ -416,10 +520,9 @@ class EnrollmentRegistrationCertificateProcessor:
                                              center_offset_x, font_to_use)
                 
                 # 3. 在每条数据下方绘制细横线（但最后一条数据不画）
-                # 横线位置 = 当前DataBand起始位置 + 实际内容高度（这样横线就紧贴在报名序号下方）
+                # 报名序号位置在 current_y + 2.21cm，横线要在报名序号下方留1/3字距离
                 if i < len(class_array) - 1:  # 不是最后一条数据
-                    # 报名序号的精确位置：DataBand起始 + 2.21cm（报名序号Y位置）
-                    registration_number_y = current_y + 2.21 * pixels_per_cm
+                    registration_number_y = current_y + 2.21 * pixels_per_cm  # 报名序号的Y位置
                     # 使用更大的间距确保横线在报名序号下方
                     line_y = registration_number_y + (0.5 * pixels_per_cm)  # 固定0.5cm间距，约等于1.5个字高
                     draw.line([(line_start_x, line_y), (line_end_x, line_y)], fill='black', width=1)
@@ -429,18 +532,33 @@ class EnrollmentRegistrationCertificateProcessor:
                     print(f"  - 横线绑定位置: {line_y/pixels_per_cm:.2f}cm")
                     print(f"  - 报名序号到横线距离: 0.5cm")
             
-            # 4. 计算FooterBand位置并在应收金额上方绘制加粗横线
+            # 4. 在所有DataBand下方绘制横线
             # 最后一个DataBand的结束位置（不包括间距）
             last_databand_start = databand_start_y + (len(class_array) - 1) * total_databand_height
             last_databand_end = last_databand_start + actual_content_height
-            footer_y = last_databand_end + 0.3 * pixels_per_cm  # 适当间距
-            footer_line_y = footer_y - 0.1 * pixels_per_cm
-            draw.line([(line_start_x, footer_line_y), (line_end_x, footer_line_y)], fill='black', width=2)
-            print(f"绘制应收金额上方横线(加粗): y={footer_line_y}")
             
-            # 5. 绘制FooterBand汇总信息
-            self._draw_footer_summary(data, draw, footer_y, pixels_per_cm, 
-                                    center_offset_x, chinese_font_path, font_cache, default_font)
+            # 在所有DataBand下方绘制横线
+            databand_bottom_line_y = last_databand_end + 0.1 * pixels_per_cm  # DataBand结束后0.1cm
+            draw.line([(line_start_x, databand_bottom_line_y), (line_end_x, databand_bottom_line_y)], fill='black', width=2)
+            print(f"绘制DataBand底部横线(加粗): y={databand_bottom_line_y/pixels_per_cm:.2f}cm")
+            
+            footer_start_y = databand_bottom_line_y + 0.2 * pixels_per_cm  # 横线下方0.2cm开始页脚
+            
+            # 5. 只在最后一页绘制FooterBand汇总信息
+            is_last_page = data.get('is_last_page', True)
+            if is_last_page:
+                # 直接绘制FooterBand汇总信息，不再添加额外横线（DataBand下方已有横线）
+                self._draw_footer_summary(data, draw, footer_start_y, pixels_per_cm, 
+                                        center_offset_x, chinese_font_path, font_cache, default_font)
+                
+                # 更新页脚起始位置（汇总信息下方）
+                footer_start_y += 1.0 * pixels_per_cm  # 汇总信息高度约1cm
+            
+            # 6. 绘制PageFooter信息（每页都显示，固定在页面底部）
+            # 计算页面底部位置
+            page_height = int(16.0 * pixels_per_cm)  # 更新后的页面高度
+            fixed_footer_y = page_height - 4.7 * pixels_per_cm  # 距离底部4.7cm的固定位置（往上移动3行字，约1.2cm）
+            self._draw_fixed_page_footer(draw, data, fixed_footer_y, pixels_per_cm, center_offset_x, chinese_font_path, font_cache, default_font)
                 
         except Exception as e:
             print(f"绘制DataBand内容时出错: {str(e)}")
@@ -569,9 +687,7 @@ class EnrollmentRegistrationCertificateProcessor:
                 self._draw_bold_text(draw, (right_align_x, footer_y + 0.8 * pixels_per_cm), 
                                    pay_type_text, bold_font)
             
-            # 绘制页脚信息
-            self._draw_page_footer(draw, footer_y + 1.8 * pixels_per_cm, pixels_per_cm, 
-                                 center_offset_x, chinese_font_path, font_cache, default_font, data)
+            # 页脚信息由_draw_fixed_page_footer统一处理，这里不再重复绘制
             
         except Exception as e:
             print(f"绘制FooterBand汇总信息时出错: {str(e)}")
@@ -622,8 +738,11 @@ class EnrollmentRegistrationCertificateProcessor:
                      str(data.get('dtCreate', '')), font=footer_font, fill='black')
             
             # 页码 - 修改为英文格式 (ClientRectangle>16.4,0.8,2.6,0.4)
-            draw.text((center_offset_x + 16.4 * pixels_per_cm, footer_start_y + 0.8 * pixels_per_cm), 
-                     "Page 1 of 1", font=footer_font, fill='black')
+            current_page = data.get('current_page', 1)
+            total_pages = data.get('total_pages', 1)
+            page_text = f"Page {current_page} of {total_pages}"
+            draw.text((center_offset_x + 16.4 * pixels_per_cm, center_offset_y + 13.3 * pixels_per_cm), 
+                     page_text, font=footer_font, fill='black')
             
         except Exception as e:
             print(f"绘制页脚信息时出错: {str(e)}")
@@ -735,6 +854,8 @@ class EnrollmentRegistrationCertificateProcessor:
                 height = float(rect_parts[3]) * pixels_per_cm
             except (ValueError, IndexError):
                 return
+            
+
             
             # 获取字体信息
             font_info = component.get('font', 'Arial,8')
@@ -940,21 +1061,38 @@ class EnrollmentRegistrationCertificateProcessor:
             default_font
         )
     
-    def _save_certificate(self, image, data):
-        """保存凭证文件"""
+    def _save_certificate_page(self, image, data, page_num, total_pages):
+        """保存凭证页面"""
         try:
             # 生成文件名
             order_code = data.get('sOrderCode', 'unknown')
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            filename = f"报班凭证_{order_code}_{timestamp}.png"
-            output_path = os.path.join(self.output_dir, filename)
             
-            # 保存图像
-            image.save(output_path, 'PNG', quality=95)
+            # 添加时间戳用于版本对比
+            from datetime import datetime
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             
+            if total_pages == 1:
+                # 单页情况，添加时间戳
+                filename = f"enrollment_registration_certificate_{order_code}_{timestamp}.png"
+            else:
+                # 多页情况，添加页码和时间戳
+                filename = f"enrollment_registration_certificate_{order_code}_page{page_num}of{total_pages}_{timestamp}.png"
+            
+            # 确保输出目录存在 - 使用项目根目录下的image文件夹
+            # 从当前文件位置（utils/certificate_processors/）回到项目根目录
+            project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            output_dir = os.path.join(project_root, "image")
+            os.makedirs(output_dir, exist_ok=True)
+            
+            # 保存文件
+            output_path = os.path.join(output_dir, filename)
+            image.save(output_path, 'PNG', dpi=(300, 300))
+            
+            print(f"保存凭证页面到根目录: {output_path}")
             return output_path
+            
         except Exception as e:
-            print(f"保存凭证文件时出错: {str(e)}")
+            print(f"保存凭证页面时出错: {str(e)}")
             raise
 
     def _draw_databand_cell(self, draw, text, x, y, pixels_per_cm, center_offset_x, center_offset_y, font_cache, chinese_font_path, default_font):
@@ -1002,10 +1140,11 @@ class EnrollmentRegistrationCertificateProcessor:
                 qr_size = int(2.5 * pixels_per_cm)  # 2.5cm的二维码，与print_simulator一致
                 qr_image = qr_image.resize((qr_size, qr_size), Image.Resampling.LANCZOS)
                 
-                # 计算二维码位置 - 固定在左下角，距离边缘有适当间距
+                # 计算二维码位置 - 固定在左下角，整体往上移动3行字的距离
                 qr_margin = int(0.4 * pixels_per_cm)  # 0.4cm边距
                 qr_x = qr_margin + center_offset_x
-                qr_y = height - qr_size - qr_margin - int(1.2 * pixels_per_cm) + center_offset_y  # 与真实二维码位置保持一致
+                # 二维码位置：整体往上移动约3行字高度（约1.2cm）
+                qr_y = height - qr_size - int(1.7 * pixels_per_cm) + center_offset_y
                 
                 # 处理图像透明度
                 if qr_image.mode in ('RGBA', 'LA') or (qr_image.mode == 'P' and 'transparency' in qr_image.info):
@@ -1042,7 +1181,8 @@ class EnrollmentRegistrationCertificateProcessor:
                 qr_size = int(2.5 * pixels_per_cm)
                 qr_margin = int(0.4 * pixels_per_cm)
                 qr_x = qr_margin + center_offset_x
-                qr_y = height - qr_size - qr_margin - int(1.2 * pixels_per_cm) + center_offset_y  # 与真实二维码位置保持一致
+                # 二维码位置：整体往上移动约3行字高度（约1.2cm）
+                qr_y = height - qr_size - int(1.7 * pixels_per_cm) + center_offset_y
                 
                 # 绘制方框
                 draw.rectangle([qr_x, qr_y, qr_x + qr_size, qr_y + qr_size], 
@@ -1056,13 +1196,182 @@ class EnrollmentRegistrationCertificateProcessor:
         except Exception as e:
             print(f"添加二维码时出错: {str(e)}")
 
+    def _calculate_pages(self, class_array):
+        """计算分页逻辑 - 确保最后一页只有1-2条数据"""
+        total_classes = len(class_array)
+        pages = []
+        
+        if total_classes == 0:
+            return pages
+        
+        if total_classes <= 2:
+            # 1-2条数据：全部放在一页
+            pages.append({
+                'classes': class_array,
+                'has_summary': True
+            })
+        elif total_classes == 3:
+            # 正好3条数据：第一页2条，第二页1条+汇总
+            pages.append({
+                'classes': class_array[:2],
+                'has_summary': False
+            })
+            pages.append({
+                'classes': class_array[2:],
+                'has_summary': True
+            })
+        elif total_classes == 4:
+            # 4条数据：第一页3条，第二页1条+汇总
+            pages.append({
+                'classes': class_array[:3],
+                'has_summary': False
+            })
+            pages.append({
+                'classes': class_array[3:],
+                'has_summary': True
+            })
+        elif total_classes == 5:
+            # 5条数据：第一页3条，第二页2条+汇总
+            pages.append({
+                'classes': class_array[:3],
+                'has_summary': False
+            })
+            pages.append({
+                'classes': class_array[3:],
+                'has_summary': True
+            })
+        else:
+            # 6条及以上：确保最后一页只有1-2条数据
+            remaining = total_classes
+            start_index = 0
+            
+            while remaining > 0:
+                if remaining <= 2:
+                    # 最后一页：1-2条数据+汇总
+                    pages.append({
+                        'classes': class_array[start_index:start_index + remaining],
+                        'has_summary': True
+                    })
+                    break
+                elif remaining == 3:
+                    # 剩余3条：当前页1条，最后一页2条+汇总
+                    pages.append({
+                        'classes': class_array[start_index:start_index + 1],
+                        'has_summary': False
+                    })
+                    pages.append({
+                        'classes': class_array[start_index + 1:start_index + 3],
+                        'has_summary': True
+                    })
+                    break
+                elif remaining == 4:
+                    # 剩余4条：当前页2条，最后一页2条+汇总
+                    pages.append({
+                        'classes': class_array[start_index:start_index + 2],
+                        'has_summary': False
+                    })
+                    pages.append({
+                        'classes': class_array[start_index + 2:start_index + 4],
+                        'has_summary': True
+                    })
+                    break
+                else:
+                    # 剩余5条及以上：当前页3条，继续下一页
+                    pages.append({
+                        'classes': class_array[start_index:start_index + 3],
+                        'has_summary': False
+                    })
+                    start_index += 3
+                    remaining -= 3
+        
+        print(f"分页计算结果：总共{total_classes}条数据，分为{len(pages)}页")
+        for i, page in enumerate(pages, 1):
+            print(f"  第{i}页：{len(page['classes'])}条数据，{'包含汇总' if page['has_summary'] else '不含汇总'}")
+        
+        return pages
+
+    def _draw_page_number(self, draw, data, pixels_per_cm, center_offset_x, center_offset_y, chinese_font_path, font_cache, default_font):
+        """绘制页码信息"""
+        try:
+            current_page = data.get('current_page', 1)
+            total_pages = data.get('total_pages', 1)
+            
+            # 页码文本
+            page_text = f"Page {current_page} of {total_pages}"
+            
+            # 字体设置
+            font_size = 8
+            font_to_use = self._get_font_with_scaling('SimSun', font_size, False, True, 
+                                                    chinese_font_path, font_cache, default_font)
+            
+            # 页码位置（右下角）
+            page_x = center_offset_x + 17 * pixels_per_cm  # 右对齐
+            page_y = center_offset_y + 13.5 * pixels_per_cm  # 底部
+            
+            # 绘制页码
+            draw.text((page_x, page_y), page_text, fill='black', font=font_to_use)
+            print(f"绘制页码: {page_text} at ({page_x/pixels_per_cm:.2f}cm, {page_y/pixels_per_cm:.2f}cm)")
+            
+        except Exception as e:
+            print(f"绘制页码时出错: {str(e)}")
+
+    def _draw_fixed_page_footer(self, draw, data, footer_y, pixels_per_cm, center_offset_x, chinese_font_path, font_cache, default_font):
+        """绘制固定位置的页脚信息 - 固定在页面底部"""
+        try:
+            # 页脚字体 - 改为宋体
+            footer_font = self._get_font_with_scaling('SimSun', 8, False, True, 
+                                                    chinese_font_path, font_cache, default_font)
+            
+            # 页脚信息布局 - 固定在页面底部
+            base_footer_y = footer_y  # 直接使用传入的固定位置
+            
+            # 请妥善保存 - 左对齐
+            draw.text((center_offset_x, base_footer_y), 
+                     "请妥善保存", font=footer_font, fill='black')
+            
+            # 客户代办人签字 - 中左位置
+            draw.text((center_offset_x + 4.2 * pixels_per_cm, base_footer_y), 
+                     "客户代办人签字：", font=footer_font, fill='black')
+            
+            # 操作员 - 中右位置，与其他元素对齐
+            draw.text((center_offset_x + 11.2 * pixels_per_cm, base_footer_y), 
+                     "操作员：", font=footer_font, fill='black')
+            draw.text((center_offset_x + 12.4 * pixels_per_cm, base_footer_y), 
+                     str(data.get('sOperator', '')), font=footer_font, fill='black')
+            
+            # 日期 - 右对齐
+            draw.text((center_offset_x + 15.0 * pixels_per_cm, base_footer_y), 
+                     "日期：", font=footer_font, fill='black')
+            draw.text((center_offset_x + 16.0 * pixels_per_cm, base_footer_y), 
+                     str(data.get('dtCreate', '')), font=footer_font, fill='black')
+            
+            # 页码 - 右下角，英文格式，在页脚信息下方
+            current_page = data.get('current_page', 1)
+            total_pages = data.get('total_pages', 1)
+            page_text = f"Page {current_page} of {total_pages}"
+            page_y = base_footer_y + 0.6 * pixels_per_cm  # 在页脚信息下方0.6cm
+            draw.text((center_offset_x + 16.4 * pixels_per_cm, page_y), 
+                     page_text, font=footer_font, fill='black')
+            
+            print(f"绘制固定页脚信息(距底部{(16.0*pixels_per_cm-base_footer_y)/pixels_per_cm:.1f}cm): 基础Y={base_footer_y/pixels_per_cm:.2f}cm, 页码Y={page_y/pixels_per_cm:.2f}cm")
+            
+        except Exception as e:
+            print(f"绘制固定页脚信息时出错: {str(e)}")
+
+    def _draw_custom_page_footer(self, draw, data, pixels_per_cm, center_offset_x, center_offset_y, chinese_font_path, font_cache, default_font):
+        """绘制自定义页脚信息 - 已废弃，使用_draw_fixed_page_footer替代"""
+        # 这个方法已被_draw_fixed_page_footer替代，保留以防兼容性问题
+        pass
+
+
+
 def generate_enrollment_registration_certificate(data, currency_symbol="¥"):
     """生成报班凭证的便捷函数"""
     processor = EnrollmentRegistrationCertificateProcessor()
     return processor.generate_certificate(data, currency_symbol)
 
-def create_mock_data():
-    """创建模拟数据用于测试 - 包含3个班级记录"""
+def create_mock_data(num_classes=4):
+    """创建模拟数据用于测试 - 默认4个班级测试分页"""
     mock_data = {
         # 主订单信息
         "sOrderCode": "ORD20240101001",
@@ -1089,79 +1398,211 @@ def create_mock_data():
             "sMobile": "13800138000"
         },
         
-        # 班级和卡片信息数组 (DataBand数据) - 3个班级
-        "ClassAndCardArray": [
-            {
-                "sSeatNo": "A001",
-                "sClassCode": "MATH001",
-                "sClassName": "数学基础班",
-                "dtBeginDate": "2024-01-15",
-                "dtEndDate": "2024-03-15", 
-                "sRegisterTime": "2024-01-10 报名成功",
-                "sPrintAddress": "北京市朝阳区XX路XX号101教室",
-                "sPrintTime": "2024-01-15 09:00-12:00",
-                "nTryLesson": "2",
-                "dVoucherFee": 100.00,
-                "dFee": 1500.00,                    # 标准金额
-                "dRegisterFee": 1400.00,            # 实收金额
-                "dClassVoucherFee": 100.00,         # 优惠金额
-                "dShouldFee": 1400.00               # 当前报名金额
-            },
-            {
-                "sSeatNo": "B002",
-                "sClassCode": "ENG001", 
-                "sClassName": "英语提高班",
-                "dtBeginDate": "2024-02-01",
-                "dtEndDate": "2024-04-01",
-                "sRegisterTime": "2024-01-25 报名成功",
-                "sPrintAddress": "北京市朝阳区XX路XX号201教室",
-                "sPrintTime": "2024-02-01 14:00-17:00",
-                "nTryLesson": "1",
-                "dVoucherFee": 50.00,
-                "dFee": 1600.00,                    # 标准金额
-                "dRegisterFee": 1550.00,            # 实收金额
-                "dClassVoucherFee": 50.00,          # 优惠金额
-                "dShouldFee": 1550.00               # 当前报名金额
-            },
-            {
-                "sSeatNo": "C003",
-                "sClassCode": "PHY001", 
-                "sClassName": "物理基础班",
-                "dtBeginDate": "2024-03-01",
-                "dtEndDate": "2024-05-01",
-                "sRegisterTime": "2024-02-20 报名成功",
-                "sPrintAddress": "北京市朝阳区XX路XX号301教室",
-                "sPrintTime": "2024-03-01 08:00-11:00",
-                "nTryLesson": "0",
-                "dVoucherFee": 50.00,
-                "dFee": 1300.00,                    # 标准金额
-                "dRegisterFee": 1250.00,            # 实收金额
-                "dClassVoucherFee": 50.00,          # 优惠金额
-                "dShouldFee": 1250.00               # 当前报名金额
-            }
-        ]
+        # 班级和卡片信息数组 (DataBand数据) - 根据参数动态生成
+        "ClassAndCardArray": []
     }
+    
+    # 动态生成指定数量的班级数据
+    base_classes = [
+        {
+            "sSeatNo": "A001",
+            "sClassCode": "MATH001",
+            "sClassName": "数学基础班",
+            "dtBeginDate": "2024-01-15",
+            "dtEndDate": "2024-03-15", 
+            "sRegisterTime": "2024-01-10 报名成功",
+            "sPrintAddress": "北京市朝阳区XX路XX号101教室",
+            "sPrintTime": "2024-01-15 09:00-12:00",
+            "nTryLesson": "2",
+            "dVoucherFee": 100.00,
+            "dFee": 1500.00,
+            "dRegisterFee": 1400.00,
+            "dClassVoucherFee": 100.00,
+            "dShouldFee": 1400.00
+        },
+        {
+            "sSeatNo": "B002",
+            "sClassCode": "ENG001", 
+            "sClassName": "英语提高班",
+            "dtBeginDate": "2024-02-01",
+            "dtEndDate": "2024-04-01",
+            "sRegisterTime": "2024-01-25 报名成功",
+            "sPrintAddress": "北京市朝阳区XX路XX号201教室",
+            "sPrintTime": "2024-02-01 14:00-17:00",
+            "nTryLesson": "1",
+            "dVoucherFee": 50.00,
+            "dFee": 1600.00,
+            "dRegisterFee": 1550.00,
+            "dClassVoucherFee": 50.00,
+            "dShouldFee": 1550.00
+        },
+        {
+            "sSeatNo": "C003",
+            "sClassCode": "PHY001", 
+            "sClassName": "物理基础班",
+            "dtBeginDate": "2024-03-01",
+            "dtEndDate": "2024-05-01",
+            "sRegisterTime": "2024-02-20 报名成功",
+            "sPrintAddress": "北京市朝阳区XX路XX号301教室",
+            "sPrintTime": "2024-03-01 08:00-11:00",
+            "nTryLesson": "0",
+            "dVoucherFee": 50.00,
+            "dFee": 1300.00,
+            "dRegisterFee": 1250.00,
+            "dClassVoucherFee": 50.00,
+            "dShouldFee": 1250.00
+        },
+        {
+            "sSeatNo": "D004",
+            "sClassCode": "CHEM001", 
+            "sClassName": "化学实验班",
+            "dtBeginDate": "2024-04-01",
+            "dtEndDate": "2024-06-01",
+            "sRegisterTime": "2024-03-15 报名成功",
+            "sPrintAddress": "北京市朝阳区XX路XX号401教室",
+            "sPrintTime": "2024-04-01 10:00-13:00",
+            "nTryLesson": "1",
+            "dVoucherFee": 80.00,
+            "dFee": 1800.00,
+            "dRegisterFee": 1720.00,
+            "dClassVoucherFee": 80.00,
+            "dShouldFee": 1720.00
+        },
+        {
+            "sSeatNo": "E005",
+            "sClassCode": "LANG001", 
+            "sClassName": "语文阅读班",
+            "dtBeginDate": "2024-05-01",
+            "dtEndDate": "2024-07-01",
+            "sRegisterTime": "2024-04-10 报名成功",
+            "sPrintAddress": "北京市朝阳区XX路XX号501教室",
+            "sPrintTime": "2024-05-01 15:00-18:00",
+            "nTryLesson": "0",
+            "dVoucherFee": 60.00,
+            "dFee": 1200.00,
+            "dRegisterFee": 1140.00,
+            "dClassVoucherFee": 60.00,
+            "dShouldFee": 1140.00
+        }
+    ]
+    
+    # 根据需要的班级数量截取
+    mock_data["ClassAndCardArray"] = base_classes[:num_classes]
     
     return mock_data
 
-def test_enrollment_registration_certificate():
-    """测试报班凭证生成"""
+def test_enrollment_registration_certificate(num_classes=4):
+    """测试报班凭证生成 - 支持分页"""
     try:
-        print("开始测试报班凭证生成...")
+        print(f"开始测试报班凭证生成（{num_classes}个班级）...")
         
         # 创建模拟数据
-        mock_data = create_mock_data()
+        mock_data = create_mock_data(num_classes)
         
         # 生成凭证
-        output_path = generate_enrollment_registration_certificate(mock_data)
+        output_paths = generate_enrollment_registration_certificate(mock_data)
         
-        print(f"测试成功！凭证已生成：{output_path}")
-        return output_path
+        print(f"测试成功！凭证已生成：{output_paths}")
+        return output_paths
+        
+    except Exception as e:
+        print(f"测试失败：{str(e)}")
+        raise
+
+def test_multiple_classes():
+    """测试不同数量班级的报班凭证生成效果"""
+    
+    def create_test_data(class_count):
+        """创建指定数量班级的测试数据"""
+        base_data = {
+            "sOrderCode": f"ORD2024010100{class_count}",
+            "sBatchCode": "BATCH001",
+            "Discounttype": 200.00,
+            "BizType": "报班",
+            "sChannel": "直营",
+            "sPayType": "现金支付",
+            "sSchoolName": "南昌新东方培训学校",
+            "sTelePhone": "400-000-0000",
+            "sOperator": "张三",
+            "dtCreate": get_beijing_time_str(),
+            "feedBackTitle": "客服热线：400-000-0000",
+            "feedBackImg": "",
+            "microServiceTitle": "微信公众号：XXXXX",
+            "microServiceImg": "",
+            "RWMImage": "",
+            "Student": {
+                "sStudentName": "李小明",
+                "sStudentCode": "STU20240001",
+                "sGender": "男",
+                "sMobile": "13800138000"
+            },
+            "ClassAndCardArray": []
+        }
+        
+        # 生成指定数量的班级数据
+        subjects = ["数学基础班", "英语提高班", "物理基础班", "化学实验班", "语文阅读班"]
+        codes = ["MATH001", "ENG001", "PHY001", "CHEM001", "LANG001"]
+        
+        for i in range(class_count):
+            class_data = {
+                "sSeatNo": f"{chr(65+i)}{str(i+1).zfill(3)}",  # A001, B002, etc.
+                "sClassCode": codes[i % len(codes)],
+                "sClassName": subjects[i % len(subjects)],
+                "dtBeginDate": f"2024-{str((i%12)+1).zfill(2)}-15",
+                "dtEndDate": f"2024-{str(((i%12)+3)%12+1).zfill(2)}-15",
+                "sRegisterTime": f"2024-01-{str(10+i)} 报名成功",
+                "sPrintAddress": f"北京市朝阳区XX路XX号{i+1}01教室",
+                "sPrintTime": f"2024-{str((i%12)+1).zfill(2)}-15 {9+i}:00-{12+i}:00",
+                "nTryLesson": str(i % 3),
+                "dVoucherFee": 50.00 + i * 10,
+                "dFee": 1500.00 + i * 100,
+                "dRegisterFee": 1450.00 + i * 100,
+                "dClassVoucherFee": 50.00 + i * 10,
+                "dShouldFee": 1450.00 + i * 100
+            }
+            base_data["ClassAndCardArray"].append(class_data)
+        
+        return base_data
+    
+    try:
+        print("开始测试不同数量班级的报班凭证生成...")
+        
+        for class_count in range(1, 6):  # 测试1-5条数据
+            print(f"\n=== 测试 {class_count} 个班级 ===")
+            
+            # 创建测试数据
+            test_data = create_test_data(class_count)
+            
+            # 生成凭证
+            output_path = generate_enrollment_registration_certificate(test_data)
+            
+            print(f"✓ {class_count}个班级的凭证生成成功: {output_path}")
+        
+        print(f"\n所有测试完成！已生成1-5个班级的报班凭证，请检查布局效果。")
         
     except Exception as e:
         print(f"测试失败：{str(e)}")
         raise
 
 if __name__ == "__main__":
-    # 运行测试
-    test_enrollment_registration_certificate() 
+    # 测试分页功能
+    print("=== 测试分页功能 ===")
+    
+    # 测试不同数量的班级
+    test_cases = [
+        (1, "1个班级 - 单页"),
+        (2, "2个班级 - 单页"), 
+        (3, "3个班级 - 分页：第一页2个，第二页1个+汇总"),
+        (4, "4个班级 - 分页：第一页3个，第二页1个+汇总"),
+        (5, "5个班级 - 分页：第一页3个，第二页1个，第三页1个+汇总")
+    ]
+    
+    for num_classes, description in test_cases:
+        print(f"\n--- {description} ---")
+        try:
+            output_paths = test_enrollment_registration_certificate(num_classes)
+            print(f"✓ 成功生成 {len(output_paths)} 页凭证")
+        except Exception as e:
+            print(f"✗ 测试失败: {e}")
+    
+    print("\n=== 分页测试完成 ===") 
