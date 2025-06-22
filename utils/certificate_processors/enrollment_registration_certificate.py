@@ -1197,92 +1197,84 @@ class EnrollmentRegistrationCertificateProcessor:
             print(f"添加二维码时出错: {str(e)}")
 
     def _calculate_pages(self, class_array):
-        """计算分页逻辑 - 确保最后一页只有1-2条数据"""
+        """
+        通用分页算法：
+        规则：
+        1. 每页最多3条数据
+        2. 最后一页放汇总信息，最多2条数据
+        3. 倒数第二页在不影响最后一页的前提下，可以放3条数据
+        
+        通用算法思路：
+        1. 先按每页3条进行初步分页
+        2. 检查最后一页是否超过2条，如果超过则重新调整
+        3. 确保最后一页有1-2条数据+汇总
+        """
         total_classes = len(class_array)
-        pages = []
         
         if total_classes == 0:
-            return pages
+            return []
         
         if total_classes <= 2:
-            # 1-2条数据：全部放在一页
-            pages.append({
+            # 1-2条数据：全部放在一页+汇总
+            return [{
                 'classes': class_array,
                 'has_summary': True
-            })
-        elif total_classes == 3:
-            # 正好3条数据：第一页2条，第二页1条+汇总
-            pages.append({
-                'classes': class_array[:2],
-                'has_summary': False
-            })
-            pages.append({
-                'classes': class_array[2:],
-                'has_summary': True
-            })
-        elif total_classes == 4:
-            # 4条数据：第一页3条，第二页1条+汇总
-            pages.append({
-                'classes': class_array[:3],
-                'has_summary': False
-            })
-            pages.append({
-                'classes': class_array[3:],
-                'has_summary': True
-            })
-        elif total_classes == 5:
-            # 5条数据：第一页3条，第二页2条+汇总
-            pages.append({
-                'classes': class_array[:3],
-                'has_summary': False
-            })
-            pages.append({
-                'classes': class_array[3:],
-                'has_summary': True
-            })
-        else:
-            # 6条及以上：确保最后一页只有1-2条数据
-            remaining = total_classes
-            start_index = 0
+            }]
+        
+        # 通用算法：动态分页
+        pages = []
+        start_index = 0
+        
+        while start_index < total_classes:
+            remaining = total_classes - start_index
             
-            while remaining > 0:
-                if remaining <= 2:
-                    # 最后一页：1-2条数据+汇总
-                    pages.append({
-                        'classes': class_array[start_index:start_index + remaining],
-                        'has_summary': True
-                    })
-                    break
-                elif remaining == 3:
-                    # 剩余3条：当前页1条，最后一页2条+汇总
-                    pages.append({
-                        'classes': class_array[start_index:start_index + 1],
-                        'has_summary': False
-                    })
-                    pages.append({
-                        'classes': class_array[start_index + 1:start_index + 3],
-                        'has_summary': True
-                    })
-                    break
-                elif remaining == 4:
-                    # 剩余4条：当前页2条，最后一页2条+汇总
-                    pages.append({
-                        'classes': class_array[start_index:start_index + 2],
-                        'has_summary': False
-                    })
-                    pages.append({
-                        'classes': class_array[start_index + 2:start_index + 4],
-                        'has_summary': True
-                    })
-                    break
-                else:
-                    # 剩余5条及以上：当前页3条，继续下一页
-                    pages.append({
-                        'classes': class_array[start_index:start_index + 3],
-                        'has_summary': False
-                    })
-                    start_index += 3
-                    remaining -= 3
+            if remaining <= 2:
+                # 剩余1-2条：作为最后一页+汇总
+                pages.append({
+                    'classes': class_array[start_index:],
+                    'has_summary': True
+                })
+                break
+            elif remaining == 3:
+                # 剩余3条：分成2+1，最后一页1条+汇总
+                pages.append({
+                    'classes': class_array[start_index:start_index + 2],
+                    'has_summary': False
+                })
+                pages.append({
+                    'classes': class_array[start_index + 2:],
+                    'has_summary': True
+                })
+                break
+            elif remaining == 4:
+                # 剩余4条：分成3+1，最后一页1条+汇总
+                pages.append({
+                    'classes': class_array[start_index:start_index + 3],
+                    'has_summary': False
+                })
+                pages.append({
+                    'classes': class_array[start_index + 3:],
+                    'has_summary': True
+                })
+                break
+            elif remaining == 5:
+                # 剩余5条：分成3+2，最后一页2条+汇总
+                pages.append({
+                    'classes': class_array[start_index:start_index + 3],
+                    'has_summary': False
+                })
+                pages.append({
+                    'classes': class_array[start_index + 3:],
+                    'has_summary': True
+                })
+                break
+            else:
+                # 剩余6条及以上：当前页放3条，继续下一页
+                pages.append({
+                    'classes': class_array[start_index:start_index + 3],
+                    'has_summary': False
+                })
+                start_index += 3
         
         print(f"分页计算结果：总共{total_classes}条数据，分为{len(pages)}页")
         for i, page in enumerate(pages, 1):
@@ -1486,8 +1478,38 @@ def create_mock_data(num_classes=4):
         }
     ]
     
-    # 根据需要的班级数量截取
-    mock_data["ClassAndCardArray"] = base_classes[:num_classes]
+    # 动态生成指定数量的班级数据
+    if num_classes <= len(base_classes):
+        # 如果需要的数量不超过基础数据，直接截取
+        mock_data["ClassAndCardArray"] = base_classes[:num_classes]
+    else:
+        # 如果需要更多数据，先使用基础数据，然后动态生成额外的
+        mock_data["ClassAndCardArray"] = base_classes[:]
+        
+        # 生成额外的班级数据
+        subjects = ["数学进阶班", "英语强化班", "物理实验班", "化学提高班", "语文写作班", 
+                   "历史文化班", "地理探索班", "生物科学班", "政治思想班", "音乐艺术班"]
+        codes = ["MATH002", "ENG002", "PHY002", "CHEM002", "LANG002", 
+                "HIST001", "GEO001", "BIO001", "POL001", "MUS001"]
+        
+        for i in range(len(base_classes), num_classes):
+            additional_class = {
+                "sSeatNo": f"{chr(65+(i%26))}{str(i+1).zfill(3)}",  # A001, B002, ..., Z026, AA027, etc.
+                "sClassCode": codes[(i-len(base_classes)) % len(codes)],
+                "sClassName": subjects[(i-len(base_classes)) % len(subjects)],
+                "dtBeginDate": f"2024-{str((i%12)+1).zfill(2)}-15",
+                "dtEndDate": f"2024-{str(((i%12)+3)%12+1).zfill(2)}-15",
+                "sRegisterTime": f"2024-01-{str(10+(i%20))} 报名成功",
+                "sPrintAddress": f"北京市朝阳区XX路XX号{i+1}01教室",
+                "sPrintTime": f"2024-{str((i%12)+1).zfill(2)}-15 {9+(i%6)}:00-{12+(i%6)}:00",
+                "nTryLesson": str(i % 3),
+                "dVoucherFee": 50.00 + (i * 10) % 100,
+                "dFee": 1200.00 + (i * 100) % 800,
+                "dRegisterFee": 1150.00 + (i * 100) % 800,
+                "dClassVoucherFee": 50.00 + (i * 10) % 100,
+                "dShouldFee": 1150.00 + (i * 100) % 800
+            }
+            mock_data["ClassAndCardArray"].append(additional_class)
     
     return mock_data
 
