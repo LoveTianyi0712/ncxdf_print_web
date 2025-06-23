@@ -259,9 +259,65 @@ class StudentAccountCertificateProcessor:
                 self._draw_line_component(component, draw, PIXELS_PER_CM, 
                                         center_offset_x, center_offset_y)
         
-        # 添加页脚
+        # 添加页脚（只包含打印时间）
         self._add_footer(draw, width, height, chinese_font_path, default_font, 
                         center_offset_x, center_offset_y, mrt_parser.components)
+        
+        # 添加二维码和"【在线客服】"文字到左下角
+        try:
+            # QR码文件路径
+            qr_code_path = os.path.join(self.base_dir, "properties", "qr_code.jpg")
+            
+            # 加载二维码图片
+            if os.path.exists(qr_code_path):
+                qr_image = Image.open(qr_code_path)
+                
+                # 设置二维码大小 - 调整为合适的大小
+                scale_factor = 1.2  # 减小缩放因子
+                qr_size = int(120 * scale_factor)  # 144px，比原来的400px小很多
+                qr_image = qr_image.resize((qr_size, qr_size), Image.Resampling.LANCZOS)
+                
+                # 计算二维码位置 - 固定在左下角，距离边缘有适当间距
+                qr_x = int(30 * scale_factor)  # 左边距30像素*1.2 = 36像素
+                qr_y = height - qr_size - int(25 * scale_factor)  # 底边距25像素*1.2 = 30像素
+                
+                # 处理图像透明度
+                if qr_image.mode in ('RGBA', 'LA') or (qr_image.mode == 'P' and 'transparency' in qr_image.info):
+                    # 创建一个白色背景
+                    background = Image.new('RGB', qr_image.size, (255, 255, 255))
+                    if qr_image.mode == 'P':
+                        qr_image = qr_image.convert('RGBA')
+                    background.paste(qr_image, mask=qr_image.split()[-1] if qr_image.mode == 'RGBA' else None)
+                    qr_image = background
+                
+                # 粘贴二维码到图像
+                image.paste(qr_image, (int(qr_x), int(qr_y)))
+                
+                # 添加"【在线客服】"文字，在二维码正上方
+                service_text = "【在线客服】"
+                
+                # 选择合适的字体 - 调整字体大小
+                service_font = default_font
+                if chinese_font_path:
+                    try:
+                        service_font = ImageFont.truetype(chinese_font_path, int(18 * scale_factor))  # 减小字体大小
+                    except:
+                        pass
+                
+                # 计算文字位置 - 在二维码正上方居中
+                text_bbox = draw.textbbox((0, 0), service_text, font=service_font)
+                text_width = text_bbox[2] - text_bbox[0]
+                text_x = qr_x + (qr_size - text_width) // 2  # 在二维码正上方居中
+                text_y = qr_y - int(25 * scale_factor)  # 在二维码上方25像素，减少间距
+                
+                # 绘制"【在线客服】"文字
+                draw.text((text_x, text_y), service_text, fill='black', font=service_font)
+                
+                print(f"已添加二维码和在线客服文字到位置: ({int(qr_x)}, {int(qr_y)})")
+            else:
+                print(f"警告: 二维码文件不存在: {qr_code_path}")
+        except Exception as e:
+            print(f"添加二维码时出错: {str(e)}")
         
         return image
     
@@ -278,6 +334,19 @@ class StudentAccountCertificateProcessor:
             
             # 获取文本内容
             text = component['text']
+            
+            # 过滤重复的加粗提现金额字段
+            # 如果是TextOperationAmount组件（通常是加粗的重复提现金额），则跳过
+            component_name = component.get('name', '')
+            if component_name == 'TextOperationAmount':
+                print(f"跳过重复的加粗提现金额组件: {component_name}")
+                return
+            
+            # 如果文本包含sOperationAmount且字体加粗，也跳过（这是重复的加粗组件）
+            if ('sOperationAmount' in text and 
+                component.get('font', {}).get('bold', False)):
+                print(f"跳过重复的加粗sOperationAmount组件")
+                return
             
             # 处理数据字段替换
             if text and '{ArrayList.' in text and '}' in text:
@@ -300,17 +369,20 @@ class StudentAccountCertificateProcessor:
                 font_info = component.get('font', {'name': 'Arial', 'size': 9, 'bold': False})
                 
                 # 判断是否需要加粗 - 与原系统保持一致的规则
-                should_bold = (
-                    '余额' in text or
-                    '提现凭证' in text or
-                    '充值凭证' in text or
-                    '南昌学校' in text or
-                    ('学校' in text and '凭证' in text) or
-                    'Title' in text or  # 包含Title的文字
-                    component.get('font', {}).get('bold', False) or
-                    font_info.get('bold', False) or
-                    font_info.get('size', 9) >= 10.5  # 较大字体也加粗
-                )
+                # 但对于提现金额相关字段，不要加粗，保持原始样式
+                should_bold = False
+                if not ('提现金额' in text or 'sOperationAmount' in text):
+                    should_bold = (
+                        '余额' in text or
+                        '提现凭证' in text or
+                        '充值凭证' in text or
+                        '南昌学校' in text or
+                        ('学校' in text and '凭证' in text) or
+                        'Title' in text or  # 包含Title的文字
+                        component.get('font', {}).get('bold', False) or
+                        font_info.get('bold', False) or
+                        font_info.get('size', 9) >= 10.5  # 较大字体也加粗
+                    )
                 
                 # 选择字体
                 has_chinese = any('\u4e00' <= char <= '\u9fff' for char in text) or '¥' in text
@@ -434,7 +506,7 @@ class StudentAccountCertificateProcessor:
     
     def _add_footer(self, draw, width, height, chinese_font_path, default_font, 
                    center_offset_x, center_offset_y, components):
-        """添加页脚信息"""
+        """添加页脚信息（仅打印时间）"""
         # 仅在模板中没有打印时间字段时添加
         if not any("打印时间" in c.get('text', '') for c in components):
             footer_font = default_font

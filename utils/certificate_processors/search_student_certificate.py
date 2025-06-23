@@ -25,6 +25,7 @@
 
 import requests
 from datetime import datetime
+import random
 from ..time_utils import get_beijing_time_str
 
 
@@ -470,6 +471,10 @@ def search_student(cookies, current_user, student_code):
         # 将所有记录添加到学员信息中
         student_info['reports'] = all_records
         
+        # 生成班级凭证测试数据
+        test_data = generate_test_enrollment_registration_data(student_info)
+        student_info['test_data'] = test_data
+        
         return student_info
         
     except requests.exceptions.RequestException as e:
@@ -504,6 +509,110 @@ def test_currency_format():
         result = format_currency(amount)
         status = "✓" if result == expected else "✗"
         print(f"{status} format_currency({amount}) = {result} (期望: {expected})")
+
+
+def generate_test_enrollment_registration_data(student_info):
+    """
+    生成班级凭证测试数据
+    
+    参数:
+        student_info: 学员基本信息
+    
+    返回:
+        班级凭证测试数据字典
+    """
+    # 随机生成1-7条班级数据
+    class_count = random.randint(1, 7)
+    
+    # 班级模板数据
+    class_templates = [
+        {'code': 'MATH001', 'name': '数学基础班', 'subject': '数学'},
+        {'code': 'ENG001', 'name': '英语提高班', 'subject': '英语'},
+        {'code': 'PHY001', 'name': '物理基础班', 'subject': '物理'},
+        {'code': 'CHEM001', 'name': '化学实验班', 'subject': '化学'},
+        {'code': 'LANG001', 'name': '语文阅读班', 'subject': '语文'},
+        {'code': 'HIST001', 'name': '历史文化班', 'subject': '历史'},
+        {'code': 'GEO001', 'name': '地理探索班', 'subject': '地理'},
+    ]
+    
+    # 随机选择班级
+    selected_classes = random.sample(class_templates, min(class_count, len(class_templates)))
+    
+    # 生成订单号
+    order_code = f"ORD{datetime.now().strftime('%Y%m%d')}{random.randint(1000, 9999)}"
+    
+    # 生成班级数据
+    class_array = []
+    total_should_fee = 0
+    total_fee = 0
+    total_discount = 0
+    
+    for i, class_template in enumerate(selected_classes):
+        # 随机生成费用
+        standard_fee = random.randint(1200, 2000)
+        discount_fee = random.randint(50, 200)
+        should_fee = standard_fee
+        register_fee = standard_fee - discount_fee
+        
+        total_should_fee += should_fee
+        total_fee += register_fee
+        total_discount += discount_fee
+        
+        class_data = {
+            "sSeatNo": f"{chr(65+i)}{str(i+1).zfill(3)}",  # A001, B002, etc.
+            "sClassCode": class_template['code'],
+            "sClassName": class_template['name'],
+            "dtBeginDate": f"2024-{str((i%12)+1).zfill(2)}-15",
+            "dtEndDate": f"2024-{str(((i%12)+3)%12+1).zfill(2)}-15",
+            "sRegisterTime": f"2024-01-{str(10+i)} 报名成功",
+            "sPrintAddress": f"南昌市朝阳区XX路XX号{i+1}01教室",
+            "sPrintTime": f"2024-{str((i%12)+1).zfill(2)}-15 {9+(i%6)}:00-{12+(i%6)}:00",
+            "nTryLesson": str(i % 3),
+            "dVoucherFee": discount_fee,
+            "dFee": standard_fee,
+            "dRegisterFee": register_fee,
+            "dClassVoucherFee": discount_fee,
+            "dShouldFee": should_fee
+        }
+        class_array.append(class_data)
+    
+    # 构建完整的测试数据
+    test_data = {
+        # 主订单信息
+        "sOrderCode": order_code,
+        "sBatchCode": f"BATCH{random.randint(100, 999)}",
+        "Discounttype": total_discount,  # 优惠金额
+        "BizType": "报班",
+        "sChannel": "直营",
+        "sPayType": "现金支付",
+        "sSchoolName": "南昌新东方培训学校",
+        "sTelePhone": "400-175-9898",
+        "sOperator": student_info.get('operator', 'system'),
+        "dtCreate": get_beijing_time_str(),
+        "feedBackTitle": "客服热线：400-175-9898",
+        "feedBackImg": "",
+        "microServiceTitle": "微信公众号：南昌新东方",
+        "microServiceImg": "",
+        "RWMImage": "",
+        
+        # 费用汇总
+        "dShouldFee": total_should_fee,  # 应收金额
+        "dFee": total_fee,  # 实收金额
+        "dReturnFee": 0.0,  # 退费金额
+        
+        # 学生信息
+        "Student": {
+            "sStudentName": student_info.get('student_name', '测试学员'),
+            "sStudentCode": f"STU{datetime.now().strftime('%Y%m%d')}{random.randint(1000, 9999)}",
+            "sGender": student_info.get('gender', '未知'),
+            "sMobile": f"138{random.randint(10000000, 99999999)}"
+        },
+        
+        # 班级和卡片信息数组
+        "ClassAndCardArray": class_array
+    }
+    
+    return test_data
 
 
 if __name__ == "__main__":
