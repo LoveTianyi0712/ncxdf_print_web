@@ -471,9 +471,9 @@ def search_student(cookies, current_user, student_code):
         # 将所有记录添加到学员信息中
         student_info['reports'] = all_records
         
-        # 生成班级凭证测试数据
-        test_data = generate_test_enrollment_registration_data(student_info)
-        student_info['test_data'] = test_data
+        # 生成报班凭证测试数据
+        enrollment_test_data = generate_test_enrollment_registration_data(student_info)
+        student_info['enrollment_test_data'] = enrollment_test_data
         
         return student_info
         
@@ -613,6 +613,198 @@ def generate_test_enrollment_registration_data(student_info):
     }
     
     return test_data
+
+
+def generate_test_class_certificate_data(student_info, student_code):
+    """
+    生成班级凭证测试数据 - 用于测试分页和集成打印功能
+    
+    参数:
+        student_info: 学员基本信息
+        student_code: 学员编码
+    
+    返回:
+        班级凭证测试数据列表 (随机1-7条记录)
+    """
+    import random
+    from datetime import datetime, timedelta
+    
+    # 随机生成1-7条班级凭证数据
+    record_count = random.randint(1, 7)
+    
+    # 班级凭证模板数据
+    class_templates = [
+        {
+            'class_code': 'MATH2024001', 
+            'class_name': '初中数学培优班', 
+            'subject': '数学',
+            'teacher': '王老师',
+            'room': '数学专用教室A'
+        },
+        {
+            'class_code': 'ENG2024002', 
+            'class_name': '高中英语强化班', 
+            'subject': '英语',
+            'teacher': '李老师',
+            'room': '英语听力室B'
+        },
+        {
+            'class_code': 'PHY2024003', 
+            'class_name': '物理实验提高班', 
+            'subject': '物理',
+            'teacher': '张老师',
+            'room': '物理实验室C'
+        },
+        {
+            'class_code': 'CHEM2024004', 
+            'class_name': '化学综合班', 
+            'subject': '化学',
+            'teacher': '赵老师',
+            'room': '化学实验室D'
+        },
+        {
+            'class_code': 'LANG2024005', 
+            'class_name': '语文阅读写作班', 
+            'subject': '语文',
+            'teacher': '孙老师',
+            'room': '文学阅览室E'
+        },
+        {
+            'class_code': 'HIST2024006', 
+            'class_name': '历史文化素养班', 
+            'subject': '历史',
+            'teacher': '周老师',
+            'room': '人文教室F'
+        },
+        {
+            'class_code': 'GEO2024007', 
+            'class_name': '地理探索班', 
+            'subject': '地理',
+            'teacher': '吴老师',
+            'room': '地理专用室G'
+        }
+    ]
+    
+    # 随机选择班级模板
+    selected_templates = random.sample(class_templates, min(record_count, len(class_templates)))
+    
+    # 生成班级凭证数据
+    class_certificate_records = []
+    base_date = datetime.now()
+    
+    for i, template in enumerate(selected_templates):
+        # 随机生成时间
+        start_date = base_date + timedelta(days=random.randint(1, 30))
+        end_date = start_date + timedelta(days=random.randint(60, 120))
+        
+        # 随机生成费用
+        standard_fee = random.randint(1500, 2500)
+        discount_fee = random.randint(100, 300)
+        actual_fee = standard_fee - discount_fee
+        
+        # 生成卡片编码
+        card_code = f"CARD{start_date.strftime('%Y%m')}{random.randint(1000, 9999)}"
+        
+        # 生成座位号
+        seat_no = f"{chr(65 + i)}{str(random.randint(1, 30)).zfill(2)}"
+        
+        # 构建班级凭证数据
+        certificate_data = {
+            'biz_type': 5,  # 班级凭证
+            'biz_name': '班级凭证',
+            'data': {
+                # 基本信息
+                'sSchoolName': '南昌新东方培训学校',
+                'sTelePhone': '400-175-9898',
+                'sChannel': '直营',
+                
+                # 学员信息
+                'sStudentName': student_info.get('student_name', '测试学员'),
+                'sStudentCode': student_code,
+                'sGender': student_info.get('gender', '未知'),
+                'sCardCode': card_code,
+                
+                # 班级信息
+                'sClassName': template['class_name'],
+                'sClassCode': template['class_code'],
+                'sSeatNo': seat_no,
+                'sTeacher': template['teacher'],
+                'sClassRoom': template['room'],
+                'sSubject': template['subject'],
+                
+                # 时间信息
+                'dtBeginDate': start_date.strftime('%Y-%m-%d'),
+                'dtEndDate': end_date.strftime('%Y-%m-%d'),
+                'sRegisterTime': f"{base_date.strftime('%Y-%m-%d')} 报名成功",
+                'sPrintAddress': f"南昌市朝阳区学府路{random.randint(1, 999)}号{template['room']}",
+                'sPrintTime': get_beijing_time_str(),
+                'dtCreate': get_beijing_time_str(),
+                
+                # 费用信息（格式化为带人民币符号的字符串）
+                'dFee': format_currency(standard_fee),  # 商品标准金额
+                'dVoucherFee': format_currency(discount_fee),  # 商品优惠金额
+                'dShouldFee': format_currency(standard_fee),  # 商品应收金额
+                'dRealFee': format_currency(actual_fee),  # 商品实收金额
+                
+                # 试听信息
+                'nTryLesson': '是' if random.choice([True, False]) else '否',
+                'nTryLessonCount': str(random.randint(0, 3)),
+                
+                # 操作信息
+                'sOperator': student_info.get('operator', 'system'),
+                
+                # 状态信息
+                'sStatus': '已报名',
+                'sPayStatus': '已缴费',
+                
+                # 图像数据（可选）
+                'RWMImage': ''
+            }
+        }
+        
+        class_certificate_records.append(certificate_data)
+    
+    print(f"生成了 {len(class_certificate_records)} 条班级凭证测试数据")
+    
+    return class_certificate_records
+
+
+def generate_test_class_certificate_for_printing(student_info, student_code, count=None):
+    """
+    专门为打印功能生成班级凭证测试数据
+    
+    参数:
+        student_info: 学员基本信息
+        student_code: 学员编码  
+        count: 指定生成数量，None表示随机1-7条
+    
+    返回:
+        适用于打印的班级凭证数据列表
+    """
+    if count is None:
+        count = random.randint(1, 7)
+    
+    # 调用主要的生成函数
+    class_records = generate_test_class_certificate_data(student_info, student_code)
+    
+    # 如果指定了数量，调整记录数
+    if count != len(class_records):
+        if count > len(class_records):
+            # 需要更多记录，复制现有记录并修改
+            additional_needed = count - len(class_records)
+            for i in range(additional_needed):
+                base_record = class_records[i % len(class_records)].copy()
+                # 修改一些字段使其不同
+                base_record['data']['sClassCode'] += f"_EXT{i+1}"
+                base_record['data']['sClassName'] += f" (扩展班{i+1})"
+                class_records.append(base_record)
+        else:
+            # 需要较少记录，截取
+            class_records = class_records[:count]
+    
+    print(f"为打印功能生成了 {len(class_records)} 条班级凭证数据（分页测试用）")
+    
+    return class_records
 
 
 if __name__ == "__main__":

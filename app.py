@@ -1754,6 +1754,24 @@ def search_student():
                 _, detail_info = _get_certificate_info(biz_type, data)
                 report['description'] = detail_info
             
+            # 将报班凭证测试数据添加到可打印凭证列表中
+            enrollment_test_data = student_info.get('enrollment_test_data', {})
+            if enrollment_test_data and 'ClassAndCardArray' in enrollment_test_data:
+                # 构建报班凭证记录格式
+                class_count = len(enrollment_test_data.get('ClassAndCardArray', []))
+                order_code = enrollment_test_data.get('sOrderCode', '')
+                total_fee = enrollment_test_data.get('dFee', 0)
+                
+                enrollment_record = {
+                    'biz_type': 1,  # 报班凭证的biz_type
+                    'biz_name': '报班凭证(测试数据)',
+                    'data': enrollment_test_data,
+                    'description': f"订单号：{order_code}，包含{class_count}个班级，实收金额：¥{total_fee:,.2f}"
+                }
+                
+                # 将报班凭证测试数据添加到reports列表中
+                student_info['reports'].append(enrollment_record)
+            
             return jsonify(student_info)
         else:
             return jsonify({'error': '未找到该学员的凭证信息'}), 404
@@ -3472,17 +3490,15 @@ def _get_certificate_info(biz_type, student_data):
         if class_name:
             detail_info += f"：{class_name}"
             
-    elif biz_type == 5:  # 处理可能的biz_type=5（与biz_type=1相同逻辑）
+    elif biz_type == 5:  # 班级凭证（不同于报班凭证）
         class_name = student_data.get('sClassName', '')
-        fee = student_data.get('dRealFee', student_data.get('dFee', ''))
+        class_code = student_data.get('sClassCode', '')
         
-        detail_info = f"班级：{class_name}"
-        if fee:
-            try:
-                fee_value = float(fee)
-                detail_info += f"，费用：¥{fee_value:,.2f}"
-            except:
-                detail_info += f"，费用：{fee}"
+        detail_info = f"班级凭证"
+        if class_name:
+            detail_info += f"：{class_name}"
+        if class_code:
+            detail_info += f"（{class_code}）"
     
     # 如果没有生成详细信息，使用默认信息
     if not detail_info:

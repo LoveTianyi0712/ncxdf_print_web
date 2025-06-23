@@ -179,6 +179,10 @@ class EnrollmentCertificateProcessor:
         self._add_footer(draw, width, height, chinese_font_path, default_font, 
                         center_offset_x, center_offset_y, mrt_parser.components)
         
+        # 添加二维码和在线客服文字到左下角
+        self._add_qr_code(image, draw, PIXELS_PER_CM, center_offset_x, center_offset_y, 
+                         font_cache, chinese_font_path, default_font)
+        
         return image
     
     def _draw_text_component(self, component, data, draw, pixels_per_cm, 
@@ -405,6 +409,82 @@ class EnrollmentCertificateProcessor:
                 
         except Exception as e:
             print(f"页脚添加失败: {e}")
+
+    def _add_qr_code(self, image, draw, pixels_per_cm, center_offset_x, center_offset_y, 
+                     font_cache, chinese_font_path, default_font):
+        """添加二维码和"【在线客服】"文字到左下角 - 与充值提现凭证保持一致"""
+        try:
+            # 获取图像尺寸
+            width, height = image.size
+            
+            # 二维码文件路径
+            qr_code_path = os.path.join(self.base_dir, "properties", "qr_code.jpg")
+            
+            if os.path.exists(qr_code_path):
+                # 加载二维码图片
+                qr_image = Image.open(qr_code_path)
+                
+                # 设置二维码大小 - 与提现凭证保持一致的调整后大小
+                scale_factor = 1.2  # 与student_account_certificate.py保持一致
+                qr_size = int(120 * scale_factor)  # 144px
+                qr_image = qr_image.resize((qr_size, qr_size), Image.Resampling.LANCZOS)
+                
+                # 计算二维码位置 - 与提现凭证完全一致
+                qr_x = int(30 * scale_factor)  # 左边距36像素，与提现凭证一致
+                qr_y = height - qr_size - int(25 * scale_factor)  # 底边距30像素，与提现凭证一致
+                
+                # 处理图像透明度
+                if qr_image.mode in ('RGBA', 'LA') or (qr_image.mode == 'P' and 'transparency' in qr_image.info):
+                    # 处理有透明度的图像
+                    background = Image.new('RGB', qr_image.size, (255, 255, 255))
+                    if qr_image.mode == 'P':
+                        qr_image = qr_image.convert('RGBA')
+                    background.paste(qr_image, mask=qr_image.split()[-1] if qr_image.mode == 'RGBA' else None)
+                    qr_image = background
+                
+                # 粘贴二维码到图像
+                image.paste(qr_image, (int(qr_x), int(qr_y)))
+                
+                # 添加"【在线客服】"文字，在二维码正上方
+                service_text = "【在线客服】"
+                
+                # 获取中文字体 - 直接使用与提现凭证相同的字体大小，不经过_get_font的放大处理
+                service_font = default_font
+                if chinese_font_path:
+                    try:
+                        service_font = ImageFont.truetype(chinese_font_path, int(18 * scale_factor))  # 22px，与提现凭证一致
+                    except:
+                        pass
+                
+                # 计算文字位置 - 在二维码正上方居中，与提现凭证完全一致
+                text_bbox = draw.textbbox((0, 0), service_text, font=service_font)
+                text_width = text_bbox[2] - text_bbox[0]
+                text_x = qr_x + (qr_size - text_width) // 2  # 在二维码正上方居中，使用整数除法与提现凭证一致
+                text_y = qr_y - int(25 * scale_factor)  # 在二维码上方30像素，与提现凭证一致
+                
+                # 绘制"【在线客服】"文字
+                draw.text((text_x, text_y), service_text, fill='black', font=service_font)
+                
+                print(f"已添加二维码和在线客服文字到左下角位置: ({int(qr_x)}, {int(qr_y)})")
+            else:
+                print(f"警告: 二维码文件不存在: {qr_code_path}")
+                # 如果没有二维码文件，绘制一个简单的方框作为占位符
+                scale_factor = 1.2  # 与上面保持一致
+                qr_size = int(120 * scale_factor)  # 144px
+                qr_x = int(30 * scale_factor)  # 左边距36像素，与提现凭证一致
+                qr_y = height - qr_size - int(25 * scale_factor)  # 底边距30像素，与提现凭证一致
+                
+                # 绘制方框
+                draw.rectangle([qr_x, qr_y, qr_x + qr_size, qr_y + qr_size], 
+                             outline='black', width=2)
+                
+                # 添加"二维码"文字
+                placeholder_font = self._get_font({'name': 'SimSun', 'size': 10, 'bold': False}, 
+                                                chinese_font_path, True, False, font_cache, default_font)
+                draw.text((qr_x + qr_size//4, qr_y + qr_size//2), "二维码", fill='black', font=placeholder_font)
+                
+        except Exception as e:
+            print(f"添加二维码时出错: {str(e)}")
     
     def _save_certificate(self, image, data):
         """保存凭证文件"""
