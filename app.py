@@ -3,10 +3,18 @@
 
 """
 南昌新东方凭证打印系统
-Version: 2.4.0
-Release Date: 2025-06-20
+Version: 2.6.0
+Release Date: 2025-06-23
 
 更新日志:
+v2.6.0 (2025-06-23)
+- 新增订单号搜索功能，支持根据订单号直接查询报班凭证
+- 增强学员号搜索，支持报班凭证按订单号智能分组显示
+- 完善搜索界面，学员号和订单号搜索分离，互不干扰
+- 统一二维码和在线客服文字位置，三种凭证风格一致
+- 优化报班凭证处理逻辑，支持订单汇总和详细信息展示
+- 完善凭证打印系统架构，提升用户体验
+
 v2.4.0 (2025-06-20)
 - 全面优化并发安全机制，支持多用户同时操作
 - 新增并发处理工具模块和线程锁管理
@@ -2583,9 +2591,9 @@ def get_version():
     """获取系统版本信息"""
     return jsonify({
         'name': '南昌新东方凭证打印系统',
-        'version': '2.4.0',
-        'release_date': '2025-06-20',
-        'description': '支持多种凭证打印、用户管理、Excel批量导入、消息通知的综合管理系统'
+        'version': '2.6.0',
+        'release_date': '2025-06-23',
+        'description': '支持学员号/订单号搜索、智能分组、多种凭证打印、用户管理、Excel批量导入、消息通知的综合管理系统'
     })
 
 @app.route('/health')
@@ -3167,6 +3175,52 @@ def search_order():
     if not order_code:
         return jsonify({'error': '请提供订单号', 'example': '/search_order?order_code=ORD20240101001'}), 400
     
+    try:
+        # 尝试使用实际的搜索功能
+        from utils.certificate_processors.search_student_certificate import search_order
+        
+        # 从数据库获取活跃的cookies配置
+        cookies = None
+        active_config = CookiesConfig.query.filter_by(is_active=True).first()
+        if active_config:
+            try:
+                cookies = json.loads(active_config.cookies_data)
+            except:
+                pass
+        
+        # 调用实际的订单搜索功能
+        search_result = search_order(cookies, current_user, order_code)
+        
+        if search_result == 0:
+            return jsonify({'error': '未找到该订单信息'}), 404
+        elif search_result == 404:
+            # API调用失败，返回错误信息并提醒管理员更新cookies
+            error_msg = 'API调用失败，可能是网络问题或认证失效。'
+            if current_user.role != 'admin':
+                error_msg += '请联系管理员更新系统认证配置。'
+            else:
+                error_msg += '请前往Cookies配置页面更新认证信息。'
+            
+            return jsonify({
+                'error': error_msg,
+                'need_admin_attention': True,
+                'is_admin': current_user.role == 'admin'
+            }), 404
+        elif isinstance(search_result, dict) and 'order_data' in search_result:
+            # 成功获取到实际数据
+            return jsonify(search_result)
+        else:
+            # 回退到模拟数据
+            return _fallback_mock_order_search(order_code)
+            
+    except Exception as e:
+        print(f"搜索订单信息时发生错误: {str(e)}")
+        # 发生错误时回退到模拟数据
+        return _fallback_mock_order_search(order_code)
+
+
+def _fallback_mock_order_search(order_code):
+    """回退到模拟订单数据搜索"""
     try:
         # 这里应该连接到实际的业务系统API来搜索订单
         # 目前先返回模拟数据

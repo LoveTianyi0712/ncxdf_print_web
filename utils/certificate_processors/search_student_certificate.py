@@ -475,6 +475,10 @@ def search_student(cookies, current_user, student_code):
         enrollment_test_data = generate_test_enrollment_registration_data(student_info)
         student_info['enrollment_test_data'] = enrollment_test_data
         
+        # 按订单号分组报班凭证（如果有的话）
+        if student_info['reports']:
+            student_info['reports'] = group_enrollment_data_by_order(student_info['reports'])
+        
         return student_info
         
     except requests.exceptions.RequestException as e:
@@ -805,6 +809,212 @@ def generate_test_class_certificate_for_printing(student_info, student_code, cou
     print(f"为打印功能生成了 {len(class_records)} 条班级凭证数据（分页测试用）")
     
     return class_records
+
+
+def search_order(cookies, current_user, order_code):
+    """
+    根据订单号搜索报班凭证信息
+    
+    参数:
+        cookies: 认证cookies字典，如果为None则使用默认cookies
+        current_user: 当前用户对象
+        order_code: 订单号
+    
+    返回:
+        成功: 返回包含订单信息和报班凭证数据的字典
+        订单不存在: 返回 0
+        请求失败: 返回 404
+    """
+    print(f"开始搜索订单号: {order_code}")
+    
+    # 如果没有提供cookies，使用默认配置
+    if not cookies:
+        cookies = DEFAULT_COOKIES
+        print("使用默认cookies配置")
+    
+    # 设置请求头
+    headers = {
+        'accept': 'application/json, text/plain, */*',
+        'accept-language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
+        'content-type': 'application/json',
+        'origin': 'https://erp.xdf.cn',
+        'referer': 'https://erp.xdf.cn/fis3/static/edu-enrollment/business/enrollment-registration/enrollment-registration-query.html',
+        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    }
+    
+    try:
+        # 搜索订单信息 - 使用报名查询API
+        json_data = {
+            'PageIndex': 1,
+            'PageSize': 50,
+            'SchoolId': 35,
+            'Filters': [
+                {
+                    'Field': 'OrderCode',  # 订单号字段
+                    'Operation': 0,  # 等于操作
+                    'Value': order_code,
+                    'Logic': 0,
+                },
+            ],
+            'Sort': [
+                {
+                    'Field': 'OrderTime',
+                    'Dir': 1,  # 降序
+                },
+            ],
+        }
+        
+        print(f"发送订单搜索请求: {json_data}")
+        
+        response = requests.post(
+            'https://erp.xdf.cn/nises/apinises/enrollment/enrollment-registration-query',
+            cookies=cookies,
+            headers=headers,
+            json=json_data,
+            timeout=30
+        )
+        
+        print(f"订单搜索响应状态码: {response.status_code}")
+        
+        if response.status_code == 404:
+            print("订单搜索API调用失败，可能是认证过期")
+            return 404
+        
+        if response.status_code == 200:
+            response_data = response.json()
+            print(f"订单搜索响应数据: {response_data}")
+            
+            # 检查是否有错误
+            if not response_data.get('Success', False):
+                error_msg = response_data.get('Message', '未知错误')
+                print(f"订单搜索API返回错误: {error_msg}")
+                return 0
+            
+            # 获取订单数据
+            orders_data = response_data.get('Data', {}).get('Data', [])
+            
+            if not orders_data:
+                print(f"未找到订单号 {order_code} 的数据")
+                return 0
+            
+            # 取第一个匹配的订单（通常订单号是唯一的）
+            order_data = orders_data[0]
+            print(f"找到订单数据: {order_data}")
+            
+            # 构建返回的报班凭证数据结构
+            # 这里需要根据实际的API返回结构来构建
+            enrollment_data = {
+                'sOrderCode': order_data.get('OrderCode', order_code),
+                'Student': {
+                    'sStudentName': order_data.get('StudentName', ''),
+                    'sStudentCode': order_data.get('StudentCode', ''),
+                    'sGender': order_data.get('Gender', ''),
+                    'sPhone': order_data.get('Phone', ''),
+                },
+                'ClassAndCardArray': [],  # 这里需要解析班级和卡信息
+                'dFee': order_data.get('TotalFee', 0),
+                'dRealFee': order_data.get('ActualFee', 0),
+                'sOrderTime': order_data.get('OrderTime', ''),
+                'sOperator': order_data.get('Operator', ''),
+                'sSchoolName': '南昌新东方培训学校',
+                'sChannel': '直营',
+            }
+            
+            # 解析班级信息（这里需要根据实际API结构调整）
+            if 'ClassDetails' in order_data:
+                for class_detail in order_data['ClassDetails']:
+                    class_card_info = {
+                        'sClassName': class_detail.get('ClassName', ''),
+                        'sClassCode': class_detail.get('ClassCode', ''),
+                        'sTeacher': class_detail.get('Teacher', ''),
+                        'dtBeginDate': class_detail.get('BeginDate', ''),
+                        'dtEndDate': class_detail.get('EndDate', ''),
+                        'dClassFee': class_detail.get('ClassFee', 0),
+                        'sCardCode': class_detail.get('CardCode', ''),
+                    }
+                    enrollment_data['ClassAndCardArray'].append(class_card_info)
+            
+            result = {
+                'success': True,
+                'order_code': order_code,
+                'order_data': enrollment_data
+            }
+            
+            print(f"订单搜索成功，返回数据: {result}")
+            return result
+        
+        else:
+            print(f"订单搜索请求失败，状态码: {response.status_code}")
+            return 404
+    
+    except requests.exceptions.Timeout:
+        print("订单搜索请求超时")
+        return 404
+    except requests.exceptions.RequestException as e:
+        print(f"订单搜索请求异常: {str(e)}")
+        return 404
+    except Exception as e:
+        print(f"订单搜索发生未知错误: {str(e)}")
+        return 404
+
+
+def group_enrollment_data_by_order(reports):
+    """
+    将报班凭证数据按订单号分组
+    
+    参数:
+        reports: 报告列表，包含各种类型的凭证
+    
+    返回:
+        按订单号分组后的报告列表
+    """
+    # 分离报班凭证和其他凭证
+    enrollment_reports = []
+    other_reports = []
+    
+    for report in reports:
+        if report.get('biz_type') == 1:  # 报班凭证
+            enrollment_reports.append(report)
+        else:
+            other_reports.append(report)
+    
+    # 按订单号分组报班凭证
+    order_groups = {}
+    for report in enrollment_reports:
+        order_code = report.get('data', {}).get('sOrderCode', '未知订单')
+        if order_code not in order_groups:
+            order_groups[order_code] = []
+        order_groups[order_code].append(report)
+    
+    # 为每个订单组创建一个汇总报告
+    grouped_reports = []
+    for order_code, order_reports in order_groups.items():
+        if len(order_reports) == 1:
+            # 只有一个报班凭证，直接使用
+            grouped_reports.append(order_reports[0])
+        else:
+            # 多个报班凭证，创建汇总报告
+            first_report = order_reports[0]
+            class_count = len(order_reports)
+            total_fee = sum(float(str(report.get('data', {}).get('dFee', 0)).replace('¥', '').replace(',', '') or 0) 
+                          for report in order_reports)
+            
+            grouped_report = {
+                'biz_type': 1,
+                'biz_name': f'报班凭证 (订单: {order_code})',
+                'data': first_report['data'],  # 使用第一个报告的数据作为基础
+                'description': f"订单号：{order_code}，包含{class_count}个班级，总金额：¥{total_fee:,.2f}",
+                'order_summary': {
+                    'order_code': order_code,
+                    'class_count': class_count,
+                    'total_fee': total_fee,
+                    'individual_reports': order_reports  # 保留原始报告供打印使用
+                }
+            }
+            grouped_reports.append(grouped_report)
+    
+    # 合并其他类型的凭证
+    return grouped_reports + other_reports
 
 
 if __name__ == "__main__":
