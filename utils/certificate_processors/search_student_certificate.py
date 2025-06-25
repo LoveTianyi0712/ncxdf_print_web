@@ -2,64 +2,236 @@
 # -*- coding: utf-8 -*-
 
 """
-学员凭证搜索模块
+学员凭证搜索处理器
 
-该模块提供搜索学员所有类型凭证信息的功能，包括班级凭证、充值提现记录等。
-
-主要功能：
+基于最新的凭证信息.py文件重新设计
+功能：
 - search_student(): 搜索学员所有类型的凭证记录
-- search_class_records(): 搜索班级凭证记录
-- search_account_records(): 搜索充值提现记录
+- search_order(): 根据订单号搜索报班凭证
 
 使用示例：
     from utils.certificate_processors.search_student_certificate import search_student
     
-    # 搜索学员所有凭证
     result = search_student(None, current_user, 'NC12345678')
-
-返回值：
-- 成功: 返回包含学员信息和所有凭证数据的字典
-- 学员不存在: 返回 0
-- 请求失败: 返回 404
 """
 
+import json
 import requests
 from datetime import datetime
-import random
-from ..time_utils import get_beijing_time_str
-
 
 def format_currency(amount):
     """
-    格式化金额，添加人民币符号和千分位分隔符
+    格式化金额显示
     
     参数:
-        amount: 金额，可以是数字、字符串或None
+        amount: 金额数值或字符串
     
     返回:
         格式化后的金额字符串，如 "¥1,234.56"
     """
-    if amount is None or amount == '' or amount == 0:
-        return '¥0.00'
+    if amount is None or amount == '':
+        return "¥0.00"
+    
+    # 如果已经是带货币符号的字符串，先清理
+    if isinstance(amount, str):
+        amount = amount.replace('¥', '').replace(',', '').strip()
+        if amount == '':
+            return "¥0.00"
     
     try:
-        # 如果是字符串，先尝试转换为数字
-        if isinstance(amount, str):
-            # 移除可能存在的货币符号和空格
-            amount = amount.replace('¥', '').replace('￥', '').replace(',', '').strip()
-        
-        # 转换为浮点数
-        amount_value = float(amount)
-        
-        # 格式化为带逗号的货币格式
-        formatted = f"¥{amount_value:,.2f}"
-        return formatted
+        # 转换为浮点数，保留2位小数
+        amount = float(amount)
+        # 使用千分位分隔符格式化
+        return f"¥{amount:,.2f}"
     except (ValueError, TypeError):
-        # 如果转换失败，返回原始字符串（如果有的话）或默认值
-        return f"¥{str(amount)}" if amount else "¥0.00"
+        return "¥0.00"
 
 
-# 默认cookies配置（实际使用时应该从用户会话获取）
+def generate_certificate_description(biz_type, data):
+    """
+    为不同类型的凭证生成缩略描述信息
+    
+    参数:
+        biz_type: 业务类型 (1=报班, 3=退班, 4=高端, 5=高端报名, 6=充值提现)
+        data: 凭证数据
+    
+    返回:
+        描述字符串
+    """
+    if not data:
+        return ""
+    
+    try:
+        print(f"生成凭证描述 - 业务类型: {biz_type}, 数据键: {list(data.keys())[:10]}")  # 调试信息
+        if biz_type == 1:  # 报班凭证
+            # 提取班级信息和费用
+            classes = []
+            total_fee = 0
+            
+            if 'ClassAndCardArray' in data and data['ClassAndCardArray']:
+                print(f"报班凭证 - 找到 {len(data['ClassAndCardArray'])} 个班级")  # 调试
+                for class_info in data['ClassAndCardArray']:
+                    print(f"报班凭证 - 班级数据: {class_info}")  # 调试
+                    class_name = class_info.get('sClassName', '')
+                    print(f"报班凭证 - 提取班级名称: '{class_name}'")  # 调试
+                    if class_name:  # 简化条件，只要有班级名称就添加
+                        classes.append(class_name)
+                        print(f"报班凭证 - 添加班级: {class_name}")  # 调试
+                    # 累计费用
+                    fee = class_info.get('dShouldFee', 0) or class_info.get('dFee', 0)
+                    if fee:
+                        total_fee += float(fee)
+                        print(f"报班凭证 - 添加费用: {fee}")  # 调试
+            
+            # 如果没有班级信息，尝试从其他字段获取
+            if not classes:
+                if data.get('sClassName'):
+                    classes.append(data['sClassName'])
+                elif data.get('className'):
+                    classes.append(data['className'])
+            
+            # 如果没有费用信息，尝试从其他字段获取
+            if total_fee == 0:
+                if data.get('dFee'):
+                    total_fee = float(data['dFee'])
+                elif data.get('dShouldFee'):
+                    total_fee = float(data['dShouldFee'])
+            
+            # 构建描述
+            print(f"报班凭证 - 最终班级列表: {classes}")  # 调试
+            print(f"报班凭证 - 最终班级列表长度: {len(classes)}")  # 调试
+            print(f"报班凭证 - 总费用: {total_fee}")  # 调试
+            
+            if classes:
+                joined_classes = ', '.join(classes[:2])
+                print(f"报班凭证 - joined_classes结果: '{joined_classes}'")  # 调试
+                class_text = f"班级：{joined_classes}"  # 最多显示2个班级
+                if len(classes) > 2:
+                    class_text += f"等{len(classes)}个班级"
+            else:
+                class_text = "班级：未知"
+            
+            print(f"报班凭证 - 生成的班级文本: '{class_text}'")  # 调试
+            
+            if total_fee > 0:
+                result = f"{class_text}，费用：{format_currency(total_fee)}"
+            else:
+                result = class_text
+                
+            print(f"报班凭证 - 最终描述: '{result}'")  # 调试
+            return result
+                
+        elif biz_type == 3:  # 退班凭证
+            # 提取退班信息
+            classes = []
+            refund_fee = 0
+            
+            if 'ClassAndCardArray' in data and data['ClassAndCardArray']:
+                print(f"退班凭证 - 找到 {len(data['ClassAndCardArray'])} 个班级")  # 调试
+                for class_info in data['ClassAndCardArray']:
+                    print(f"退班凭证 - 班级数据: {class_info}")  # 调试
+                    class_name = class_info.get('sOldClassName', '')
+                    print(f"退班凭证 - 提取班级名称: '{class_name}'")  # 调试
+                    if class_name:  # 简化条件，只要有班级名称就添加
+                        classes.append(class_name)
+                        print(f"退班凭证 - 添加班级: {class_name}")  # 调试
+                    # 累计退费
+                    fee = class_info.get('dQuitFee', 0) or class_info.get('dShouldQuitFee', 0)
+                    if fee:
+                        refund_fee += abs(float(fee))  # 退费通常是负数，取绝对值
+                        print(f"退班凭证 - 添加退费: {abs(float(fee))}")  # 调试
+            
+            if not classes and data.get('sClassName'):
+                classes.append(data['sClassName'])
+            
+            # 如果没有退费信息，尝试从其他字段获取
+            if refund_fee == 0:
+                if data.get('dQuitFee'):
+                    refund_fee = abs(float(data['dQuitFee']))
+                elif data.get('dShouldQuitFee'):
+                    refund_fee = abs(float(data['dShouldQuitFee']))
+            
+            # 构建描述
+            print(f"退班凭证 - 最终班级列表: {classes}")  # 调试
+            print(f"退班凭证 - 退费金额: {refund_fee}")  # 调试
+            
+            if classes:
+                class_text = f"退班：{', '.join(classes[:2])}"
+                if len(classes) > 2:
+                    class_text += f"等{len(classes)}个班级"
+            else:
+                class_text = "退班"
+            
+            print(f"退班凭证 - 生成的班级文本: '{class_text}'")  # 调试
+            
+            if refund_fee > 0:
+                result = f"{class_text}，退费：{format_currency(refund_fee)}"
+            else:
+                result = class_text
+                
+            print(f"退班凭证 - 最终描述: '{result}'")  # 调试
+            return result
+                
+        elif biz_type == 4 or biz_type == 5:  # 高端报名凭证
+            product_name = data.get('productName', '高端产品')
+            lesson_num = data.get('lessonNum', 0)
+            lesson_fee = data.get('lessonFee', 0)
+            
+            if lesson_num and lesson_fee:
+                return f"产品：{product_name}，{lesson_num}课时，费用：{format_currency(lesson_fee)}"
+            elif lesson_num:
+                return f"产品：{product_name}，{lesson_num}课时"
+            else:
+                return f"产品：{product_name}"
+                
+        elif biz_type == 6:  # 充值提现凭证
+            biz_type_name = data.get('sBizType', '操作')
+            pay_amount = 0
+            
+            # 从支付信息中提取金额
+            pay_type = data.get('sPayType', '')
+            if '¥' in pay_type:
+                import re
+                amounts = re.findall(r'¥([\d,]+(?:\.\d+)?)', pay_type)
+                if amounts:
+                    pay_amount = float(amounts[0].replace(',', ''))
+            
+            if pay_amount > 0:
+                return f"类型：{biz_type_name}，金额：{format_currency(pay_amount)}"
+            else:
+                return f"类型：{biz_type_name}"
+        
+        return ""
+        
+    except Exception as e:
+        print(f"生成凭证描述失败: {str(e)}")
+        return ""
+
+# 默认headers配置
+DEFAULT_HEADERS = {
+    'Accept': 'application/json, text/plain, */*',
+    'Accept-Language': 'zh-CN,zh;q=0.9',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive',
+    'Content-Type': 'application/json;charset=UTF-8',
+    'Origin': 'https://erp.xdf.cn',
+    'Pragma': 'no-cache',
+    'Referer': 'https://erp.xdf.cn/nis/index',
+    'Sec-Fetch-Dest': 'empty',
+    'Sec-Fetch-Mode': 'cors',
+    'Sec-Fetch-Site': 'same-origin',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36',
+    'X-Requested-With': 'XMLHttpRequest',
+    'appSourceKey': 'nis-lm',
+    'authorization': 'e2at',
+    'school': '35',
+    'schoolId': '35',
+    'sec-ch-ua': '"Google Chrome";v="137", "Chromium";v="137", "Not/A)Brand";v="24"',
+    'sec-ch-ua-mobile': '?0',
+    'sec-ch-ua-platform': '"Windows"',
+}
+
+# 默认Cookies配置（实际使用时应该从用户会话或数据库获取）
 DEFAULT_COOKIES = {
     'FE_USER_CODE': 'NC24048S6UzC',
     'FE_USER_NAME': '%E5%BC%A0%E8%B0%A6235',
@@ -81,942 +253,851 @@ DEFAULT_COOKIES = {
 }
 
 
-def search_class_records(cookies, headers, student_code, student_info):
+def getProofByBizType(cookies, biz_type, proof_print_code):
     """
-    搜索学员班级凭证记录
+    根据业务类型和凭证打印代码获取凭证信息
     
     参数:
-        cookies: 认证cookies
-        headers: 请求头
-        student_code: 学员编码
-        student_info: 学员基本信息
+        cookies: 认证cookies字典
+        biz_type: 业务类型 (1=报班凭证, 3=退班凭证等)
+        proof_print_code: 凭证打印代码(批次代码)
     
     返回:
-        班级凭证记录列表
+        成功: 返回凭证信息字典
+        失败: 抛出异常
     """
-    class_records = []
+    print(f"getProofByBizType 开始获取凭证，业务类型: {biz_type}, 批次代码: {proof_print_code}")
     
+    headers = DEFAULT_HEADERS
+    
+    json_data = {
+        'BizType': biz_type,
+        'ProofPrintCode': proof_print_code,
+        'SchoolId': 35,
+    }
+
     try:
-        # 查询学生的班级信息
-        json_data = {
-            'SchoolId': 35,
-            'PageIndex': 1,
-            'PageSize': 40,
-            'Filters': [
-                {
-                    'Field': 'StudentCode',
-                    'Operation': 0,
-                    'Value': student_code,
-                    'Logic': 0,
-                },
-                {
-                    'Field': 'CustomizedClassStatus',
-                    'Operation': 10,
-                    'Value': '0',
-                    'Logic': 0,
-                },
-                {
-                    'Field': 'OutType',
-                    'Operation': 10,
-                    'Value': '0',
-                    'Logic': 0,
-                },
-            ],
-            'Sort': [
-                {
-                    'Field': 'InTime',
-                    'Dir': 1,
-                },
-            ],
-        }
-        
         response = requests.post(
-            'https://erp.xdf.cn/nises/apinises/roster/homePageRosterRecordQuerySign',
+            'https://erp.xdf.cn/apinisbff/api/print/getProofByBizType',
             cookies=cookies,
             headers=headers,
             json=json_data,
-            timeout=30
         )
         
-        if response.status_code == 200:
-            data = response.json().get('Data', {}).get('Data', [])
-            for record in data:
-                certificate_data = {
-                    'biz_type': 5,  # 班级凭证
-                    'biz_name': '班级凭证',
-                    'data': {
-                        # 基本信息
-                        'sSchoolName': '南昌学校',
-                        'sTelePhone': '400-175-9898',
-                        'sChannel': '直营',
-                        # 学员信息（优先使用传入的学员姓名）
-                        'sStudentName': student_info.get('student_name') or record.get('StudentName') or '未知姓名',
-                        'sStudentCode': record['StudentCode'],
-                        'sGender': student_info.get('gender', '未知'),
-                        'sCardCode': record['CardCode'],
-                        # 班级信息
-                        'sClassName': record['ClassName'],
-                        'sClassCode': record['ClassCode'],
-                        'sSeatNo': record['CardCode'][-1] if record['CardCode'] and record['CardCode'][-2:][0] == '0' else record['CardCode'][-2:] if record['CardCode'] else '',
-                        'dtBeginDate': record['BeginDate'],
-                        'dtEndDate': record['EndDate'],
-                        'nTryLesson': '是' if record.get('TryLesson') else '否',
-                        # 时间信息
-                        'sRegisterTime': record['PrintTime'],
-                        'sPrintAddress': record['PrintAddress'],
-                        'sPrintTime': get_beijing_time_str(),
-                        'dtCreate': get_beijing_time_str(),
-                        # 费用信息（格式化为带人民币符号的字符串）
-                        'dFee': format_currency(record.get('Fee', 0)),  # 商品标准金额
-                        'dVoucherFee': format_currency(record.get('Voucher', 0)),  # 商品优惠金额
-                        'dShouldFee': format_currency(record.get('Fee', 0)),  # 商品应收金额
-                        'dRealFee': format_currency(record.get('UsedPay', 0)),  # 商品实收金额
-                        # 操作信息
-                        'sOperator': student_info.get('operator', 'system'),
-                        # 图像数据（可选）
-                        'RWMImage': ''
-                    }
-                }
-                class_records.append(certificate_data)
-                
+        if response.status_code != 200:
+            raise Exception(f"API请求失败，状态码: {response.status_code}")
+        
+        response_data = response.json()
+        json_string = response_data['Data']['JsonString']
+        json1 = json.loads(json_string)
+        return json1[0]
+        
     except Exception as e:
-        print(f"搜索班级记录时发生错误: {str(e)}")
-    
-    return class_records
+        print(f"获取批次 {proof_print_code} 的凭证信息失败: {str(e)}")
+        raise
 
 
-def search_account_records(cookies, headers, student_code, student_info):
+def search_ORDER(cookies, order_code):
     """
-    搜索学员充值提现记录
+    根据订单号获取报班凭证信息
     
     参数:
-        cookies: 认证cookies
-        headers: 请求头
-        student_code: 学员编码
-        student_info: 学员基本信息
+        cookies: 认证cookies字典
+        order_code: 订单号
     
     返回:
-        充值提现记录列表
+        成功: 返回包含报班凭证信息的列表
+        失败: 返回空列表
     """
-    account_records = []
+    print(f"search_ORDER 开始查询订单号: {order_code}")
     
+    headers = DEFAULT_HEADERS
+    
+    json_data = {
+        'schoolId': 35,
+        'pageIndex': 1,
+        'pageSize': 10,
+        'orderCode': order_code,
+        'batchCode': None,
+        'studentCode': None,
+        'studentName': None,
+        'classCode': None,
+        'goodsCode': None,
+        'operateTypeCode': None,
+        'batchStatus': None,
+        'operateName': None,
+        'createdOperator': None,
+        'channel': None,
+        'systemSource': None,
+        'payOpName': None,
+        'operateDate': None,
+        'payStatus': None,
+    }
+
     try:
-        # 查询学员账户充值提现记录（使用正确的API）
-        json_data = {
-            'SchoolId': 35,
-            'PageIndex': 1,
-            'PageSize': 40,
-            'Filters': [
-                {
-                    'Field': 'OrderStatus',
-                    'Operation': '0',
-                    'Value': '1',
-                    'Logic': 0,
-                },
-                {
-                    'Field': 'StudentCode',
-                    'Logic': 0,
-                    'Operation': '0',
-                    'Value': student_code,
-                },
-            ],
-            'Sort': [
-                {
-                    'Field': 'CompleteDate',
-                    'Dir': 1,
-                },
-            ],
-        }
-        
         response = requests.post(
-            'https://erp.xdf.cn/nises/apinises/StuStoreAccount/QueryStoreOrderPage',
+            'https://erp.xdf.cn/nises/apinises/order/OrderQueryWithPrivilege',
             cookies=cookies,
             headers=headers,
             json=json_data,
-            timeout=30
         )
         
-        if response.status_code == 200:
-            response_data = response.json()
-            print(f"充值提现API响应状态: {response.status_code}")
-            print(f"响应数据结构: {list(response_data.keys()) if response_data else 'None'}")
-            
-            data = response_data.get('Data', {}).get('Data', [])
-            print(f"找到记录数量: {len(data)}")
-            
-            for record in data:
-                order_type = record.get('OrderTypeName', '未知')
-                print(f"记录类型: {order_type}")
-                
-                # 只处理学员账户充值提现类型的记录
-                if record.get('OrderTypeName') == '学员账户提现':
-                    certificate_data = {
-                        'biz_type': 6,  # 学员账户凭证
-                        'biz_name': '提现凭证',  # 简化凭证名称
-                        'data': {
-                            "nSchoolId": 35,
-                            "sSchoolName": "南昌学校",
-                            "sTelePhone": "400-175-9898",
-                            "sOperator": student_info.get('operator', 'system'),
-                            "dtCreate": get_beijing_time_str(),
-                            "Title": "提现凭证",  # 简化标题
-                            "PrintNumber": 1,
-                            "YNVIEWPrint": 1,
-                            "PrintDocument": "",
-                            "sStudentCode": record['StudentCode'],
-                            "sStudentName": student_info.get('student_name') or record.get('StudentName') or '未知姓名',
-                            "sGender": student_info.get('gender', '未知'),
-                            "sPay": f"提现金额：{format_currency(record.get('Pay', 0))}",
-                            "dSumBalance": format_currency(record.get('Balance', 0)),
-                            "sPayType": f"提现方式：{record.get('PayTypeName', '未知')}",
-                            "dtCreateDate": record.get('TransactionTime', get_beijing_time_str()),
-                            "sProofName": "提现凭证",  # 简化凭证名称
-                            "sBizType": "提现",  # 业务类型标识
-                            "sRegZoneName": "客服行政"
-                        }
-                    }
-                    account_records.append(certificate_data)
-                elif record.get('OrderTypeName') == '学员账户充值':
-                    certificate_data = {
-                        'biz_type': 6,  # 学员账户凭证
-                        'biz_name': '充值凭证',  # 简化凭证名称
-                        'data': {
-                            "nSchoolId": 35,
-                            "sSchoolName": "南昌学校",
-                            "sTelePhone": "400-175-9898",
-                            "sOperator": student_info.get('operator', 'system'),
-                            "dtCreate": get_beijing_time_str(),
-                            "Title": "充值凭证",  # 简化标题
-                            "PrintNumber": 1,
-                            "YNVIEWPrint": 1,
-                            "PrintDocument": "",
-                            "sStudentCode": record['StudentCode'],
-                            "sStudentName": student_info.get('student_name') or record.get('StudentName') or '未知姓名',
-                            "sGender": student_info.get('gender', '未知'),
-                            "sPay": f"充值金额：{format_currency(record.get('Pay', 0))}",
-                            "dSumBalance": format_currency(record.get('Balance', 0)),
-                            "sPayType": f"充值方式：{record.get('PayTypeName', '未知')}",
-                            "dtCreateDate": record.get('TransactionTime', get_beijing_time_str()),
-                            "sProofName": "充值凭证",  # 简化凭证名称
-                            "sBizType": "充值",  # 业务类型标识
-                            "sRegZoneName": "客服行政"
-                        }
-                    }
-                    account_records.append(certificate_data)
-        else:
-            print(f"充值提现API请求失败，状态码: {response.status_code}")
-            print(f"响应内容: {response.text[:500]}")
-                
+        if response.status_code != 200:
+            return []
+        
+        result = []
+        for p in response.json()['Data']['Data']:
+            try:
+                # 根据操作类型确定业务类型
+                biz_type = 1 if p.get('operateType') == '报班' else 3  # 1=报班凭证, 3=退班凭证
+                biz_name = '报班凭证' if p.get('operateType') == '报班' else '退班凭证'
+                tips = getProofByBizType(cookies, biz_type, p['batchCode'])
+                if tips:
+                    result.append({
+                        'biz_type': biz_type,
+                        'biz_name': biz_name,
+                        'data': tips,
+                        'description': generate_certificate_description(biz_type, tips)
+                    })
+            except:
+                continue
+        return result
+        
     except Exception as e:
-        print(f"搜索账户记录时发生错误: {str(e)}")
-        import traceback
-        traceback.print_exc()
+        print(f"查询订单 {order_code} 失败: {str(e)}")
+        return []
+
+
+def search_HighORDER(cookies, order_code):
+    """
+    查询高端订单信息
+    """
+    headers = {
+        'Accept': 'application/json, text/plain, */*',
+        'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+        'Pragma': 'no-cache',
+        'Referer': 'https://erp.xdf.cn/vipnis/out-order/list?schoolId=35&systemSource=bm3&appId=bm3t%3D1750734573946',
+        'Sec-Fetch-Dest': 'empty',
+        'Sec-Fetch-Mode': 'cors',
+        'Sec-Fetch-Site': 'same-origin',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0',
+        'X-Requested-With': 'XMLHttpRequest',
+        'schoolId': '35',
+        'sec-ch-ua': '"Microsoft Edge";v="137", "Chromium";v="137", "Not/A)Brand";v="24"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-platform': '"Windows"',
+    }
+
+    params = {
+        'searchCondition': order_code,
+        'pageNo': '1',
+        'pageSize': '10',
+        'schoolId': '35',
+        'listFlag': '2',
+        't': '1750735627806',
+    }
     
-    print(f"最终返回账户记录数量: {len(account_records)}")
-    return account_records
+    try:
+        response = requests.get(
+            'https://erp.xdf.cn/biz-vipnis/api/v1/biz/order/getOrderList',
+            params=params,
+            cookies=cookies,
+            headers=headers,
+        )
+        
+        if response.status_code != 200:
+            return None
+            
+        order_data = response.json()['data']['orderInfoList'][0]
+        x = getProofByHighBizType(cookies, order_code)
+        if x:
+            x['totalAmount'] = order_data['totalAmount']
+            x['realAmount'] = order_data['realAmount']
+            x['recieveAmount'] = order_data['recieveAmount']
+            x['discountAmount'] = order_data['discountAmount']
+            
+            # 返回标准格式
+            return {
+                'biz_type': 5,  # 高端报名凭证
+                'biz_name': '高端报名凭证',
+                'data': x,
+                'description': generate_certificate_description(5, x)
+            }
+        return None
+        
+    except Exception as e:
+        print(f"查询高端订单 {order_code} 失败: {str(e)}")
+        return None
+
+
+def getProofByHighBizType(cookies, order_code):
+    """
+    获取高端订单凭证信息
+    """
+    headers = {
+        'Accept': 'application/json, text/plain, */*',
+        'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+        'Pragma': 'no-cache',
+        'Referer': 'https://erp.xdf.cn/vipnis/out-order/list?schoolId=35&systemSource=bm3&appId=bm3t%3D1750734573946',
+        'Sec-Fetch-Dest': 'empty',
+        'Sec-Fetch-Mode': 'cors',
+        'Sec-Fetch-Site': 'same-origin',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0',
+        'X-Requested-With': 'XMLHttpRequest',
+        'schoolId': '35',
+        'sec-ch-ua': '"Microsoft Edge";v="137", "Chromium";v="137", "Not/A)Brand";v="24"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-platform': '"Windows"',
+    }
+
+    params = {
+        'orderCode': order_code,
+        'schoolId': '35',
+        't': '1750732256246',
+    }
+
+    try:
+        response = requests.get(
+            'https://erp.xdf.cn/biz-vipnis/api/v1/biz/order/getOrderInfo',
+            params=params,
+            cookies=cookies,
+            headers=headers,
+        )
+        
+        if response.status_code != 200:
+            return None
+            
+        data = response.json()['data']
+        
+        try:
+            return {
+                "contractNo": data['productInfoList'][0]['contractNo'],
+                'payTime': data['payTime'],
+                'phone': data['phone'],
+                'productName': data['productInfoList'][0]['productName'],
+                'buyLessonNum': data['productInfoList'][0]['buyLessonNum'],
+                'giftLessonNum': data['productInfoList'][0]['giftLessonNum'],
+                'lessonNum': data['productInfoList'][0]['lessonNum'],
+                'gradeName': data['gradeName'],
+                'lessonFee': data['productInfoList'][0]['lessonFee'],
+                'studentCode': data['studentCode'],
+                'studentName': data['studentName'],
+                'orderCode': data['orderCode'],
+                'payInfo': f'{data["payInfo"][0]["payType"]}:¥{data["payInfo"][0]["payAmount"]}'
+            }
+        except:
+            return None
+            
+    except Exception as e:
+        print(f"获取高端订单凭证信息失败: {str(e)}")
+        return None
 
 
 def search_student(cookies, current_user, student_code):
     """
-    搜索学员所有类型的凭证信息
+    根据学员号搜索学员的所有凭证信息
+    基于新的凭证信息.py文件逻辑重新实现
     
     参数:
-        cookies: 认证cookies字典，如果为None或空，将使用DEFAULT_COOKIES
-        current_user: 当前用户对象，用于记录操作者信息
-        student_code: 学生编号字符串
+        cookies: 认证cookies字典 
+        current_user: 当前用户对象
+        student_code: 学员号
     
     返回:
-        成功: 返回包含学员信息和所有凭证数据的字典
-        失败: 返回错误码
-               - 0: 未找到该学员
-               - 404: 网络请求失败或API调用失败
+        成功: 返回包含所有凭证信息的列表
+        失败: 返回0(学员不存在)或404(请求失败)
     """
-    # 如果没有提供cookies，使用默认配置
-    if not cookies or cookies == 1:
+    print(f"search_student 开始查询学员: {student_code}")
+    
+    # 如果没有提供cookies，使用默认cookies
+    if not cookies:
         cookies = DEFAULT_COOKIES
     
-    headers = {
-        'Accept': 'application/json, text/plain, */*',
-        'Accept-Language': 'zh-CN,zh;q=0.9',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-        'Content-Type': 'application/json;charset=UTF-8',
-        'Origin': 'https://erp.xdf.cn',
-        'Pragma': 'no-cache',
-        'Referer': 'https://erp.xdf.cn/nis/index',
-        'Sec-Fetch-Dest': 'empty',
-        'Sec-Fetch-Mode': 'cors',
-        'Sec-Fetch-Site': 'same-origin',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36',
-        'X-Requested-With': 'XMLHttpRequest',
-        'appSourceKey': 'nis-lm',
-        'authorization': 'e2at',
-        'school': '35',
-        'schoolId': '35',
-        'sec-ch-ua': '"Google Chrome";v="137", "Chromium";v="137", "Not/A)Brand";v="24"',
-        'sec-ch-ua-mobile': '?0',
-        'sec-ch-ua-platform': '"Windows"',
+    headers = DEFAULT_HEADERS
+    
+    # 1. 查询学员基本信息
+    json_data = {
+        'SchoolId': 35,
+        'QueryValue': student_code,
+        'PageIndex': 1,
+        'PageSize': 10,
     }
     
     try:
-        # 第一步：根据学生编号查询学生基本信息
-        json_data = {
-            'SchoolId': 35,
-            'QueryValue': student_code,
-            'PageIndex': 1,
-            'PageSize': 10,
-        }
-        
         response = requests.post(
             'https://erp.xdf.cn/apinisbff/Student/QueryStudentWithBound',
             cookies=cookies,
             headers=headers,
             json=json_data,
-            timeout=30
         )
         
-        if response.status_code != 200:
-            print(f"QueryStudentWithBound API失败，状态码: {response.status_code}")
+        print(f"QueryStudentWithBound API 响应状态码: {response.status_code}")
+        if response.status_code == 200:
+            response_json = response.json()
+            print(f"API 响应消息: {response_json.get('Msg', 'No message')}")
+            print(f"API 响应结构: {list(response_json.keys())}")
+            if 'Data' in response_json:
+                print(f"Data字段类型: {type(response_json['Data'])}")
+                if response_json['Data']:
+                    print(f"Data字段内容预览: {str(response_json['Data'])[:200]}...")
+        elif response.status_code == 403:
+            # 处理403错误，通常表示认证失败
+            print(f"API 响应内容: {response.text}")
+            try:
+                response_json = response.json()
+                if response_json.get('msg') == 'REDIRECT TO SSO' or 'redirect' in response_json:
+                    print("检测到SSO重定向，cookies已过期")
+                    print("解决方案：")
+                    print("1. 重新登录ERP系统")
+                    print("2. 获取最新的cookies")
+                    print("3. 在系统中更新cookies配置")
+                else:
+                    print(f"403错误详情: {response_json}")
+            except:
+                print("403错误，无法解析响应内容")
             return 404
+        else:
+            print(f"API 响应内容: {response.text[:500]}...")
         
-        first_response = response.json()
-        print(f"QueryStudentWithBound API响应结构: {list(first_response.keys()) if first_response else 'None'}")
+        if response.status_code != 200:
+            return 404
             
-        if first_response.get('Msg') == '没有找到学员！':
+        response_json = response.json()
+        if response_json.get('Msg') == '没有找到学员！':
             return 0
         
-        # 尝试从第一个API获取学员姓名作为备用
-        backup_student_name = None
-        if 'Data' in first_response and first_response['Data']:
-            first_student = first_response['Data'][0] if isinstance(first_response['Data'], list) else first_response['Data']
-            backup_student_name = (first_student.get('StudentName') or 
-                                 first_student.get('Name') or 
-                                 first_student.get('RealName'))
-            print(f"从第一个API获取的备用姓名: '{backup_student_name}'")
+        # 检查是否真的找到了学员数据
+        if not response_json.get('Data') or not response_json['Data'].get('studentInfo') or not response_json['Data']['studentInfo'].get('Data'):
+            print("API返回成功但没有找到学员数据")
+            return 0
         
-        # 第二步：获取学生详细信息
-        json_data = {
-            'SchoolId': 35,
-            'StudentCode': student_code,
-            'EnType': True,
-        }
-
-        response = requests.post(
-            'https://erp.xdf.cn/apinisbff/Student/QueryBrief', 
+        student_list = response_json['Data']['studentInfo']['Data']
+        if not student_list:
+            print("学员数据列表为空")
+            return 0
+        
+        print(f"找到 {len(student_list)} 个学员记录")
+        # 使用第一个学员记录
+        student_info = student_list[0]
+        print(f"学员信息: {student_info.get('Name', '未知')} ({student_info.get('Code', '未知')})")
+        
+    except Exception as e:
+        print(f"查询学员基本信息失败: {str(e)}")
+        return 404
+    
+    # 2. 查询学员充值提现记录
+    json_data1 = {
+        'SchoolId': 35,
+        'PageIndex': 1,
+        'PageSize': 40,
+        'Filters': [
+            {
+                'Field': 'OrderStatus',
+                'Operation': '0',
+                'Value': '1',
+                'Logic': 0,
+            },
+            {
+                'Field': 'StudentCode',
+                'Logic': 0,
+                'Operation': '0',
+                'Value': student_code,
+            },
+        ],
+        'Sort': [
+            {
+                'Field': 'CompleteDate',
+                'Dir': 1,
+            },
+        ],
+    }
+    
+    try:
+        response1 = requests.post(
+            'https://erp.xdf.cn/nises/apinises/StuStoreAccount/QueryStoreOrderPage',
             cookies=cookies,
-            headers=headers, 
-            json=json_data,
-            timeout=30
+            headers=headers,
+            json=json_data1,
         )
-        
-        if response.status_code != 200:
-            print(f"QueryBrief API失败，状态码: {response.status_code}")
-            return 404
-            
-        brief_response = response.json()
-        print(f"QueryBrief API响应结构: {list(brief_response.keys()) if brief_response else 'None'}")
-        
-        if 'Data' not in brief_response:
-            print("QueryBrief响应中没有Data字段")
-            return 404
-            
-        query_brief = brief_response['Data']
-        print(f"学员详细信息字段: {list(query_brief.keys()) if query_brief else 'None'}")
-        
-        s_gender = query_brief.get('Gender', 0)
+    except Exception as e:
+        print(f"查询充值提现记录失败: {str(e)}")
+        response1 = None
+    
+    # 3. 查询学员性别信息
+    json_data = {
+        'SchoolId': 35,
+        'StudentCode': student_code,
+        'EnType': True,
+    }
+    
+    try:
+        response = requests.post('https://erp.xdf.cn/apinisbff/Student/QueryBrief', 
+                               cookies=cookies, headers=headers, json=json_data)
+        query_brief = response.json()['Data']
+        s_gender = query_brief['Gender']
         if s_gender == 1:
             s_gender = '男'
         elif s_gender == 2:
             s_gender = '女'
+        elif s_gender == 3:
+            s_gender = '未知'
         else:
             s_gender = '未知'
-
-        # 尝试多个可能的姓名字段，如果都没有则使用备用姓名
-        student_name = (query_brief.get('StudentName') or 
-                       query_brief.get('Name') or 
-                       query_brief.get('RealName') or 
-                       query_brief.get('sStudentName') or
-                       backup_student_name or
-                       '未知姓名')
-        
-        print(f"最终提取的学员姓名: '{student_name}', 性别: '{s_gender}'")
-
-        # 构建学员基本信息
-        # 操作员逻辑：如果姓名为空、None或"未设置"，则使用用户名
-        operator_name = 'system'
-        if current_user:
-            if current_user.name and current_user.name.strip() and current_user.name.strip() != '未设置':
-                operator_name = current_user.name.strip()
-            else:
-                operator_name = current_user.username
-        
-        student_info = {
-            'student_name': student_name,
-            'gender': s_gender,
-            'operator': operator_name,
-            'reports': []
-        }
-
-        # 第三步：搜索所有类型的凭证记录
-        all_records = []
-        
-        # 搜索班级凭证记录
-        class_records = search_class_records(cookies, headers, student_code, student_info)
-        all_records.extend(class_records)
-        
-        # 搜索充值提现记录
-        account_records = search_account_records(cookies, headers, student_code, student_info)
-        all_records.extend(account_records)
-        
-        # 将所有记录添加到学员信息中
-        student_info['reports'] = all_records
-        
-        # 生成报班凭证测试数据
-        enrollment_test_data = generate_test_enrollment_registration_data(student_info)
-        student_info['enrollment_test_data'] = enrollment_test_data
-        
-        # 按订单号分组报班凭证（如果有的话）
-        if student_info['reports']:
-            student_info['reports'] = group_enrollment_data_by_order(student_info['reports'])
-        
-        return student_info
-        
-    except requests.exceptions.RequestException as e:
-        print(f"网络请求错误: {str(e)}")
-        return 404
     except Exception as e:
-        print(f"搜索学生凭证信息时发生错误: {str(e)}")
-        return 404
-
-
-# 为了保持向后兼容，提供别名
-def search_student_classes(cookies, current_user, student_code):
-    """search_student函数的别名，用于向后兼容"""
-    return search_student(cookies, current_user, student_code)
-
-
-def test_currency_format():
-    """测试金额格式化功能"""
-    test_cases = [
-        (1000, "¥1,000.00"),
-        (1234.56, "¥1,234.56"),
-        ("2500", "¥2,500.00"),
-        (0, "¥0.00"),
-        (None, "¥0.00"),
-        ("", "¥0.00"),
-        ("¥3000", "¥3,000.00"),
-        (123456.789, "¥123,456.79")
-    ]
+        print(f"查询学员性别失败: {str(e)}")
+        s_gender = '未知'
     
-    print("测试金额格式化功能:")
-    for amount, expected in test_cases:
-        result = format_currency(amount)
-        status = "✓" if result == expected else "✗"
-        print(f"{status} format_currency({amount}) = {result} (期望: {expected})")
-
-
-def generate_test_enrollment_registration_data(student_info):
-    """
-    生成班级凭证测试数据
-    
-    参数:
-        student_info: 学员基本信息
-    
-    返回:
-        班级凭证测试数据字典
-    """
-    # 随机生成1-7条班级数据
-    class_count = random.randint(1, 7)
-    
-    # 班级模板数据
-    class_templates = [
-        {'code': 'MATH001', 'name': '数学基础班', 'subject': '数学'},
-        {'code': 'ENG001', 'name': '英语提高班', 'subject': '英语'},
-        {'code': 'PHY001', 'name': '物理基础班', 'subject': '物理'},
-        {'code': 'CHEM001', 'name': '化学实验班', 'subject': '化学'},
-        {'code': 'LANG001', 'name': '语文阅读班', 'subject': '语文'},
-        {'code': 'HIST001', 'name': '历史文化班', 'subject': '历史'},
-        {'code': 'GEO001', 'name': '地理探索班', 'subject': '地理'},
-    ]
-    
-    # 随机选择班级
-    selected_classes = random.sample(class_templates, min(class_count, len(class_templates)))
-    
-    # 生成订单号
-    order_code = f"ORD{datetime.now().strftime('%Y%m%d')}{random.randint(1000, 9999)}"
-    
-    # 生成班级数据
-    class_array = []
-    total_should_fee = 0
-    total_fee = 0
-    total_discount = 0
-    
-    for i, class_template in enumerate(selected_classes):
-        # 随机生成费用
-        standard_fee = random.randint(1200, 2000)
-        discount_fee = random.randint(50, 200)
-        should_fee = standard_fee
-        register_fee = standard_fee - discount_fee
-        
-        total_should_fee += should_fee
-        total_fee += register_fee
-        total_discount += discount_fee
-        
-        class_data = {
-            "sSeatNo": f"{chr(65+i)}{str(i+1).zfill(3)}",  # A001, B002, etc.
-            "sClassCode": class_template['code'],
-            "sClassName": class_template['name'],
-            "dtBeginDate": f"2024-{str((i%12)+1).zfill(2)}-15",
-            "dtEndDate": f"2024-{str(((i%12)+3)%12+1).zfill(2)}-15",
-            "sRegisterTime": f"2024-01-{str(10+i)} 报名成功",
-            "sPrintAddress": f"南昌市朝阳区XX路XX号{i+1}01教室",
-            "sPrintTime": f"2024-{str((i%12)+1).zfill(2)}-15 {9+(i%6)}:00-{12+(i%6)}:00",
-            "nTryLesson": str(i % 3),
-            "dVoucherFee": discount_fee,
-            "dFee": standard_fee,
-            "dRegisterFee": register_fee,
-            "dClassVoucherFee": discount_fee,
-            "dShouldFee": should_fee
-        }
-        class_array.append(class_data)
-    
-    # 构建完整的测试数据
-    test_data = {
-        # 主订单信息
-        "sOrderCode": order_code,
-        "sBatchCode": f"BATCH{random.randint(100, 999)}",
-        "Discounttype": total_discount,  # 优惠金额
-        "BizType": "报班",
-        "sChannel": "直营",
-        "sPayType": "现金支付",
-        "sSchoolName": "南昌新东方培训学校",
-        "sTelePhone": "400-175-9898",
-        "sOperator": student_info.get('operator', 'system'),
-        "dtCreate": get_beijing_time_str(),
-        "feedBackTitle": "客服热线：400-175-9898",
-        "feedBackImg": "",
-        "microServiceTitle": "微信公众号：南昌新东方",
-        "microServiceImg": "",
-        "RWMImage": "",
-        
-        # 费用汇总
-        "dShouldFee": total_should_fee,  # 应收金额
-        "dFee": total_fee,  # 实收金额
-        "dReturnFee": 0.0,  # 退费金额
-        
-        # 学生信息
-        "Student": {
-            "sStudentName": student_info.get('student_name', '测试学员'),
-            "sStudentCode": f"STU{datetime.now().strftime('%Y%m%d')}{random.randint(1000, 9999)}",
-            "sGender": student_info.get('gender', '未知'),
-            "sMobile": f"138{random.randint(10000000, 99999999)}"
-        },
-        
-        # 班级和卡片信息数组
-        "ClassAndCardArray": class_array
+    # 4. 查询班级信息
+    json_data = {
+        'SchoolId': 35,
+        'PageIndex': 1,
+        'PageSize': 40,
+        'Filters': [
+            {
+                'Field': 'StudentCode',
+                'Operation': 0,
+                'Value': student_code,
+                'Logic': 0,
+            },
+            {
+                'Field': 'CustomizedClassStatus',
+                'Operation': 10,
+                'Value': '0',
+                'Logic': 0,
+            },
+            {
+                'Field': 'OutType',
+                'Operation': 10,
+                'Value': '0',
+                'Logic': 0,
+            },
+        ],
+        'Sort': [
+            {
+                'Field': 'InTime',
+                'Dir': 1,
+            },
+        ],
     }
     
-    return test_data
+    try:
+        response = requests.post(
+            'https://erp.xdf.cn/nises/apinises/roster/homePageRosterRecordQuerySign',
+            cookies=cookies,
+            headers=headers,
+            json=json_data,
+        )
+        class_data = response.json()['Data']['Data'] if response.status_code == 200 else []
+    except Exception as e:
+        print(f"查询班级信息失败: {str(e)}")
+        class_data = []
+    
+    # 5. 查询订单信息
+    json_data2 = {
+        'schoolId': 35,
+        'pageIndex': 1,
+        'pageSize': 40,
+        'orderCode': None,
+        'batchCode': None,
+        'studentCode': student_code,
+        'studentName': None,
+        'classCode': None,
+        'goodsCode': None,
+        'operateTypeCode': None,
+        'batchStatus': None,
+        'operateName': None,
+        'createdOperator': None,
+        'channel': None,
+        'systemSource': None,
+        'payOpName': None,
+        'operateDate': None,
+        'payStatus': None,
+    }
+    
+    try:
+        response2 = requests.post(
+            'https://erp.xdf.cn/nises/apinises/order/OrderQueryWithPrivilege',
+            cookies=cookies,
+            headers=headers,
+            json=json_data2,
+        )
+        order_data = response2.json()['Data']['Data'] if response2.status_code == 200 else []
+    except Exception as e:
+        print(f"查询订单信息失败: {str(e)}")
+        order_data = []
+    
+    # 6. 查询高端订单信息
+    params = {
+        'operateTypeCode': 'B',
+        'searchCondition': student_code,
+        'pageNo': '1',
+        'pageSize': '40',
+        'schoolId': '35',
+        'listFlag': '2',
+        't': '1750731323395',
+    }
 
-
-def generate_test_class_certificate_data(student_info, student_code):
-    """
-    生成班级凭证测试数据 - 用于测试分页和集成打印功能
+    try:
+        response3 = requests.get(
+            'https://erp.xdf.cn/biz-vipnis/api/v1/biz/order/getOrderList',
+            params=params,
+            cookies=cookies,
+            headers=headers,
+        )
+        high_order_data = response3.json()['data']['orderInfoList'] if response3.status_code == 200 else []
+    except Exception as e:
+        print(f"查询高端订单信息失败: {str(e)}")
+        high_order_data = []
     
-    参数:
-        student_info: 学员基本信息
-        student_code: 学员编码
+    # 7. 组装数据
+    data = []
     
-    返回:
-        班级凭证测试数据列表 (随机1-7条记录)
-    """
-    import random
-    from datetime import datetime, timedelta
-    
-    # 随机生成1-7条班级凭证数据
-    record_count = random.randint(1, 7)
-    
-    # 班级凭证模板数据
-    class_templates = [
-        {
-            'class_code': 'MATH2024001', 
-            'class_name': '初中数学培优班', 
-            'subject': '数学',
-            'teacher': '王老师',
-            'room': '数学专用教室A'
-        },
-        {
-            'class_code': 'ENG2024002', 
-            'class_name': '高中英语强化班', 
-            'subject': '英语',
-            'teacher': '李老师',
-            'room': '英语听力室B'
-        },
-        {
-            'class_code': 'PHY2024003', 
-            'class_name': '物理实验提高班', 
-            'subject': '物理',
-            'teacher': '张老师',
-            'room': '物理实验室C'
-        },
-        {
-            'class_code': 'CHEM2024004', 
-            'class_name': '化学综合班', 
-            'subject': '化学',
-            'teacher': '赵老师',
-            'room': '化学实验室D'
-        },
-        {
-            'class_code': 'LANG2024005', 
-            'class_name': '语文阅读写作班', 
-            'subject': '语文',
-            'teacher': '孙老师',
-            'room': '文学阅览室E'
-        },
-        {
-            'class_code': 'HIST2024006', 
-            'class_name': '历史文化素养班', 
-            'subject': '历史',
-            'teacher': '周老师',
-            'room': '人文教室F'
-        },
-        {
-            'class_code': 'GEO2024007', 
-            'class_name': '地理探索班', 
-            'subject': '地理',
-            'teacher': '吴老师',
-            'room': '地理专用室G'
-        }
-    ]
-    
-    # 随机选择班级模板
-    selected_templates = random.sample(class_templates, min(record_count, len(class_templates)))
-    
-    # 生成班级凭证数据
-    class_certificate_records = []
-    base_date = datetime.now()
-    
-    for i, template in enumerate(selected_templates):
-        # 随机生成时间
-        start_date = base_date + timedelta(days=random.randint(1, 30))
-        end_date = start_date + timedelta(days=random.randint(60, 120))
-        
-        # 随机生成费用
-        standard_fee = random.randint(1500, 2500)
-        discount_fee = random.randint(100, 300)
-        actual_fee = standard_fee - discount_fee
-        
-        # 生成卡片编码
-        card_code = f"CARD{start_date.strftime('%Y%m')}{random.randint(1000, 9999)}"
-        
-        # 生成座位号
-        seat_no = f"{chr(65 + i)}{str(random.randint(1, 30)).zfill(2)}"
-        
-        # 构建班级凭证数据
-        certificate_data = {
-            'biz_type': 5,  # 班级凭证
+    # 7.1 添加班级凭证
+    for d in class_data:
+        a = {
+            'biz_type': 101,  # 班级凭证
             'biz_name': '班级凭证',
             'data': {
                 # 基本信息
-                'sSchoolName': '南昌新东方培训学校',
+                'sSchoolName': '南昌学校',
                 'sTelePhone': '400-175-9898',
                 'sChannel': '直营',
-                
                 # 学员信息
-                'sStudentName': student_info.get('student_name', '测试学员'),
-                'sStudentCode': student_code,
-                'sGender': student_info.get('gender', '未知'),
-                'sCardCode': card_code,
-                
+                'sStudentName': d['StudentName'],
+                'sStudentCode': d['StudentCode'],
+                'sGender': s_gender,
+                'sCardCode': d['CardCode'],
                 # 班级信息
-                'sClassName': template['class_name'],
-                'sClassCode': template['class_code'],
-                'sSeatNo': seat_no,
-                'sTeacher': template['teacher'],
-                'sClassRoom': template['room'],
-                'sSubject': template['subject'],
-                
+                'sClassName': d['ClassName'],
+                'sClassCode': d['ClassCode'],
+                'sSeatNo': d['CardCode'][-1] if d['CardCode'][-2] == '0' else d['CardCode'][-2:],
+                'dtBeginDate': d['BeginDate'],
+                'dtEndDate': d['EndDate'],
+                'nTryLesson': d['TryLesson'],
                 # 时间信息
-                'dtBeginDate': start_date.strftime('%Y-%m-%d'),
-                'dtEndDate': end_date.strftime('%Y-%m-%d'),
-                'sRegisterTime': f"{base_date.strftime('%Y-%m-%d')} 报名成功",
-                'sPrintAddress': f"南昌市朝阳区学府路{random.randint(1, 999)}号{template['room']}",
-                'sPrintTime': get_beijing_time_str(),
-                'dtCreate': get_beijing_time_str(),
-                
-                # 费用信息（格式化为带人民币符号的字符串）
-                'dFee': format_currency(standard_fee),  # 商品标准金额
-                'dVoucherFee': format_currency(discount_fee),  # 商品优惠金额
-                'dShouldFee': format_currency(standard_fee),  # 商品应收金额
-                'dRealFee': format_currency(actual_fee),  # 商品实收金额
-                
-                # 试听信息
-                'nTryLesson': '是' if random.choice([True, False]) else '否',
-                'nTryLessonCount': str(random.randint(0, 3)),
-                
+                'sRegisterTime': d['PrintTime'],
+                'sPrintAddress': d['PrintAddress'],
+                'sPrintTime': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                'dtCreate': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                # 费用信息
+                'dFee': d['Fee'],  # 商品标准金额
+                'dVoucherFee': d['Voucher'],  # 商品优惠金额
+                'dShouldFee': d['Fee'],  # 商品应收金额
+                'dRealFee': d['UsedPay'],  # 商品实收金额
                 # 操作信息
-                'sOperator': student_info.get('operator', 'system'),
-                
-                # 状态信息
-                'sStatus': '已报名',
-                'sPayStatus': '已缴费',
-                
+                'sOperator': current_user.username,
                 # 图像数据（可选）
-                'RWMImage': ''
+                'RWMImage': '',
             }
         }
-        
-        class_certificate_records.append(certificate_data)
+        data.append(a)
     
-    print(f"生成了 {len(class_certificate_records)} 条班级凭证测试数据")
+    # 7.2 添加充值提现凭证
+    if response1 and response1.status_code == 200:
+        for B in response1.json()['Data']['Data']:
+            if B['OrderTypeName'] == '学员账户充值提现':
+                certificate_data = {
+                    "nSchoolId": 35,
+                    "sSchoolName": "南昌学校",
+                    "sTelePhone": "400-175-9898",
+                    "sOperator": current_user.username,
+                    "dtCreate": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "Title": "提现凭证",
+                    "PrintNumber": 1,
+                    "YNVIEWPrint": 1,
+                    "PrintDocument": "",
+                    "sStudentCode": B['StudentCode'],
+                    "sStudentName": B['StudentName'],
+                    "sGender": s_gender,
+                    "dSumBalance": f"余额：¥{B['Balance']}",
+                    "sPayType": f"{B['PayTypeName']}：{B['PayTypeName']}¥{B['Pay']}",
+                    "dtCreateDate": B['TransactionTime'],
+                    "sProofName": "学员账户充值提现凭证",
+                    "sBizType": "提现",
+                    "sRegZoneName": "客服行政"
+                }
+                c = {
+                    'biz_type': 6,
+                    'biz_name': '学员账户充值提现凭证',
+                    'data': certificate_data,
+                    'description': generate_certificate_description(6, certificate_data)
+                }
+                data.append(c)
+            elif B['OrderTypeName'] == '学员账户充值':
+                certificate_data = {
+                    "nSchoolId": 35,
+                    "sSchoolName": "南昌学校",
+                    "sTelePhone": "400-175-9898",
+                    "sOperator": current_user.username,
+                    "dtCreate": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "Title": "充值凭证",
+                    "PrintNumber": 1,
+                    "YNVIEWPrint": 1,
+                    "PrintDocument": "",
+                    "sStudentCode": B['StudentCode'],
+                    "sStudentName": B['StudentName'],
+                    "sGender": s_gender,
+                    "dSumBalance": f"余额：¥{B['Balance']}",
+                    "sPayType": f"{B['PayTypeName']}：{B['PayTypeName']}¥{B['Pay']}",
+                    "dtCreateDate": B['TransactionTime'],
+                    "sProofName": "学员账户充值凭证",
+                    "sBizType": "充值",
+                    "sRegZoneName": "客服行政"
+                }
+                c = {
+                    'biz_type': 6,
+                    'biz_name': '学员账户充值凭证',
+                    'data': certificate_data,
+                    'description': generate_certificate_description(6, certificate_data)
+                }
+                data.append(c)
     
-    return class_certificate_records
-
-
-def generate_test_class_certificate_for_printing(student_info, student_code, count=None):
-    """
-    专门为打印功能生成班级凭证测试数据
+    # 7.3 添加报班/退班凭证
+    for C in order_data:
+        if C['batchStatusName'] == '交易成功' and C['operateType'] == '退班':
+            try:
+                F = getProofByBizType(cookies, 3, C['batchCode'])  # 3 = 退班凭证
+                if F:
+                    data.append({
+                        'biz_type': 3,
+                        'biz_name': '退班凭证',
+                        'data': F,
+                        'description': generate_certificate_description(3, F)
+                    })
+            except Exception as e:
+                print(f"获取退班凭证失败: {str(e)}")
+                continue
+        elif C['batchStatusName'] == '交易成功' and C['operateType'] == '报班':
+            try:
+                F = getProofByBizType(cookies, 1, C['batchCode'])  # 1 = 报班凭证
+                if F:
+                    description = generate_certificate_description(1, F)
+                    print(f"报班凭证添加到结果 - 批次: {C['batchCode']}, 描述: '{description}'")  # 调试
+                    data.append({
+                        'biz_type': 1,
+                        'biz_name': '报班凭证',
+                        'data': F,
+                        'description': description
+                    })
+            except Exception as e:
+                print(f"获取报班凭证失败: {str(e)}")
+                continue
     
-    参数:
-        student_info: 学员基本信息
-        student_code: 学员编码  
-        count: 指定生成数量，None表示随机1-7条
+    # 7.4 添加高端订单凭证
+    for D in high_order_data:
+        try:
+            x = getProofByHighBizType(cookies, D['orderCode'])
+            if x:
+                x['totalAmount'] = D['totalAmount']
+                x['realAmount'] = D['realAmount']
+                x['recieveAmount'] = D['recieveAmount']
+                x['discountAmount'] = D['discountAmount']
+                data.append({
+                    'biz_type': 4,  # 假设高端订单凭证使用biz_type 4
+                    'biz_name': '高端报名凭证',
+                    'data': x,
+                    'description': generate_certificate_description(4, x)
+                })
+        except Exception as e:
+            print(f"获取高端订单凭证失败: {str(e)}")
+            continue
     
-    返回:
-        适用于打印的班级凭证数据列表
-    """
-    if count is None:
-        count = random.randint(1, 7)
+    print(f"search_student 返回 {len(data)} 条凭证记录")
     
-    # 调用主要的生成函数
-    class_records = generate_test_class_certificate_data(student_info, student_code)
-    
-    # 如果指定了数量，调整记录数
-    if count != len(class_records):
-        if count > len(class_records):
-            # 需要更多记录，复制现有记录并修改
-            additional_needed = count - len(class_records)
-            for i in range(additional_needed):
-                base_record = class_records[i % len(class_records)].copy()
-                # 修改一些字段使其不同
-                base_record['data']['sClassCode'] += f"_EXT{i+1}"
-                base_record['data']['sClassName'] += f" (扩展班{i+1})"
-                class_records.append(base_record)
-        else:
-            # 需要较少记录，截取
-            class_records = class_records[:count]
-    
-    print(f"为打印功能生成了 {len(class_records)} 条班级凭证数据（分页测试用）")
-    
-    return class_records
+    # 返回标准格式，包含学员信息和凭证列表
+    return {
+        'student_name': student_info.get('Name', '未知'),
+        'student_code': student_info.get('Code', student_code),
+        'gender': s_gender,
+        'operator': current_user.name if current_user and current_user.name else current_user.username if current_user else '系统',
+        'reports': data
+    }
 
 
 def search_order(cookies, current_user, order_code):
     """
-    根据订单号搜索报班凭证信息
+    根据订单号搜索凭证信息（统一返回格式）
     
     参数:
-        cookies: 认证cookies字典，如果为None则使用默认cookies
-        current_user: 当前用户对象
+        cookies: 认证cookies字典
+        current_user: 当前用户对象  
         order_code: 订单号
     
     返回:
-        成功: 返回包含订单信息和报班凭证数据的字典
-        订单不存在: 返回 0
-        请求失败: 返回 404
+        成功: 返回与search_student相同的格式
+        失败: 返回0或404
     """
-    print(f"开始搜索订单号: {order_code}")
+    print(f"search_order 开始查询订单号: {order_code}")
     
-    # 如果没有提供cookies，使用默认配置
+    # 如果没有提供cookies，使用默认cookies
     if not cookies:
         cookies = DEFAULT_COOKIES
-        print("使用默认cookies配置")
     
-    # 设置请求头
-    headers = {
-        'accept': 'application/json, text/plain, */*',
-        'accept-language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
-        'content-type': 'application/json',
-        'origin': 'https://erp.xdf.cn',
-        'referer': 'https://erp.xdf.cn/fis3/static/edu-enrollment/business/enrollment-registration/enrollment-registration-query.html',
-        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    # 1. 尝试查询普通订单
+    reports = search_ORDER(cookies, order_code)
+    
+    # 2. 如果普通订单没有结果，尝试查询高端订单
+    if not reports:
+        high_order = search_HighORDER(cookies, order_code)
+        if high_order:
+            reports = [high_order]
+    
+    if not reports:
+        print("未找到订单凭证信息")
+        return 0
+    
+    # 3. 尝试从凭证数据中提取学员信息
+    student_name = '未知'
+    student_code = '未知'
+    
+    # 从第一个凭证中提取学员信息
+    if reports and reports[0].get('data'):
+        first_report = reports[0]['data']
+        
+        # 尝试多种方式获取学员信息
+        if 'Student' in first_report and first_report['Student']:
+            student_info = first_report['Student']
+            student_name = student_info.get('sStudentName', '未知')
+            student_code = student_info.get('sStudentCode', '未知')
+        else:
+            student_name = first_report.get('sStudentName') or first_report.get('studentName') or '未知'
+            student_code = first_report.get('sStudentCode') or first_report.get('studentCode') or '未知'
+        
+        print(f"订单查询 - 提取学员信息: 姓名={student_name}, 编码={student_code}")  # 调试
+    
+    # 4. 返回与search_student相同的格式
+    result = {
+        'student_name': student_name,
+        'student_code': student_code,
+        'gender': '未知',
+        'operator': current_user.name if current_user and current_user.name else current_user.username if current_user else '系统',
+        'reports': reports,
+        'order_code': order_code  # 额外添加订单号字段
+    }
+    
+    print(f"search_order 返回 {len(reports)} 条凭证记录")
+    return result
+
+
+def search_student_classes(cookies, current_user, student_code):
+    """
+    search_student函数的别名，用于向后兼容
+    
+    参数:
+        cookies: 认证cookies字典
+        current_user: 当前用户对象
+        student_code: 学员号
+    
+    返回:
+        与search_student相同的返回格式
+    """
+    return search_student(cookies, current_user, student_code)
+
+
+# 测试函数保持不变
+def test_currency_format():
+    print("Testing currency format...")
+    test_cases = [
+        (1234.56, "¥1,234.56"),
+        ("1234.56", "¥1,234.56"),
+        ("¥1,234.56", "¥1,234.56"),
+        (0, "¥0.00"),
+        ("", "¥0.00"),
+        (None, "¥0.00"),
+        ("invalid", "¥0.00"),
+    ]
+    
+    for amount, expected in test_cases:
+        result = format_currency(amount)
+        status = "✓" if result == expected else "✗"
+        print(f"  {status} format_currency({amount!r}) = {result!r} (expected: {expected!r})")
+
+
+def validate_cookies(cookies):
+    """
+    验证cookies是否有效
+    
+    参数:
+        cookies: 认证cookies字典
+    
+    返回:
+        True: cookies有效
+        False: cookies无效
+    """
+    print("开始验证cookies有效性...")
+    
+    headers = DEFAULT_HEADERS
+    json_data = {
+        'SchoolId': 35,
+        'QueryValue': 'TEST',  # 使用测试查询
+        'PageIndex': 1,
+        'PageSize': 1,
     }
     
     try:
-        # 搜索订单信息 - 使用报名查询API
-        json_data = {
-            'PageIndex': 1,
-            'PageSize': 50,
-            'SchoolId': 35,
-            'Filters': [
-                {
-                    'Field': 'OrderCode',  # 订单号字段
-                    'Operation': 0,  # 等于操作
-                    'Value': order_code,
-                    'Logic': 0,
-                },
-            ],
-            'Sort': [
-                {
-                    'Field': 'OrderTime',
-                    'Dir': 1,  # 降序
-                },
-            ],
-        }
-        
-        print(f"发送订单搜索请求: {json_data}")
-        
         response = requests.post(
-            'https://erp.xdf.cn/nises/apinises/enrollment/enrollment-registration-query',
+            'https://erp.xdf.cn/apinisbff/Student/QueryStudentWithBound',
             cookies=cookies,
             headers=headers,
             json=json_data,
-            timeout=30
+            timeout=10
         )
         
-        print(f"订单搜索响应状态码: {response.status_code}")
-        
-        if response.status_code == 404:
-            print("订单搜索API调用失败，可能是认证过期")
-            return 404
-        
         if response.status_code == 200:
-            response_data = response.json()
-            print(f"订单搜索响应数据: {response_data}")
-            
-            # 检查是否有错误
-            if not response_data.get('Success', False):
-                error_msg = response_data.get('Message', '未知错误')
-                print(f"订单搜索API返回错误: {error_msg}")
-                return 0
-            
-            # 获取订单数据
-            orders_data = response_data.get('Data', {}).get('Data', [])
-            
-            if not orders_data:
-                print(f"未找到订单号 {order_code} 的数据")
-                return 0
-            
-            # 取第一个匹配的订单（通常订单号是唯一的）
-            order_data = orders_data[0]
-            print(f"找到订单数据: {order_data}")
-            
-            # 构建返回的报班凭证数据结构
-            # 这里需要根据实际的API返回结构来构建
-            enrollment_data = {
-                'sOrderCode': order_data.get('OrderCode', order_code),
-                'Student': {
-                    'sStudentName': order_data.get('StudentName', ''),
-                    'sStudentCode': order_data.get('StudentCode', ''),
-                    'sGender': order_data.get('Gender', ''),
-                    'sPhone': order_data.get('Phone', ''),
-                },
-                'ClassAndCardArray': [],  # 这里需要解析班级和卡信息
-                'dFee': order_data.get('TotalFee', 0),
-                'dRealFee': order_data.get('ActualFee', 0),
-                'sOrderTime': order_data.get('OrderTime', ''),
-                'sOperator': order_data.get('Operator', ''),
-                'sSchoolName': '南昌新东方培训学校',
-                'sChannel': '直营',
-            }
-            
-            # 解析班级信息（这里需要根据实际API结构调整）
-            if 'ClassDetails' in order_data:
-                for class_detail in order_data['ClassDetails']:
-                    class_card_info = {
-                        'sClassName': class_detail.get('ClassName', ''),
-                        'sClassCode': class_detail.get('ClassCode', ''),
-                        'sTeacher': class_detail.get('Teacher', ''),
-                        'dtBeginDate': class_detail.get('BeginDate', ''),
-                        'dtEndDate': class_detail.get('EndDate', ''),
-                        'dClassFee': class_detail.get('ClassFee', 0),
-                        'sCardCode': class_detail.get('CardCode', ''),
-                    }
-                    enrollment_data['ClassAndCardArray'].append(class_card_info)
-            
-            result = {
-                'success': True,
-                'order_code': order_code,
-                'order_data': enrollment_data
-            }
-            
-            print(f"订单搜索成功，返回数据: {result}")
-            return result
-        
+            print("Cookies验证成功 ✓")
+            return True
+        elif response.status_code == 403:
+            try:
+                response_json = response.json()
+                if response_json.get('msg') == 'REDIRECT TO SSO':
+                    print("Cookies已过期，需要重新登录 ✗")
+                else:
+                    print(f"Cookies验证失败: {response_json} ✗")
+            except:
+                print("Cookies验证失败：403错误 ✗")
+            return False
         else:
-            print(f"订单搜索请求失败，状态码: {response.status_code}")
-            return 404
-    
-    except requests.exceptions.Timeout:
-        print("订单搜索请求超时")
-        return 404
-    except requests.exceptions.RequestException as e:
-        print(f"订单搜索请求异常: {str(e)}")
-        return 404
+            print(f"Cookies验证失败，状态码: {response.status_code} ✗")
+            return False
+            
     except Exception as e:
-        print(f"订单搜索发生未知错误: {str(e)}")
-        return 404
+        print(f"Cookies验证异常: {e} ✗")
+        return False
 
 
-def group_enrollment_data_by_order(reports):
+def get_cookies_help_text():
     """
-    将报班凭证数据按订单号分组
-    
-    参数:
-        reports: 报告列表，包含各种类型的凭证
-    
-    返回:
-        按订单号分组后的报告列表
+    返回获取cookies的帮助文本
     """
-    # 分离报班凭证和其他凭证
-    enrollment_reports = []
-    other_reports = []
-    
-    for report in reports:
-        if report.get('biz_type') == 1:  # 报班凭证
-            enrollment_reports.append(report)
-        else:
-            other_reports.append(report)
-    
-    # 按订单号分组报班凭证
-    order_groups = {}
-    for report in enrollment_reports:
-        order_code = report.get('data', {}).get('sOrderCode', '未知订单')
-        if order_code not in order_groups:
-            order_groups[order_code] = []
-        order_groups[order_code].append(report)
-    
-    # 为每个订单组创建一个汇总报告
-    grouped_reports = []
-    for order_code, order_reports in order_groups.items():
-        if len(order_reports) == 1:
-            # 只有一个报班凭证，直接使用
-            grouped_reports.append(order_reports[0])
-        else:
-            # 多个报班凭证，创建汇总报告
-            first_report = order_reports[0]
-            class_count = len(order_reports)
-            total_fee = sum(float(str(report.get('data', {}).get('dFee', 0)).replace('¥', '').replace(',', '') or 0) 
-                          for report in order_reports)
-            
-            grouped_report = {
-                'biz_type': 1,
-                'biz_name': f'报班凭证 (订单: {order_code})',
-                'data': first_report['data'],  # 使用第一个报告的数据作为基础
-                'description': f"订单号：{order_code}，包含{class_count}个班级，总金额：¥{total_fee:,.2f}",
-                'order_summary': {
-                    'order_code': order_code,
-                    'class_count': class_count,
-                    'total_fee': total_fee,
-                    'individual_reports': order_reports  # 保留原始报告供打印使用
-                }
-            }
-            grouped_reports.append(grouped_report)
-    
-    # 合并其他类型的凭证
-    return grouped_reports + other_reports
+    return """
+=== 如何获取最新的Cookies ===
 
+1. 清除浏览器缓存：
+   - 按 Ctrl+Shift+Delete 清除缓存
+   - 或使用无痕/隐私模式
+
+2. 重新登录ERP系统：
+   - 访问 https://erp.xdf.cn
+   - 输入用户名和密码登录
+
+3. 获取Cookies：
+   - 按F12打开开发者工具
+   - 切换到Network标签页
+   - 在ERP中进行任意操作
+   - 找到请求，查看Request Headers中的Cookie字段
+   - 复制完整的Cookie字符串
+
+4. 更新系统配置：
+   - 在打印系统中访问"Cookies配置"页面
+   - 添加新配置或更新现有配置
+   - 粘贴新的cookies数据
+
+注意：Cookies通常几小时后会过期，需要定期更新。
+"""
 
 if __name__ == "__main__":
-    # 运行测试
     test_currency_format()

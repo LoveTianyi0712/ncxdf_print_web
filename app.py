@@ -3,10 +3,19 @@
 
 """
 南昌新东方凭证打印系统
-Version: 2.6.0
+Version: 2.7.0
 Release Date: 2025-06-23
 
 更新日志:
+v2.7.0 (2025-06-23) - 真实数据集成版本
+- 重大更新：集成真实凭证数据系统
+- 将凭证信息.py功能完全集成到系统中，移除所有测试/模拟数据
+- 修改search_student函数使用真实API获取学员凭证数据
+- 新增search_ORDER函数根据订单号获取报班凭证信息
+- 优化数据处理流程，支持班级凭证、充值提现凭证、报班凭证等多种类型
+- 改进错误处理机制，提供更详细的API调用失败信息
+- 简化路由处理逻辑，提高系统响应速度和可靠性
+
 v2.6.0 (2025-06-23)
 - 新增订单号搜索功能，支持根据订单号直接查询报班凭证
 - 增强学员号搜索，支持报班凭证按订单号智能分组显示
@@ -1718,7 +1727,7 @@ def search_student():
     if not student_code:
         return jsonify({'error': '请输入学员编码'}), 400
     
-    # 尝试使用实际的学员凭证搜索功能（包含班级凭证和充值提现记录）
+    # 使用真实的学员凭证搜索功能
     try:
         from utils.certificate_processors.search_student_certificate import search_student
         
@@ -1750,50 +1759,46 @@ def search_student():
                 'is_admin': current_user.role == 'admin'
             }), 404
         elif isinstance(search_result, dict) and 'reports' in search_result:
-            # 成功获取到实际数据（新格式）
+            # 成功获取到真实数据
             student_info = search_result
             
+            print(f"后端返回数据结构: {list(student_info.keys())}")
+            print(f"reports数量: {len(student_info.get('reports', []))}")
+            
             # 为每个报告添加详细信息描述
-            for report in student_info.get('reports', []):
+            for i, report in enumerate(student_info.get('reports', [])):
                 biz_type = report.get('biz_type')
+                biz_name = report.get('biz_name', '未知凭证')
                 data = report.get('data', {})
                 
+                print(f"Report {i+1}: biz_type={biz_type}, biz_name={biz_name}")
+                
                 # 生成详细信息描述
-                _, detail_info = _get_certificate_info(biz_type, data)
-                report['description'] = detail_info
-            
-            # 将报班凭证测试数据添加到可打印凭证列表中
-            enrollment_test_data = student_info.get('enrollment_test_data', {})
-            if enrollment_test_data and 'ClassAndCardArray' in enrollment_test_data:
-                # 构建报班凭证记录格式
-                class_count = len(enrollment_test_data.get('ClassAndCardArray', []))
-                order_code = enrollment_test_data.get('sOrderCode', '')
-                total_fee = enrollment_test_data.get('dFee', 0)
+                # 如果已经有描述，优先使用已有的描述
+                if not report.get('description'):
+                    try:
+                        _, detail_info = _get_certificate_info(biz_type, data)
+                        report['description'] = detail_info
+                    except Exception as e:
+                        print(f"生成凭证描述失败: {e}")
+                        report['description'] = f'{biz_name} - 详细信息获取失败'
+                else:
+                    print(f"使用已有描述: '{report['description']}'")  # 调试
                 
-                enrollment_record = {
-                    'biz_type': 1,  # 报班凭证的biz_type
-                    'biz_name': '报班凭证(测试数据)',
-                    'data': enrollment_test_data,
-                    'description': f"订单号：{order_code}，包含{class_count}个班级，实收金额：¥{total_fee:,.2f}"
-                }
-                
-                # 将报班凭证测试数据添加到reports列表中
-                student_info['reports'].append(enrollment_record)
+                # 确保所有必要字段都存在
+                if not report.get('biz_name'):
+                    report['biz_name'] = f'凭证类型{biz_type}'
+                if not report.get('description'):
+                    report['description'] = f'{report["biz_name"]} - 无详细信息'
             
+            print(f"即将返回给前端的数据: {json.dumps(student_info, ensure_ascii=False, indent=2)}")
             return jsonify(student_info)
         else:
             return jsonify({'error': '未找到该学员的凭证信息'}), 404
             
     except Exception as e:
-        print(f"搜索学生信息时发生错误: {str(e)}")
-        # 发生错误时回退到模拟数据
-        return _fallback_mock_search(student_code)
-
-
-def _fallback_mock_search(student_code):
-    """回退到模拟数据搜索"""
-    # 不再提供测试数据，直接返回未找到
-    return jsonify({'error': '未找到该学员的信息'}), 404
+        print(f"搜索学员信息时发生错误: {str(e)}")
+        return jsonify({'error': f'搜索失败: {str(e)}'}), 500
 
 @app.route('/generate_print', methods=['POST'])
 @login_required
@@ -3173,10 +3178,10 @@ def search_order():
     order_code = request.args.get('order_code')
     
     if not order_code:
-        return jsonify({'error': '请提供订单号', 'example': '/search_order?order_code=ORD20240101001'}), 400
+        return jsonify({'error': '请提供订单号'}), 400
     
     try:
-        # 尝试使用实际的搜索功能
+        # 使用真实的订单搜索功能
         from utils.certificate_processors.search_student_certificate import search_order
         
         # 从数据库获取活跃的cookies配置
@@ -3206,42 +3211,15 @@ def search_order():
                 'need_admin_attention': True,
                 'is_admin': current_user.role == 'admin'
             }), 404
-        elif isinstance(search_result, dict) and 'order_data' in search_result:
-            # 成功获取到实际数据
+        elif isinstance(search_result, dict) and ('reports' in search_result or 'order_data' in search_result):
+            # 成功获取到真实数据（支持新旧格式）
             return jsonify(search_result)
         else:
-            # 回退到模拟数据
-            return _fallback_mock_order_search(order_code)
+            return jsonify({'error': '未找到该订单信息'}), 404
             
     except Exception as e:
         print(f"搜索订单信息时发生错误: {str(e)}")
-        # 发生错误时回退到模拟数据
-        return _fallback_mock_order_search(order_code)
-
-
-def _fallback_mock_order_search(order_code):
-    """回退到模拟订单数据搜索"""
-    try:
-        # 这里应该连接到实际的业务系统API来搜索订单
-        # 目前先返回模拟数据
-        from utils.certificate_processors.enrollment_registration_certificate import create_mock_data
-        
-        # 创建模拟数据，但使用搜索的订单号
-        mock_data = create_mock_data()
-        mock_data['sOrderCode'] = order_code
-        
-        # 检查是否有匹配的订单（这里是模拟逻辑）
-        if order_code.startswith('ORD') or order_code.startswith('TEST'):
-            return jsonify({
-                'success': True,
-                'order_code': order_code,
-                'order_data': mock_data
-            })
-        else:
-            return jsonify({'error': '未找到该订单', 'order_code': order_code})
-            
-    except Exception as e:
-        return jsonify({'error': f'搜索失败: {str(e)}', 'order_code': order_code})
+        return jsonify({'error': f'搜索失败: {str(e)}'}), 500
 
 @app.route('/generate_enrollment_registration_certificate', methods=['POST'])
 @login_required
@@ -3602,6 +3580,397 @@ def check_username_uniqueness_safe(username, exclude_user_id=None):
     # 使用SELECT FOR UPDATE确保读取时的一致性
     existing_user = query.with_for_update().first()
     return existing_user is None
+
+# API密钥认证装饰器
+def api_key_required(f):
+    """
+    API密钥认证装饰器
+    支持通过Header或参数传递API密钥
+    """
+    from functools import wraps
+    
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        # 固定的API密钥（实际使用时应该放在环境变量或配置文件中）
+        VALID_API_KEY = "ncxdf_cookies_api_key_2025_secure_token_v1"
+        
+        # 从Header获取API密钥
+        api_key = request.headers.get('X-API-Key')
+        
+        # 如果Header中没有，尝试从请求参数获取
+        if not api_key:
+            api_key = request.args.get('api_key')
+        
+        # 如果还没有，尝试从JSON body获取
+        if not api_key and request.is_json:
+            data = request.get_json()
+            if data:
+                api_key = data.get('api_key')
+        
+        if not api_key:
+            return jsonify({
+                'success': False,
+                'message': '缺少API密钥。请在Header中添加X-API-Key，或在参数中添加api_key'
+            }), 401
+        
+        if api_key != VALID_API_KEY:
+            return jsonify({
+                'success': False,
+                'message': 'API密钥无效'
+            }), 401
+        
+        return f(*args, **kwargs)
+    return decorated_function
+
+# 在update_cookies_auto_check路由之后添加新的API接口
+
+@app.route('/api/cookies/update', methods=['POST'])
+@api_key_required
+def api_update_cookies():
+    """
+    API接口：更新Cookies配置
+    支持自动化调用，可以直接通过POST请求更新cookies数据到数据库
+    
+    请求格式：
+    POST /api/cookies/update
+    Content-Type: application/json
+    
+    请求体：
+    {
+        "name": "配置名称（可选，默认为'API自动更新配置'）",
+        "cookies": {
+            "cookie_name": "cookie_value",
+            ...
+        },
+        "auto_activate": true/false（可选，默认为false）,
+        "auto_test": true/false（可选，默认为true）
+    }
+    
+    响应格式：
+    {
+        "success": true/false,
+        "message": "操作结果消息",
+        "data": {
+            "config_id": 配置ID,
+            "name": "配置名称",
+            "is_active": true/false,
+            "test_status": "测试状态",
+            "test_result": "测试结果详情"
+        }
+    }
+    """
+    try:
+        # 获取请求数据
+        data = request.get_json()
+        if not data:
+            return jsonify({
+                'success': False,
+                'message': '请求数据为空'
+            }), 400
+        
+        # 验证cookies数据
+        cookies_data = data.get('cookies', {})
+        if not cookies_data or not isinstance(cookies_data, dict):
+            return jsonify({
+                'success': False,
+                'message': 'cookies数据格式不正确，必须是JSON对象'
+            }), 400
+        
+        # 获取配置参数
+        config_name = data.get('name', f'API自动更新配置_{get_beijing_datetime().strftime("%Y%m%d_%H%M%S")}')
+        auto_activate = data.get('auto_activate', False)
+        auto_test = data.get('auto_test', True)
+        
+        # 使用线程锁确保并发安全
+        with _cookies_config_lock:
+            with safe_db_transaction() as session:
+                # 创建新的Cookies配置
+                config = CookiesConfig(
+                    name=config_name,
+                    cookies_data=json.dumps(cookies_data, ensure_ascii=False),
+                    created_by=current_user.id,
+                    is_active=False  # 初始不激活
+                )
+                session.add(config)
+                session.flush()  # 获取配置ID
+                
+                test_result = None
+                test_status = '未测试'
+                
+                # 自动测试功能
+                if auto_test:
+                    try:
+                        from utils.certificate_processors.search_student_certificate import search_student
+                        # API调用时没有current_user，传递None
+                        test_result = search_student(cookies_data, None, 'NC24048S6UzC')
+                        
+                        config.last_test_time = get_beijing_datetime()
+                        
+                        if test_result == 404:
+                            test_status = '失败'
+                            test_result_msg = 'API请求失败，可能是cookies无效或网络问题'
+                        elif test_result == 0:
+                            test_status = '成功'
+                            test_result_msg = 'API连接正常（测试学员不存在是正常的）'
+                        elif isinstance(test_result, dict):
+                            test_status = '成功'
+                            test_result_msg = 'API连接正常，返回数据有效'
+                        else:
+                            test_status = '失败'
+                            test_result_msg = f'测试结果异常：{test_result}'
+                        
+                        config.test_status = test_status
+                        
+                    except Exception as e:
+                        test_status = '失败'
+                        test_result_msg = f'测试异常：{str(e)}'
+                        config.test_status = test_status
+                
+                # 自动激活功能（仅在测试成功时）
+                if auto_activate and test_status == '成功':
+                    # 将所有配置设为非活跃
+                    all_configs = CookiesConfig.query.with_for_update().all()
+                    for existing_config in all_configs:
+                        existing_config.is_active = False
+                    
+                    # 激活当前配置
+                    config.is_active = True
+                
+                # 获取管理员用户用于消息通知（API调用时没有current_user）
+                admin_user = User.query.filter_by(role='admin').first()
+                if admin_user:
+                    # 创建消息通知
+                    create_message(
+                        user_id=admin_user.id,
+                        message_type='cookies_api_update',
+                        title='API更新Cookies配置',
+                        content=f'通过API成功更新Cookies配置：{config_name}\n\n配置ID：{config.id}\n更新时间：{get_beijing_datetime().strftime("%Y-%m-%d %H:%M:%S")}\n测试状态：{test_status}\n激活状态：{"是" if config.is_active else "否"}\n\n{test_result_msg if auto_test else "未进行测试"}',
+                        related_id=config.id,
+                        related_type='cookies_config'
+                    )
+                
+                return jsonify({
+                    'success': True,
+                    'message': f'Cookies配置更新成功',
+                    'data': {
+                        'config_id': config.id,
+                        'name': config.name,
+                        'is_active': config.is_active,
+                        'test_status': test_status,
+                        'test_result': test_result_msg if auto_test else '未测试',
+                        'created_at': config.created_at.strftime('%Y-%m-%d %H:%M:%S')
+                    }
+                })
+                
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'更新失败：{str(e)}'
+        }), 500
+
+@app.route('/api/cookies/test', methods=['POST'])
+@login_required
+@admin_required
+def api_test_cookies():
+    """
+    API接口：测试Cookies配置
+    
+    请求格式：
+    POST /api/cookies/test
+    Content-Type: application/json
+    
+    请求体：
+    {
+        "config_id": 配置ID（可选，默认测试当前活跃配置）,
+        "cookies": {
+            "cookie_name": "cookie_value",
+            ...
+        }（可选，如果提供则直接测试这些cookies）
+    }
+    
+    响应格式：
+    {
+        "success": true/false,
+        "message": "测试结果消息",
+        "data": {
+            "test_status": "成功/失败",
+            "test_result": "详细测试结果",
+            "test_time": "测试时间"
+        }
+    }
+    """
+    try:
+        data = request.get_json() or {}
+        
+        # 获取要测试的cookies
+        cookies_data = None
+        config_id = data.get('config_id')
+        
+        if 'cookies' in data:
+            # 直接测试提供的cookies
+            cookies_data = data['cookies']
+            if not isinstance(cookies_data, dict):
+                return jsonify({
+                    'success': False,
+                    'message': 'cookies数据格式不正确'
+                }), 400
+        elif config_id:
+            # 测试指定配置的cookies
+            config = CookiesConfig.query.get(config_id)
+            if not config:
+                return jsonify({
+                    'success': False,
+                    'message': f'配置ID {config_id} 不存在'
+                }), 404
+            cookies_data = json.loads(config.cookies_data)
+        else:
+            # 测试当前活跃配置
+            active_config = CookiesConfig.query.filter_by(is_active=True).first()
+            if not active_config:
+                return jsonify({
+                    'success': False,
+                    'message': '没有找到活跃的cookies配置'
+                }), 404
+            cookies_data = json.loads(active_config.cookies_data)
+            config_id = active_config.id
+        
+        # 执行测试
+        test_time = get_beijing_datetime()
+        
+        try:
+            from utils.certificate_processors.search_student_certificate import search_student
+            test_result = search_student(cookies_data, current_user, 'NC24048S6UzC')
+            
+            if test_result == 404:
+                test_status = '失败'
+                test_result_msg = 'API请求失败，可能是cookies无效或网络问题'
+            elif test_result == 0:
+                test_status = '成功'
+                test_result_msg = 'API连接正常（测试学员不存在是正常的）'
+            elif isinstance(test_result, dict):
+                test_status = '成功'
+                test_result_msg = 'API连接正常，返回数据有效'
+            else:
+                test_status = '失败'
+                test_result_msg = f'测试结果异常：{test_result}'
+            
+            # 更新数据库中的测试状态（如果是测试配置）
+            if config_id:
+                config = CookiesConfig.query.get(config_id)
+                if config:
+                    config.last_test_time = test_time
+                    config.test_status = test_status
+                    db.session.commit()
+            
+            return jsonify({
+                'success': True,
+                'message': f'测试完成：{test_status}',
+                'data': {
+                    'test_status': test_status,
+                    'test_result': test_result_msg,
+                    'test_time': test_time.strftime('%Y-%m-%d %H:%M:%S'),
+                    'config_id': config_id
+                }
+            })
+            
+        except Exception as e:
+            test_status = '失败'
+            test_result_msg = f'测试异常：{str(e)}'
+            
+            return jsonify({
+                'success': False,
+                'message': f'测试失败：{str(e)}',
+                'data': {
+                    'test_status': test_status,
+                    'test_result': test_result_msg,
+                    'test_time': test_time.strftime('%Y-%m-%d %H:%M:%S'),
+                    'config_id': config_id
+                }
+            })
+            
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'测试请求处理失败：{str(e)}'
+        }), 500
+
+@app.route('/api/cookies/status')
+@login_required
+def api_cookies_status():
+    """
+    API接口：获取Cookies配置状态
+    
+    响应格式：
+    {
+        "success": true,
+        "data": {
+            "active_config": {
+                "id": 配置ID,
+                "name": "配置名称",
+                "test_status": "测试状态",
+                "last_test_time": "最后测试时间",
+                "created_at": "创建时间"
+            },
+            "total_configs": 总配置数量,
+            "auto_check": {
+                "is_enabled": true/false,
+                "check_interval": 检测间隔（分钟）,
+                "last_check_time": "最后检测时间",
+                "consecutive_failures": 连续失败次数
+            }
+        }
+    }
+    """
+    try:
+        # 获取活跃配置
+        active_config = CookiesConfig.query.filter_by(is_active=True).first()
+        active_config_data = None
+        
+        if active_config:
+            active_config_data = {
+                'id': active_config.id,
+                'name': active_config.name,
+                'test_status': active_config.test_status,
+                'last_test_time': active_config.last_test_time.strftime('%Y-%m-%d %H:%M:%S') if active_config.last_test_time else None,
+                'created_at': active_config.created_at.strftime('%Y-%m-%d %H:%M:%S')
+            }
+        
+        # 获取总配置数量
+        total_configs = CookiesConfig.query.count()
+        
+        # 获取自动检测配置
+        auto_check_config = CookiesAutoCheck.query.first()
+        auto_check_data = {
+            'is_enabled': False,
+            'check_interval': 30,
+            'last_check_time': None,
+            'consecutive_failures': 0
+        }
+        
+        if auto_check_config:
+            auto_check_data = {
+                'is_enabled': auto_check_config.is_enabled,
+                'check_interval': auto_check_config.check_interval,
+                'last_check_time': auto_check_config.last_check_time.strftime('%Y-%m-%d %H:%M:%S') if auto_check_config.last_check_time else None,
+                'consecutive_failures': auto_check_config.consecutive_failures
+            }
+        
+        return jsonify({
+            'success': True,
+            'data': {
+                'active_config': active_config_data,
+                'total_configs': total_configs,
+                'auto_check': auto_check_data
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'获取状态失败：{str(e)}'
+        }), 500
+
+
 
 if __name__ == '__main__':
     with app.app_context():

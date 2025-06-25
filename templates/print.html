@@ -188,9 +188,37 @@
         </div>
     </div>
 </div>
-{% endblock %}
 
-{% block scripts %}
+<!-- 调试信息面板（仅开发时使用） -->
+<div class="container mt-4" id="debugPanel" style="display: none;">
+    <div class="card border-warning">
+        <div class="card-header bg-warning text-dark">
+            <h6 class="mb-0">
+                <i class="fas fa-bug me-2"></i>调试信息
+                <button class="btn btn-sm btn-outline-dark float-end" onclick="toggleDebug()">
+                    切换显示
+                </button>
+            </h6>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h6>当前状态:</h6>
+                    <ul class="list-unstyled">
+                        <li>currentStudentData: <span id="debugCurrentStudentData">null</span></li>
+                        <li>selectedReport: <span id="debugSelectedReport">null</span></li>
+                        <li>生成按钮状态: <span id="debugGenerateBtn">disabled</span></li>
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <h6>最后操作:</h6>
+                    <div id="debugLastAction">无</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 let currentStudentData = null;
 let selectedReport = null;
@@ -216,7 +244,11 @@ document.getElementById('searchForm').addEventListener('submit', function(e) {
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
     
     fetch(`/search_student?student_code=${encodeURIComponent(studentCode)}`)
-        .then(response => response.json())
+        .then(response => {
+            console.log('HTTP响应状态:', response.status);
+            console.log('HTTP响应OK:', response.ok);
+            return response.json();
+        })
         .then(data => {
             if (data.error) {
                 // 检查是否需要管理员注意
@@ -227,8 +259,29 @@ document.getElementById('searchForm').addEventListener('submit', function(e) {
                 }
                 hideStudentInfo();
             } else {
+                // 添加详细的调试日志
+                console.log('学员查询成功，返回数据:', data);
+                console.log('数据结构键:', Object.keys(data));
+                console.log('data.reports类型:', typeof data.reports);
+                console.log('data.reports是否为数组:', Array.isArray(data.reports));
+                console.log('reports数量:', data.reports ? data.reports.length : 'undefined');
+                
+                if (data.reports && data.reports.length > 0) {
+                    console.log('第一个report结构:', data.reports[0]);
+                    console.log('第一个report的data字段:', data.reports[0].data);
+                    console.log('所有reports:', data.reports.map(r => ({
+                        biz_type: r.biz_type,
+                        biz_name: r.biz_name,
+                        description: r.description
+                    })));
+                } else {
+                    console.log('reports为空或不存在');
+                }
+                
                 showStudentInfo(data, studentCode);
                 showReports(data.reports);
+                
+                updateDebugInfo('学员查询成功，数据已设置');
             }
         })
         .catch(error => {
@@ -307,19 +360,33 @@ function hideSearchLoading() {
 
 // 显示学员信息
 function showStudentInfo(data, studentCode) {
-    document.getElementById('studentName').textContent = data.student_name;
-    document.getElementById('studentGender').textContent = data.gender;
-    document.getElementById('studentCodeDisplay').textContent = studentCode;
+    currentStudentData = data;
+    
+    console.log('设置currentStudentData:', currentStudentData);
+    console.log('currentStudentData包含reports:', !!currentStudentData.reports);
+    
+    document.getElementById('studentName').textContent = data.student_name || '未知';
+    document.getElementById('studentCodeDisplay').textContent = data.student_code || studentCode;
+    document.getElementById('studentGender').textContent = data.gender || '未知';
+    
     document.getElementById('studentInfo').style.display = 'block';
     document.getElementById('errorMessage').style.display = 'none';
     
-    currentStudentData = data;
+    // 隐藏订单查询结果，避免干扰
+    hideOrderInfo();
+    
+    updateDebugInfo('显示学员信息: ' + (data.student_name || '未知'));
 }
 
 // 隐藏学员信息
 function hideStudentInfo() {
     document.getElementById('studentInfo').style.display = 'none';
     document.getElementById('reportsCard').style.display = 'none';
+    
+    // 修复：清理学员相关的数据，避免干扰后续查询
+    currentStudentData = null;
+    selectedReport = null;
+    
     resetPreview();
 }
 
@@ -376,17 +443,44 @@ function showReports(reports) {
     const reportsList = document.getElementById('reportsList');
     reportsList.innerHTML = '';
     
-    reports.forEach(report => {
+    // 检查reports是否存在且为数组
+    if (!reports || !Array.isArray(reports) || reports.length === 0) {
+        reportsList.innerHTML = `
+            <div class="text-center p-4">
+                <i class="fas fa-info-circle fa-2x text-muted mb-2"></i>
+                <p class="text-muted">未找到可打印的凭证信息</p>
+            </div>
+        `;
+        document.getElementById('reportsCard').style.display = 'block';
+        return;
+    }
+    
+    console.log('显示凭证列表，数量:', reports.length);
+    console.log('凭证数据:', reports);
+    
+    reports.forEach((report, index) => {
         const reportItem = document.createElement('div');
         reportItem.className = 'mb-2';
+        
+        // 检查并修复undefined值
+        const bizName = report.biz_name || '未知凭证类型';
+        const description = report.description || '';
+        
+        console.log(`处理凭证 ${index+1}:`, {
+            biz_type: report.biz_type,
+            biz_name: report.biz_name,
+            description: report.description,
+            has_data: !!report.data,
+            data_keys: report.data ? Object.keys(report.data) : []
+        });
         
         // 构建按钮内容，包含详细信息
         let buttonContent = `
             <div class="d-flex align-items-center">
                 <i class="fas fa-file-alt me-2"></i>
                 <div class="flex-grow-1">
-                    <div class="fw-bold">${report.biz_name}</div>
-                    ${report.description ? `<small class="text-muted">${report.description}</small>` : ''}
+                    <div class="fw-bold">${bizName}</div>
+                    ${description ? `<small class="text-muted">${description}</small>` : ''}
                 </div>
             </div>
         `;
@@ -413,11 +507,17 @@ function showReports(reports) {
             // 保存选中的报告
             selectedReport = JSON.parse(this.dataset.report);
             
+            console.log('选择凭证:', selectedReport);
+            console.log('凭证包含data字段:', !!selectedReport.data);
+            console.log('凭证data字段内容:', selectedReport.data);
+            
             // 启用生成按钮
             document.getElementById('generateBtn').disabled = false;
             
             // 显示预览提示
             showPreviewHint();
+            
+            updateDebugInfo('选择凭证: ' + selectedReport.biz_name);
         });
     });
     
@@ -477,27 +577,72 @@ function hideOrderSearchLoading() {
 
 // 显示订单信息
 function showOrderInfo(data) {
-    currentOrderData = data.order_data;
-    
-    const studentName = currentOrderData?.Student?.sStudentName || '未知';
-    const classCount = currentOrderData?.ClassAndCardArray?.length || 0;
-    
-    document.getElementById('orderCodeDisplay').textContent = data.order_code;
-    document.getElementById('orderStudentName').textContent = studentName;
-    document.getElementById('orderClassCount').textContent = classCount;
-    
+    // 隐藏原来的订单报班凭证卡片，改为显示统一的可打印凭证列表
     document.getElementById('orderInfo').style.display = 'block';
     document.getElementById('orderErrorMessage').style.display = 'none';
+    document.getElementById('orderReportCard').style.display = 'none';
     
-    // 显示订单报班凭证选项
-    showOrderReport(data);
+    // 设置基本信息
+    document.getElementById('orderCodeDisplay').textContent = data.order_code;
+    document.getElementById('orderStudentName').textContent = data.student_name || '未知';
+    
+    // 修复：更准确地计算班级总数
+    let totalClasses = 0;
+    if (data.reports && Array.isArray(data.reports)) {
+        data.reports.forEach(report => {
+            if (report.data) {
+                // 检查ClassAndCardArray
+                if (report.data.ClassAndCardArray && Array.isArray(report.data.ClassAndCardArray)) {
+                    totalClasses += report.data.ClassAndCardArray.length;
+                }
+                // 检查是否有单个班级信息
+                else if (report.data.sClassName || report.data.className) {
+                    totalClasses += 1;
+                }
+                // 从描述信息中提取班级数（备选方案）
+                else if (report.description && report.description.includes('班级数：')) {
+                    const match = report.description.match(/班级数：(\d+)/);
+                    if (match) {
+                        totalClasses += parseInt(match[1]) || 0;
+                    }
+                }
+            }
+        });
+    }
+    
+    document.getElementById('orderClassCount').textContent = totalClasses;
+    
+    // 修复：设置currentStudentData，使生成打印功能可以正常工作
+    currentStudentData = {
+        student_name: data.student_name,
+        student_code: data.student_code,
+        gender: data.gender,
+        operator: data.operator,
+        reports: data.reports
+    };
+    
+    // 隐藏学员查询结果，避免干扰
+    hideStudentInfo();
+    
+    // 显示统一的可打印凭证列表
+    if (data.reports && data.reports.length > 0) {
+        showReports(data.reports);
+    }
+    
+    updateDebugInfo('显示订单信息: ' + (data.student_name || '未知') + ', 凭证数: ' + (data.reports ? data.reports.length : 0));
 }
 
 // 隐藏订单信息
 function hideOrderInfo() {
     document.getElementById('orderInfo').style.display = 'none';
     document.getElementById('orderReportCard').style.display = 'none';
-    currentOrderData = null;
+    document.getElementById('reportsCard').style.display = 'none';
+    
+    // 修复：清理订单相关的数据，避免干扰后续查询
+    currentStudentData = null;
+    selectedReport = null;
+    
+    resetPreview();
 }
 
 // 显示订单错误信息
@@ -506,92 +651,72 @@ function showOrderError(message) {
     document.getElementById('orderErrorMessage').style.display = 'block';
     document.getElementById('orderInfo').style.display = 'none';
     document.getElementById('orderReportCard').style.display = 'none';
-}
-
-// 显示订单报班凭证
-function showOrderReport(data) {
-    const orderData = data.order_data;
-    const classCount = orderData?.ClassAndCardArray?.length || 0;
-    const studentName = orderData?.Student?.sStudentName || '未知';
-    
-    const reportInfo = document.getElementById('orderReportInfo');
-    reportInfo.innerHTML = `
-        <div class="order-report-option" data-order='${JSON.stringify(orderData)}'>
-            <div class="card border-primary">
-                <div class="card-body">
-                    <h6 class="card-title text-primary">
-                        <i class="fas fa-graduation-cap me-2"></i>报班凭证
-                    </h6>
-                    <p class="card-text">
-                        <strong>订单号：</strong>${data.order_code}<br>
-                        <strong>学员：</strong>${studentName}<br>
-                        <strong>班级数量：</strong>${classCount}个班级
-                    </p>
-                    <button class="btn btn-primary btn-sm" onclick="selectOrderReport(this)">
-                        <i class="fas fa-check me-1"></i>选择此报班凭证
-                    </button>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    document.getElementById('orderReportCard').style.display = 'block';
-}
-
-// 选择订单报班凭证
-function selectOrderReport(button) {
-    const orderData = JSON.parse(button.closest('.order-report-option').dataset.order);
-    
-    // 清除其他选择状态
-    document.querySelectorAll('.certificate-item.selected').forEach(item => {
-        item.classList.remove('selected');
-    });
-    
-    // 设置当前选择
-    selectedReport = {
-        biz_type: 1,  // 报班凭证
-        biz_name: '报班凭证',
-        data: orderData,
-        source: 'order'  // 标记来源为订单搜索
-    };
-    
-    // 标记为选中状态
-    button.closest('.card').classList.add('border-success');
-    button.innerHTML = '<i class="fas fa-check-circle me-1"></i>已选择';
-    button.disabled = true;
-    
-    // 启用生成按钮
-    document.getElementById('generateBtn').disabled = false;
-    
-    // 显示预览提示
-    showOrderPreviewHint();
-}
-
-// 显示订单预览提示
-function showOrderPreviewHint() {
-    const preview = document.getElementById('printPreview');
-    const orderCode = selectedReport.data?.sOrderCode || '';
-    const studentName = selectedReport.data?.Student?.sStudentName || '';
-    const classCount = selectedReport.data?.ClassAndCardArray?.length || 0;
-    
-    preview.innerHTML = `
-        <div class="py-5">
-            <i class="fas fa-print fa-4x text-success mb-3"></i>
-            <p class="text-success fw-bold">已选择：${selectedReport.biz_name}</p>
-            <p class="text-info">订单号：${orderCode}</p>
-            <p class="text-info">学员：${studentName}</p>
-            <p class="text-info">班级数量：${classCount}个</p>
-            <p class="text-muted">点击"生成打印"按钮查看预览</p>
-        </div>
-    `;
+    document.getElementById('reportsCard').style.display = 'none';
 }
 
 // 生成打印预览
 document.getElementById('generateBtn').addEventListener('click', function() {
-    if (!selectedReport || !currentStudentData) {
+    if (!selectedReport) {
         alert('请先选择要打印的凭证');
         return;
     }
+    
+    // 修复：优化验证逻辑，支持订单查询和学员查询两种情况
+    let hasValidData = false;
+    let studentDataToUse = null;
+    
+    // 检查是否有学员数据（学员查询的情况）
+    if (currentStudentData) {
+        hasValidData = true;
+        // 优先使用选中凭证的数据，如果没有则使用学员基本数据
+        if (selectedReport.data && typeof selectedReport.data === 'object') {
+            studentDataToUse = selectedReport.data;
+        } else {
+            // 如果凭证数据不完整，构建基本数据结构
+            studentDataToUse = {
+                sStudentName: currentStudentData.student_name,
+                sStudentCode: currentStudentData.student_code || document.getElementById('studentCode').textContent,
+                sGender: currentStudentData.gender,
+                sOperator: currentStudentData.operator || 'system',
+                // 添加其他必要字段
+                Student: {
+                    sStudentName: currentStudentData.student_name,
+                    sStudentCode: currentStudentData.student_code || document.getElementById('studentCode').textContent,
+                    sGender: currentStudentData.gender
+                }
+            };
+            
+            // 如果有凭证的部分数据，合并进去
+            if (selectedReport.data) {
+                studentDataToUse = Object.assign(studentDataToUse, selectedReport.data);
+            }
+        }
+    }
+    // 检查选中的凭证是否有完整数据（订单查询的情况）
+    else if (selectedReport.data) {
+        hasValidData = true;
+        studentDataToUse = selectedReport.data;
+    }
+    
+    if (!hasValidData) {
+        alert('请先查询学员信息或订单信息');
+        return;
+    }
+    
+    // 验证关键数据字段
+    if (!studentDataToUse || (typeof studentDataToUse !== 'object')) {
+        alert('凭证数据不完整，请重新查询');
+        return;
+    }
+    
+    console.log('准备生成打印，使用数据:', {
+        biz_type: selectedReport.biz_type,
+        has_student_data: !!studentDataToUse,
+        data_keys: Object.keys(studentDataToUse),
+        has_currentStudentData: !!currentStudentData,
+        has_selectedReport_data: !!(selectedReport.data),
+        selectedReport_biz_name: selectedReport.biz_name
+    });
     
     // 显示加载状态
     document.getElementById('loadingSpinner').style.display = 'block';
@@ -606,7 +731,7 @@ document.getElementById('generateBtn').addEventListener('click', function() {
         },
         body: JSON.stringify({
             biz_type: selectedReport.biz_type,
-            student_data: selectedReport.data
+            student_data: studentDataToUse
         })
     })
     .then(response => response.json())
@@ -617,7 +742,7 @@ document.getElementById('generateBtn').addEventListener('click', function() {
                 showMultiPagePreview(data);
             } else {
                 // 单页显示
-            showPrintPreview(data.image, data.filename);
+                showPrintPreview(data.image, data.filename);
             }
         } else {
             alert('生成失败: ' + data.error);
@@ -779,6 +904,35 @@ function printAllPages(data) {
     });
     
     alert('正在逐页打印' + data.page_count + '页内容，请稍候...');
+}
+
+// 调试功能
+function toggleDebug() {
+    const panel = document.getElementById('debugPanel');
+    panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+}
+
+// 更新调试信息
+function updateDebugInfo(action = '') {
+    if (document.getElementById('debugPanel').style.display !== 'none') {
+        document.getElementById('debugCurrentStudentData').textContent = 
+            currentStudentData ? `有数据 (${currentStudentData.student_name || '未知'})` : 'null';
+        document.getElementById('debugSelectedReport').textContent = 
+            selectedReport ? `${selectedReport.biz_name} (${selectedReport.biz_type})` : 'null';
+        document.getElementById('debugGenerateBtn').textContent = 
+            document.getElementById('generateBtn').disabled ? 'disabled' : 'enabled';
+        
+        if (action) {
+            document.getElementById('debugLastAction').innerHTML = 
+                `<small class="text-muted">${new Date().toLocaleTimeString()}</small><br>${action}`;
+        }
+    }
+}
+
+// 启用调试模式（开发时使用）
+if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    document.getElementById('debugPanel').style.display = 'block';
+    setInterval(updateDebugInfo, 1000); // 每秒更新一次调试信息
 }
 </script>
 {% endblock %} 
