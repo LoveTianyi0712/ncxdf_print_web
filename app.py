@@ -3,10 +3,19 @@
 
 """
 南昌新东方凭证打印系统
-Version: 2.7.0
-Release Date: 2025-06-23
+Version: 2.8.0
+Release Date: 2025-06-25
 
 更新日志:
+v2.8.0 (2025-06-25) - 数据过滤和隐私保护版本
+- 新增退班凭证数据过滤功能，学员号和订单号搜索均不显示退班数据
+- 新增充值提现凭证操作金额显示，余额上方显示充值/提现金额信息
+- 报班凭证日期和操作员强制使用系统数据，确保数据一致性
+- 优化手机号脱敏显示，统一使用139****2832格式保护隐私
+- 新增报班凭证多页合并下载功能，支持长图合并导出
+- 完全移除报班凭证联系电话显示，包括"联系电话"文字和号码
+- 修复退班凭证多页处理错误，提升系统稳定性
+
 v2.7.0 (2025-06-23) - 真实数据集成版本
 - 重大更新：集成真实凭证数据系统
 - 将凭证信息.py功能完全集成到系统中，移除所有测试/模拟数据
@@ -59,7 +68,7 @@ v1.0.0 (2025-06-01)
 - Cookies配置管理
 """
 
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session, make_response, send_file
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session, make_response, send_file, abort
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -1922,7 +1931,98 @@ def generate_print():
             # 使用新的凭证管理器生成打印图像
             # 方法1: 使用新的独立处理器（推荐）
             try:
-                image_path = generate_certificate_by_type(biz_type, student_data)
+                result = generate_certificate_by_type(biz_type, student_data)
+                
+                # 检查结果是否为列表（多页）
+                if isinstance(result, list) and len(result) > 0:
+                    # 多页处理逻辑（如退班凭证）
+                    try:
+                        # 验证所有图片文件存在
+                        valid_paths = []
+                        for path in result:
+                            if path and os.path.exists(path):
+                                valid_paths.append(path)
+                        
+                        if not valid_paths:
+                            raise Exception("生成的图片文件不存在")
+                        
+                        # 处理多页图片
+                        images_data = []
+                        filenames = []
+                        
+                        for i, image_path in enumerate(valid_paths):
+                            # 将图像转换为base64
+                            with open(image_path, 'rb') as img_file:
+                                img_data = base64.b64encode(img_file.read()).decode()
+                            
+                            # 生成文件名
+                            filename = generate_unique_filename(f"certificate_page_{i+1}", "png")
+                            
+                            images_data.append(img_data)
+                            filenames.append(filename)
+                        
+                        # 根据biz_type确定凭证名称和详细信息
+                        biz_name, detail_info = _get_certificate_info(biz_type, student_data)
+                        page_count = len(valid_paths)
+                        student_name = student_data.get('sStudentName', '') or student_data.get('Student', {}).get('sStudentName', '')
+                        student_code = student_data.get('sStudentCode', '') or student_data.get('Student', {}).get('sStudentCode', '')
+                        order_code = student_data.get('sOrderCode', '')
+                        
+                        # 使用安全的数据库事务上下文
+                        with safe_db_transaction() as session:
+                            print_log = PrintLog(
+                                user_id=current_user.id,
+                                student_code=student_code or order_code,
+                                student_name=student_name,
+                                biz_type=biz_type,
+                                biz_name=biz_name,
+                                print_data=json.dumps(student_data, ensure_ascii=False),
+                                detail_info=f"{detail_info}，共{page_count}页"
+                            )
+                            session.add(print_log)
+                            session.flush()  # 获取print_log.id
+                            
+                            # 创建打印成功消息
+                            message_content = f'凭证打印成功！\n\n学员信息：\n学员编码：{student_code}\n学员姓名：{student_name}\n\n凭证信息：\n凭证类型：{biz_name}\n总页数：{page_count}页'
+                            
+                            message = Message(
+                                user_id=current_user.id,
+                                message_type='print_success',
+                                title=f'{biz_name}打印成功',
+                                content=message_content,
+                                related_id=print_log.id,
+                                related_type='print_log'
+                            )
+                            session.add(message)
+                        
+                        # 清理临时文件
+                        try:
+                            for image_path in valid_paths:
+                                os.remove(image_path)
+                                json_file = image_path.replace('.png', '.json')
+                                if os.path.exists(json_file):
+                                    os.remove(json_file)
+                        except:
+                            pass
+                        
+                        return jsonify({
+                            'success': True,
+                            'is_multi_page': True,
+                            'page_count': page_count,
+                            'images': images_data,
+                            'filenames': filenames,
+                            'order_code': order_code,
+                            'student_name': student_name,
+                            'biz_name': biz_name
+                        })
+                        
+                    except Exception as e:
+                        print(f"多页处理失败: {str(e)}")
+                        # 继续尝试其他方法
+                        pass
+                else:
+                    # 单页处理
+                    image_path = result
             except Exception as e:
                 print(f"新处理器失败: {str(e)}")
                 image_path = None
@@ -2596,9 +2696,9 @@ def get_version():
     """获取系统版本信息"""
     return jsonify({
         'name': '南昌新东方凭证打印系统',
-        'version': '2.6.0',
-        'release_date': '2025-06-23',
-        'description': '支持学员号/订单号搜索、智能分组、多种凭证打印、用户管理、Excel批量导入、消息通知的综合管理系统'
+        'version': '2.8.0',
+        'release_date': '2025-06-25',
+        'description': '支持数据过滤和隐私保护的综合凭证管理系统，包含退班数据过滤、手机号脱敏、联系电话隐藏等隐私保护功能'
     })
 
 @app.route('/health')
@@ -3517,10 +3617,17 @@ def _get_certificate_info(biz_type, student_data):
                 detail_info += f"：{refund_amount}"
             
     elif biz_type == 3:  # 退班凭证
-        class_name = student_data.get('sClassName', '')
-        detail_info = f"退班"
-        if class_name:
-            detail_info += f"：{class_name}"
+        # 支持新的退班凭证数据结构
+        if 'ClassAndCardArray' in student_data:
+            class_count = len(student_data.get('ClassAndCardArray', []))
+            total_return_fee = sum(float(item.get('dShouldReturnFee', 0.0)) 
+                                 for item in student_data.get('ClassAndCardArray', []))
+            detail_info = f"退班凭证，包含{class_count}个班级，总退费：¥{total_return_fee:.2f}"
+        else:
+            class_name = student_data.get('sClassName', '')
+            detail_info = f"退班"
+            if class_name:
+                detail_info += f"：{class_name}"
             
     elif biz_type == 5:  # 班级凭证（不同于报班凭证）
         class_name = student_data.get('sClassName', '')
@@ -3970,13 +4077,292 @@ def api_cookies_status():
             'message': f'获取状态失败：{str(e)}'
         }), 500
 
+@app.route('/test_withdrawal_certificate')
+@login_required
+def test_withdrawal_certificate():
+    """测试退班凭证生成功能"""
+    try:
+        from utils.certificate_processors.withdrawal_certificate import test_withdrawal_certificate_generation
+        
+        # 获取班级数量参数
+        num_classes = request.args.get('num_classes', 2, type=int)
+        num_classes = min(max(num_classes, 1), 5)  # 限制在1-5之间
+        
+        # 生成测试凭证
+        output_paths = test_withdrawal_certificate_generation(num_classes)
+        
+        if output_paths:
+            message_content = f'退班凭证测试成功！\n\n测试参数：\n班级数量：{num_classes}个\n\n生成结果：\n共生成{len(output_paths)}页凭证'
+            
+            # 添加到消息系统
+            create_message(
+                user_id=current_user.id,
+                message_type='print_success',
+                title='退班凭证测试成功',
+                content=message_content
+            )
+            
+            return jsonify({
+                'success': True,
+                'message': f'退班凭证测试成功，共{len(output_paths)}页',
+                'output_paths': output_paths,
+                'num_classes': num_classes,
+                'pages': len(output_paths)
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'message': '退班凭证测试失败，请检查日志'
+            })
+            
+    except Exception as e:
+        print(f"测试退班凭证失败: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'测试退班凭证失败: {str(e)}'
+        })
 
+@app.route('/generate_withdrawal_certificate', methods=['POST'])
+@login_required
+def generate_withdrawal_certificate():
+    """生成退班凭证 - 支持多页"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({
+                'success': False,
+                'message': '缺少数据'
+            })
+        
+        # 验证必要字段
+        required_fields = ['Student', 'ClassAndCardArray']
+        for field in required_fields:
+            if field not in data:
+                return jsonify({
+                    'success': False,
+                    'message': f'缺少必要字段: {field}'
+                })
+        
+        # 设置默认值
+        data.setdefault('sOrderCode', f"WD{get_beijing_datetime().strftime('%Y%m%d%H%M%S')}")
+        data.setdefault('sSchoolName', '新东方学校')
+        data.setdefault('sOperator', current_user.name or current_user.username)
+        data.setdefault('dtCreate', get_beijing_time_str())
+        
+        # 使用退班凭证处理器生成凭证
+        from utils.certificate_processors.withdrawal_certificate import generate_withdrawal_certificate as gen_withdrawal_cert
+        output_paths = gen_withdrawal_cert(data)
+        
+        if output_paths:
+            # 记录打印日志
+            student_name = data.get('Student', {}).get('sStudentName', '未知')
+            order_code = data.get('sOrderCode', '')
+            class_count = len(data.get('ClassAndCardArray', []))
+            page_count = len(output_paths)
+            
+            detail_info = f"退班凭证，订单号：{order_code}，包含{class_count}个班级，共{page_count}页"
+            
+            print_log = PrintLog(
+                user_id=current_user.id,
+                student_code=data.get('Student', {}).get('sStudentCode', ''),
+                student_name=student_name,
+                biz_type=3,  # 退班凭证的BizType
+                biz_name='退班凭证',
+                print_data=json.dumps(data, ensure_ascii=False),
+                detail_info=detail_info
+            )
+            db.session.add(print_log)
+            db.session.commit()
+            
+            # 添加成功消息
+            message_content = f'您的退班凭证已成功生成。订单号：{order_code}，学员：{student_name}，共{page_count}页'
+            create_message(
+                user_id=current_user.id,
+                message_type='print_success',
+                title='退班凭证打印成功',
+                content=message_content,
+                related_id=print_log.id,
+                related_type='print_log'
+            )
+            
+            return jsonify({
+                'success': True,
+                'message': f'退班凭证生成成功，共{page_count}页',
+                'output_paths': output_paths,
+                'student_name': student_name,
+                'order_code': order_code,
+                'class_count': class_count,
+                'page_count': page_count
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'message': '退班凭证生成失败'
+            })
+            
+    except Exception as e:
+        print(f"生成退班凭证失败: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'生成退班凭证失败: {str(e)}'
+        })
+
+@app.route('/preview_withdrawal_certificate/<path:image_path>')
+@login_required
+def preview_withdrawal_certificate(image_path):
+    """预览退班凭证图片"""
+    try:
+        # 构建完整的文件路径
+        full_path = os.path.join(app.root_path, 'image', image_path)
+        
+        if not os.path.exists(full_path):
+            abort(404)
+        
+        return send_file(full_path, mimetype='image/png')
+        
+    except Exception as e:
+        print(f"预览退班凭证失败: {str(e)}")
+        abort(500)
+
+@app.route('/download_withdrawal_certificate/<path:image_path>')
+@login_required  
+def download_withdrawal_certificate(image_path):
+    """下载退班凭证图片"""
+    try:
+        # 构建完整的文件路径
+        full_path = os.path.join(app.root_path, 'image', image_path)
+        
+        if not os.path.exists(full_path):
+            abort(404)
+        
+        # 提取文件名
+        filename = os.path.basename(image_path)
+        
+        return send_file(full_path, as_attachment=True, download_name=filename)
+        
+    except Exception as e:
+        print(f"下载退班凭证失败: {str(e)}")
+        abort(500)
+
+@app.route('/download_all_withdrawal_certificates', methods=['POST'])
+@login_required
+def download_all_withdrawal_certificates():
+    """打包下载多页退班凭证"""
+    try:
+        data = request.get_json()
+        if not data or 'output_paths' not in data:
+            return jsonify({
+                'success': False,
+                'message': '缺少文件路径信息'
+            })
+        
+        output_paths = data['output_paths']
+        order_code = data.get('order_code', 'WITHDRAWAL')
+        
+        # 创建临时ZIP文件
+        import tempfile
+        import zipfile
+        
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.zip') as temp_zip:
+            with zipfile.ZipFile(temp_zip.name, 'w') as zip_file:
+                for i, path in enumerate(output_paths, 1):
+                    full_path = os.path.join(app.root_path, 'image', os.path.basename(path))
+                    if os.path.exists(full_path):
+                        # 获取文件扩展名
+                        _, ext = os.path.splitext(path)
+                        if len(output_paths) > 1:
+                            zip_filename = f"{order_code}_退班凭证_第{i}页{ext}"
+                        else:
+                            zip_filename = f"{order_code}_退班凭证{ext}"
+                        zip_file.write(full_path, zip_filename)
+            
+            # 发送ZIP文件
+            zip_filename = f"{order_code}_退班凭证_全部页面.zip"
+            return send_file(temp_zip.name, as_attachment=True, download_name=zip_filename)
+        
+    except Exception as e:
+        print(f"打包下载退班凭证失败: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'打包下载失败: {str(e)}'
+        })
+
+@app.route('/merge_and_download_pages', methods=['POST'])
+@login_required
+def merge_and_download_pages():
+    """合并多页图片为一个长图并提供下载"""
+    try:
+        data = request.json
+        image_data_list = data.get('images', [])
+        order_code = data.get('order_code', 'merged')
+        student_name = data.get('student_name', 'unknown')
+        
+        if not image_data_list:
+            return jsonify({'error': '没有图片数据'}), 400
+        
+        from PIL import Image
+        import io
+        import base64
+        
+        # 解码所有图片
+        images = []
+        for img_data in image_data_list:
+            img_bytes = base64.b64decode(img_data)
+            img = Image.open(io.BytesIO(img_bytes))
+            images.append(img)
+        
+        if not images:
+            return jsonify({'error': '图片解码失败'}), 400
+        
+        # 获取图片尺寸（假设所有图片大小相同）
+        width, height = images[0].size
+        
+        # 创建合并后的长图
+        total_height = height * len(images)
+        merged_image = Image.new('RGB', (width, total_height), 'white')
+        
+        # 逐一粘贴图片
+        current_y = 0
+        for img in images:
+            merged_image.paste(img, (0, current_y))
+            current_y += height
+        
+        # 保存合并后的图片
+        output_buffer = io.BytesIO()
+        merged_image.save(output_buffer, format='PNG')
+        output_buffer.seek(0)
+        
+        # 生成文件名
+        from datetime import datetime
+        timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
+        filename = f"merged_enrollment_certificate_{student_name}_{order_code}_{timestamp}.png"
+        
+        # 将图片转换为base64
+        merged_base64 = base64.b64encode(output_buffer.getvalue()).decode()
+        
+        return jsonify({
+            'success': True,
+            'image': merged_base64,
+            'filename': filename,
+            'width': width,
+            'height': total_height,
+            'page_count': len(images)
+        })
+        
+    except Exception as e:
+        print(f"合并页面失败: {str(e)}")
+        return jsonify({'error': f'合并失败: {str(e)}'}), 500
 
 if __name__ == '__main__':
     with app.app_context():
+        # 确保数据库表存在
         db.create_all()
+        
+        # 创建默认管理员用户
         create_admin_user()
-        # 初始化cookies自动检测
-        init_cookies_auto_check()
+        
+        # 启动Cookies自动检测
+        start_cookies_auto_check()
     
+    # 在生产环境中，应该使用更安全的配置
     app.run(debug=True, host='0.0.0.0', port=8080) 

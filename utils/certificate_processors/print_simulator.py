@@ -641,6 +641,15 @@ class ProofPrintSimulator:
         
         # 退费类凭证的特殊处理
         if biz_type == 3:  # 退班凭证
+            # 检查是否是新的退班凭证数据结构（包含DataBand）
+            if 'ClassAndCardArray' in data and 'Student' in data:
+                print("检测到退班凭证的完整结构，使用专门的退班凭证处理器")
+                try:
+                    from .withdrawal_certificate import generate_withdrawal_certificate
+                    return generate_withdrawal_certificate(data)
+                except ImportError as e:
+                    print(f"导入退班凭证处理器失败: {str(e)}")
+                    # 继续使用原有的处理方式
             processed_data['证件类型'] = '退班凭证'
         elif biz_type == 8:  # 退费凭证
             processed_data['证件类型'] = '退费凭证'

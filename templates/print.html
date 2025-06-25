@@ -824,6 +824,9 @@ function showMultiPagePreview(data) {
                         <button class="btn btn-success btn-sm me-2" onclick="downloadAllPages(${JSON.stringify(data).replace(/"/g, '&quot;')})">
                             <i class="fas fa-download"></i> 下载全部
                         </button>
+                        <button class="btn btn-info btn-sm me-2" onclick="downloadMergedPages(${JSON.stringify(data).replace(/"/g, '&quot;')})">
+                            <i class="fas fa-images"></i> 合并下载
+                        </button>
                         <button class="btn btn-primary btn-sm" onclick="printAllPages(${JSON.stringify(data).replace(/"/g, '&quot;')})">
                             <i class="fas fa-print"></i> 打印全部
                         </button>
@@ -892,6 +895,82 @@ function downloadAllPages(data) {
     
     // 显示提示
     alert(`正在下载${data.page_count}个文件，请稍候...`);
+}
+
+// 合并下载所有页面为一个长图
+function downloadMergedPages(data) {
+    if (!data.images || data.images.length === 0) {
+        alert('没有可合并的图片');
+        return;
+    }
+    
+    if (data.images.length === 1) {
+        // 只有一页，直接下载
+        downloadImage(data.images[0], data.filenames[0]);
+        return;
+    }
+    
+    // 显示加载提示
+    const loadingAlert = document.createElement('div');
+    loadingAlert.className = 'alert alert-info position-fixed top-0 start-50 translate-middle-x mt-3';
+    loadingAlert.style.zIndex = '9999';
+    loadingAlert.innerHTML = `
+        <div class="d-flex align-items-center">
+            <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+            正在合并${data.page_count}页图片，请稍候...
+        </div>
+    `;
+    document.body.appendChild(loadingAlert);
+    
+    // 调用后端API合并图片
+    fetch('/merge_and_download_pages', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            images: data.images,
+            order_code: data.order_code || 'merged',
+            student_name: data.student_name || 'unknown'
+        })
+    })
+    .then(response => response.json())
+    .then(result => {
+        // 移除加载提示
+        document.body.removeChild(loadingAlert);
+        
+        if (result.success) {
+            // 下载合并后的图片
+            downloadImage(result.image, result.filename);
+            
+            // 显示成功提示
+            const successAlert = document.createElement('div');
+            successAlert.className = 'alert alert-success position-fixed top-0 start-50 translate-middle-x mt-3';
+            successAlert.style.zIndex = '9999';
+            successAlert.innerHTML = `
+                <i class="fas fa-check-circle me-2"></i>
+                已合并${result.page_count}页为一个图片 (${result.width}x${result.height})
+            `;
+            document.body.appendChild(successAlert);
+            
+            // 3秒后自动移除提示
+            setTimeout(() => {
+                if (document.body.contains(successAlert)) {
+                    document.body.removeChild(successAlert);
+                }
+            }, 3000);
+        } else {
+            alert('合并失败: ' + result.error);
+        }
+    })
+    .catch(error => {
+        // 移除加载提示
+        if (document.body.contains(loadingAlert)) {
+            document.body.removeChild(loadingAlert);
+        }
+        alert('合并失败，请重试');
+        console.error('合并错误:', error);
+    });
 }
 
 // 打印全部页面

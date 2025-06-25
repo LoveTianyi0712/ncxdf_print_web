@@ -113,9 +113,20 @@ class CertificateManager:
     
     def _generate_withdrawal_certificate(self, data, currency_symbol):
         """生成退班凭证"""
-        # TODO: 实现退班凭证处理器
-        print("退班凭证处理器尚未实现，使用回退方法")
-        return self._fallback_generate(3, data, currency_symbol)
+        try:
+            # 检查是否是退班凭证的数据结构（包含DataBand）
+            if 'ClassAndCardArray' in data and 'Student' in data:
+                print("检测到退班凭证的完整结构，使用专门的退班凭证处理器")
+                from utils.certificate_processors.withdrawal_certificate import generate_withdrawal_certificate
+                return generate_withdrawal_certificate(data, currency_symbol)
+            else:
+                # 使用回退方法
+                print("使用回退方法处理退班凭证")
+                return self._fallback_generate(3, data, currency_symbol)
+        except ImportError as e:
+            print(f"导入退班凭证处理器失败: {str(e)}")
+            # 回退到旧的方法
+            return self._fallback_generate(3, data, currency_symbol)
     
     def _generate_refund_fee_certificate(self, data, currency_symbol):
         """生成退费凭证"""

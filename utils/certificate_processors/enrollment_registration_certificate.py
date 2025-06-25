@@ -103,9 +103,18 @@ class EnrollmentRegistrationCertificateProcessor:
         processed_data.setdefault('BizType', '报班')
         processed_data.setdefault('sChannel', '直营')
         processed_data.setdefault('sPayType', '现金')
-        processed_data.setdefault('sOperator', '系统')
-        processed_data.setdefault('dtCreate', get_beijing_time_str())
-        processed_data.setdefault('feedBackTitle', '客服热线：400-000-0000')
+        # 强制使用本系统的时间和操作员，替换接收的数据
+        processed_data['dtCreate'] = get_beijing_time_str()
+        
+        # 根据当前用户设置操作员信息
+        from flask_login import current_user
+        if current_user and hasattr(current_user, 'name') and current_user.name:
+            processed_data['sOperator'] = current_user.name
+        elif current_user and hasattr(current_user, 'username'):
+            processed_data['sOperator'] = current_user.username
+        else:
+            processed_data['sOperator'] = '系统操作员'
+        processed_data.setdefault('feedBackTitle', '')
         processed_data.setdefault('feedBackImg', '')
         processed_data.setdefault('microServiceTitle', '微信公众号：XXXXX')
         processed_data.setdefault('microServiceImg', '')
@@ -758,11 +767,15 @@ class EnrollmentRegistrationCertificateProcessor:
         if len(digits_only) == 11:  # 标准11位手机号
             # 前3位 + 4个星号 + 后4位
             return digits_only[:3] + '****' + digits_only[7:]
-        elif len(digits_only) >= 7:  # 其他长度的号码
+        elif len(digits_only) == 7:  # 7位号码特殊处理
+            # 前3位 + 4个星号
+            return digits_only[:3] + '****' + digits_only[3:]
+        elif len(digits_only) >= 8:  # 8位及以上的其他号码
             # 保留前3位和后4位，中间用星号
             front = digits_only[:3]
             back = digits_only[-4:]
-            stars = '*' * (len(digits_only) - 7)
+            stars_count = max(4, len(digits_only) - 7)  # 至少4个星号
+            stars = '*' * stars_count
             return front + stars + back
         else:
             return mobile  # 太短的号码不处理
@@ -774,6 +787,11 @@ class EnrollmentRegistrationCertificateProcessor:
         try:
             text = component.get('text', '')
             if not text:
+                return
+            
+            # 如果文本包含"联系电话"或"客服热线"，直接跳过不渲染
+            if '联系电话' in text or '客服热线' in text:
+                print(f"跳过联系电话/客服热线组件: {text}")
                 return
             
             original_text = text  # 保存原始文本用于调试
@@ -810,10 +828,12 @@ class EnrollmentRegistrationCertificateProcessor:
                     text = text.replace('{ArrayList.Student.sMobile}', masked_mobile)
                     print(f"处理手机号: {original_text} -> {text}")
             elif '{ArrayList.sTelePhone}' in text:
-                # 处理联系电话字段
-                phone = data.get('sTelePhone', '')
-                text = text.replace('{ArrayList.sTelePhone}', phone)
-                print(f"处理联系电话: {original_text} -> {text}")
+                # 处理联系电话字段 - 删除联系电话显示
+                text = text.replace('{ArrayList.sTelePhone}', '')
+                print(f"删除联系电话: {original_text} -> {text}")
+                # 如果处理后的文本为空或只包含空白字符，直接返回不渲染
+                if not text.strip():
+                    return
             elif text.startswith('{ArrayList.'):
                 # 处理其他动态字段
                 field_name = text.strip('{}')
@@ -1373,10 +1393,10 @@ def create_mock_data(num_classes=4):
         "sChannel": "直营",
         "sPayType": "现金支付",
         "sSchoolName": "南昌新东方培训学校",
-        "sTelePhone": "400-000-0000",
+        "sTelePhone": "",
         "sOperator": "张三",
         "dtCreate": get_beijing_time_str(),
-        "feedBackTitle": "客服热线：400-000-0000",
+        "feedBackTitle": "",
         "feedBackImg": "",
         "microServiceTitle": "微信公众号：XXXXX",
         "microServiceImg": "",
@@ -1544,10 +1564,10 @@ def test_multiple_classes():
             "sChannel": "直营",
             "sPayType": "现金支付",
             "sSchoolName": "南昌新东方培训学校",
-            "sTelePhone": "400-000-0000",
+            "sTelePhone": "",
             "sOperator": "张三",
             "dtCreate": get_beijing_time_str(),
-            "feedBackTitle": "客服热线：400-000-0000",
+            "feedBackTitle": "",
             "feedBackImg": "",
             "microServiceTitle": "微信公众号：XXXXX",
             "microServiceImg": "",

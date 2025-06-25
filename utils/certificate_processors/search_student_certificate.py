@@ -348,17 +348,18 @@ def search_ORDER(cookies, order_code):
         result = []
         for p in response.json()['Data']['Data']:
             try:
-                # 根据操作类型确定业务类型
-                biz_type = 1 if p.get('operateType') == '报班' else 3  # 1=报班凭证, 3=退班凭证
-                biz_name = '报班凭证' if p.get('operateType') == '报班' else '退班凭证'
-                tips = getProofByBizType(cookies, biz_type, p['batchCode'])
-                if tips:
-                    result.append({
-                        'biz_type': biz_type,
-                        'biz_name': biz_name,
-                        'data': tips,
-                        'description': generate_certificate_description(biz_type, tips)
-                    })
+                # 只处理报班凭证，过滤掉退班凭证
+                if p.get('operateType') == '报班':
+                    biz_type = 1  # 报班凭证
+                    biz_name = '报班凭证'
+                    tips = getProofByBizType(cookies, biz_type, p['batchCode'])
+                    if tips:
+                        result.append({
+                            'biz_type': biz_type,
+                            'biz_name': biz_name,
+                            'data': tips,
+                            'description': generate_certificate_description(biz_type, tips)
+                        })
             except:
                 continue
         return result
@@ -804,7 +805,7 @@ def search_student(cookies, current_user, student_code):
                     "nSchoolId": 35,
                     "sSchoolName": "南昌学校",
                     "sTelePhone": "400-175-9898",
-                    "sOperator": current_user.username,
+                    "sOperator": current_user.name if current_user.name else current_user.username,
                     "dtCreate": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                     "Title": "提现凭证",
                     "PrintNumber": 1,
@@ -814,6 +815,7 @@ def search_student(cookies, current_user, student_code):
                     "sStudentName": B['StudentName'],
                     "sGender": s_gender,
                     "dSumBalance": f"余额：¥{B['Balance']}",
+                    "sOperationAmount": f"提现金额：¥{B['Pay']}",
                     "sPayType": f"{B['PayTypeName']}：{B['PayTypeName']}¥{B['Pay']}",
                     "dtCreateDate": B['TransactionTime'],
                     "sProofName": "学员账户充值提现凭证",
@@ -832,7 +834,7 @@ def search_student(cookies, current_user, student_code):
                     "nSchoolId": 35,
                     "sSchoolName": "南昌学校",
                     "sTelePhone": "400-175-9898",
-                    "sOperator": current_user.username,
+                    "sOperator": current_user.name if current_user.name else current_user.username,
                     "dtCreate": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                     "Title": "充值凭证",
                     "PrintNumber": 1,
@@ -842,6 +844,7 @@ def search_student(cookies, current_user, student_code):
                     "sStudentName": B['StudentName'],
                     "sGender": s_gender,
                     "dSumBalance": f"余额：¥{B['Balance']}",
+                    "sOperationAmount": f"充值金额：¥{B['Pay']}",
                     "sPayType": f"{B['PayTypeName']}：{B['PayTypeName']}¥{B['Pay']}",
                     "dtCreateDate": B['TransactionTime'],
                     "sProofName": "学员账户充值凭证",
@@ -856,22 +859,10 @@ def search_student(cookies, current_user, student_code):
                 }
                 data.append(c)
     
-    # 7.3 添加报班/退班凭证
+    # 7.3 添加报班凭证（过滤掉退班数据）
     for C in order_data:
-        if C['batchStatusName'] == '交易成功' and C['operateType'] == '退班':
-            try:
-                F = getProofByBizType(cookies, 3, C['batchCode'])  # 3 = 退班凭证
-                if F:
-                    data.append({
-                        'biz_type': 3,
-                        'biz_name': '退班凭证',
-                        'data': F,
-                        'description': generate_certificate_description(3, F)
-                    })
-            except Exception as e:
-                print(f"获取退班凭证失败: {str(e)}")
-                continue
-        elif C['batchStatusName'] == '交易成功' and C['operateType'] == '报班':
+        # 只处理报班数据，退班数据不显示
+        if C['batchStatusName'] == '交易成功' and C['operateType'] == '报班':
             try:
                 F = getProofByBizType(cookies, 1, C['batchCode'])  # 1 = 报班凭证
                 if F:
